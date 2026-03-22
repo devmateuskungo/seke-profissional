@@ -46,7 +46,7 @@ export async function GET(
 
     return NextResponse.json(data)
   } catch (err) {
-    if (err instanceof Error && err.message.includes("URL_API")) {
+    if (err instanceof Error && err.message.includes("NEXT_PUBLIC_URL_API")) {
       return NextResponse.json(
         { message: "Configuração do servidor incompleta." } satisfies ApiErrorResponse,
         { status: 503 }

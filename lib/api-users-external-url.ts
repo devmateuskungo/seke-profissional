@@ -6,9 +6,9 @@ export function buildExternalUserSubResourceUrl(
   userId: string,
   subPath: string
 ): string {
-  const raw = process.env.URL_API?.trim()
+  const raw = process.env.NEXT_PUBLIC_URL_API?.trim()
   if (!raw) {
-    throw new Error("URL_API não configurada no .env")
+    throw new Error("NEXT_PUBLIC_URL_API não configurada no .env")
   }
   const baseUrl = raw.replace(/\/$/, "")
   const prefix =

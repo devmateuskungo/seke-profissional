@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import type { ApiErrorResponse } from "@/types/auth"
 
 const getBaseUrl = (): string => {
-  const url = process.env.URL_API?.trim()
+  const url = process.env.NEXT_PUBLIC_URL_API?.trim()
   if (!url) {
-    throw new Error("URL_API não configurada no .env")
+    throw new Error("NEXT_PUBLIC_URL_API não configurada no .env")
   }
   return url.replace(/\/$/, "")
 }
@@ -12,7 +12,7 @@ const getBaseUrl = (): string => {
 /**
  * GET /api/users/:id — perfil público (proxy).
  * Encaminha `Authorization` opcional para `is_following`.
- * Path no backend: `{URL_API}{prefix}/{id}` — predefinição `prefix=/users` (ex.: `/users/42`).
+ * Path no backend: `{NEXT_PUBLIC_URL_API}{prefix}/{id}` — predefinição `prefix=/users` (ex.: `/users/42`).
  * Para `/api/users/:id` no backend: `API_USERS_BY_ID_PREFIX=/api/users`
  */
 export async function GET(
@@ -63,7 +63,7 @@ export async function GET(
 
     return NextResponse.json(data)
   } catch (err) {
-    if (err instanceof Error && err.message.includes("URL_API")) {
+    if (err instanceof Error && err.message.includes("NEXT_PUBLIC_URL_API")) {
       return NextResponse.json(
         { message: "Configuração do servidor incompleta." } satisfies ApiErrorResponse,
         { status: 503 }

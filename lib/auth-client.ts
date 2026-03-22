@@ -34,7 +34,7 @@ export interface LoginFailure {
 export type LoginOutcome = LoginResult | LoginFailure
 
 /**
- * Envia credenciais para o endpoint de login (usa API route que lê URL_API do .env).
+ * Envia credenciais para o endpoint de login (usa API route que lê NEXT_PUBLIC_URL_API do .env).
  * Retorna resultado tipado ou falha com mensagem.
  */
 export async function loginWithCredentials(
@@ -71,7 +71,7 @@ export type RegisterOutcome =
   | { success: false; error: string; statusCode?: number }
 
 /**
- * Registo de nova conta (usa API route que chama URL_API/auth/register).
+ * Registo de nova conta (usa API route que chama NEXT_PUBLIC_URL_API/auth/register).
  */
 export async function registerWithCredentials(
   payload: RegisterRequest

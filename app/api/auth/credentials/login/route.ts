@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from "next/server"
 import type { LoginRequest, LoginResponse, ApiErrorResponse } from "@/types/auth"
 
 const getBaseUrl = (): string => {
-  const url = process.env.URL_API?.trim()
+  const url = process.env.NEXT_PUBLIC_URL_API?.trim()
   if (!url) {
-    throw new Error("URL_API não configurada no .env")
+    throw new Error("NEXT_PUBLIC_URL_API não configurada no .env")
   }
   return url
 }
 
-/** POST /api/auth/credentials/login - Proxy para a API externa usando URL_API */
+/** POST /api/auth/credentials/login - Proxy para a API externa usando NEXT_PUBLIC_URL_API */
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as LoginRequest
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(data as LoginResponse)
   } catch (err) {
-    if (err instanceof Error && err.message.includes("URL_API")) {
+    if (err instanceof Error && err.message.includes("NEXT_PUBLIC_URL_API")) {
       return NextResponse.json(
         { message: "Configuração do servidor incompleta." } satisfies ApiErrorResponse,
         { status: 503 }
