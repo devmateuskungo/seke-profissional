@@ -17,9 +17,9 @@ export const lightTheme: Theme = {
   },
 
   typography: {
-    // Alinhado a `next/font` Geist no layout — uma única família em todo o produto
+    // Alinhado a `next/font` no layout — Inter como base (Poppins para títulos via CSS)
     fontFamily:
-      'var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif',
+      'var(--font-inter), ui-sans-serif, system-ui, sans-serif',
     fontSize: {
       small: "14px", // Small
       body: "16px", // Body

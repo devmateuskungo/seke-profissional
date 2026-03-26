@@ -256,8 +256,8 @@ function DetalhesUserContent() {
   const following = profile.stats?.following ?? 0
 
   return (
-    <div className="min-h-screen bg-muted/40 pt-20 font-sans text-foreground">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 p-4 md:p-6 lg:grid-cols-12">
+    <div className="">
+      <div className="mx-auto grid  grid-cols-1 gap-6 p-4 md:p-6 lg:grid-cols-12">
         <aside className="space-y-6 lg:col-span-3">
           <Card>
             <h3 className="mb-4 text-sm font-bold">Actividades</h3>

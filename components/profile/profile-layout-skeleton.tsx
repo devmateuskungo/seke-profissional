@@ -42,12 +42,12 @@ export function NetworkListSkeleton({ rows = 6 }: { rows?: number }) {
 export function ProfileLayoutSkeleton() {
   return (
     <div
-      className="min-h-screen bg-muted/40 pt-20 font-sans text-foreground"
+      className="font-sans text-foreground"
       role="status"
       aria-busy="true"
       aria-label="A carregar perfil"
     >
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 p-4 md:p-6 lg:grid-cols-12">
+      <div className="mx-auto grid grid-cols-1 gap-6 p-4 lg:grid-cols-12">
         <aside className="space-y-6 lg:col-span-3">
           <Card>
             <Skeleton className="mb-4 h-4 w-28" />
@@ -133,7 +133,7 @@ export function ProfileLayoutSkeleton() {
             </div>
           </Card>
 
-          <Card className="min-h-[320px]">
+          <Card className="min-h-[400px]">
             <div className="mb-8 flex justify-between">
               <Skeleton className="h-6 w-40" />
             </div>

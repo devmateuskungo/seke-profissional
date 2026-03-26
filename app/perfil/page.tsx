@@ -459,8 +459,8 @@ export default function PerfilPage() {
       : displayUser.username ?? "—"
 
   return (
-    <div className="min-h-screen bg-muted/40 pt-20 font-sans text-foreground">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 p-4 md:p-6 lg:grid-cols-12">
+    <div className="">
+      <div className="mx-auto grid  grid-cols-1 gap-6 p-4  lg:grid-cols-12">
           {/* Sidebar esquerda */}
           <aside className="space-y-6 lg:col-span-3">
            

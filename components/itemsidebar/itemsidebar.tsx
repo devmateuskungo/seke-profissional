@@ -25,7 +25,6 @@ import {
   User,
   Settings,
 } from "lucide-react"
-import { DashboardHeader } from "@/components/itemnavbar/dashboard-header"
 import ItemChatWidget from "@/components/itemChatWidget/itemChatWidget"
 
 interface SidebarProfissionalProps {
@@ -35,6 +34,16 @@ interface SidebarProfissionalProps {
 export default function SidebarProfissional({ children }: SidebarProfissionalProps) {
   const pathname = usePathname()
   const isChatPage = pathname === "/profissional/mensagens"
+
+  if (isChatPage) {
+    return (
+      <SidebarProvider defaultOpen>
+        <SidebarInset>
+          {children}
+        </SidebarInset>
+      </SidebarProvider>
+    )
+  }
 
   return (
     <SidebarProvider defaultOpen>
@@ -114,7 +123,6 @@ export default function SidebarProfissional({ children }: SidebarProfissionalPro
 
       {/* Área principal */}
       <SidebarInset>
-        <DashboardHeader />
         {children}
       </SidebarInset>
 

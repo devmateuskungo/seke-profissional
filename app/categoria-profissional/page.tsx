@@ -4,7 +4,7 @@ import ProfessionalList from "@/components/itemcardprofissionallistcategoria/Pro
 
 export default function CategoriaProfissional() {
   return (
-    <div className="container mx-auto  lg:px-8 mt-4 py-20 justify-center items-center">
+    <div className="container mx-auto  justify-center items-center">
         <BannerFindProfessional/>
 
         <div className="mt-4">

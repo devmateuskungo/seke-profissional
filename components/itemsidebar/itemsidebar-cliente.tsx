@@ -1,8 +1,6 @@
 "use client"
 
 import type { ReactNode } from "react"
-import { useEffect, useState } from "react"
-import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -28,15 +26,7 @@ import {
   Settings,
   UserPlus,
 } from "lucide-react"
-import { DashboardHeader } from "@/components/itemnavbar/dashboard-header"
 import ItemChatWidget from "@/components/itemChatWidget/itemChatWidget"
-
-interface StoredUserData {
-  id: string | number
-  name: string
-  email: string
-  image?: string
-}
 
 interface SidebarClienteProps {
   children: ReactNode
@@ -46,23 +36,15 @@ export default function SidebarCliente({ children }: SidebarClienteProps) {
   const pathname = usePathname()
   const isChatPage = pathname === "/clientes/mensagens"
 
-  const [user, setUser] = useState<StoredUserData | null>(null)
-
-  useEffect(() => {
-    if (typeof window === "undefined") return
-
-    const raw = window.sessionStorage.getItem("user_data")
-    if (!raw) return
-
-    try {
-      const parsed = JSON.parse(raw) as StoredUserData
-      setTimeout(() => {
-        setUser(parsed)
-      }, 0)
-    } catch {
-      // se der erro ao parsear, ignora e mantém avatar padrão
-    }
-  }, [])
+  if (isChatPage) {
+    return (
+      <SidebarProvider defaultOpen>
+        <SidebarInset>
+          {children}
+        </SidebarInset>
+      </SidebarProvider>
+    )
+  }
 
   return (
     <SidebarProvider defaultOpen>
@@ -154,7 +136,6 @@ export default function SidebarCliente({ children }: SidebarClienteProps) {
       </Sidebar>
 
       <SidebarInset>
-        <DashboardHeader />
         {children}
       </SidebarInset>
 

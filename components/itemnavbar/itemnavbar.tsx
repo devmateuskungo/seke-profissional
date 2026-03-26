@@ -27,9 +27,7 @@ export function Navbar() {
 
     // Ocultar navbar nas áreas que usam sidebar/topbar própria
     if (
-        pathname?.startsWith('/clientes') ||
-        pathname?.startsWith('/profissional') ||
-        pathname?.startsWith('/configuracoes')
+        (pathname?.startsWith('/configuracoes') && (isLoading || !isAuthenticated))
     ) {
         return null
     }
@@ -44,7 +42,7 @@ export function Navbar() {
 
     return (
         <>
-        <nav className="fixed top-0 left-0 right-0 z-50 border-b border-gray-200 bg-white/95 shadow-sm backdrop-blur supports-backdrop-filter:bg-white/80">
+        <nav className="fixed top-0 left-0 right-0 z-50 border-b border-gray-200 bg-white/95 shadow-sm backdrop-blur supports-backdrop-filter:bg-white/80 [&_a]:no-underline [&_a:hover]:no-underline [&_a:focus]:no-underline">
             <div className="mx-auto max-w-[1600px] px-3 sm:px-4 lg:px-8">
                 <div className="flex min-h-14 items-center gap-2 py-2 sm:min-h-16 sm:gap-3">
                     {/* Logo */}
@@ -87,28 +85,49 @@ export function Navbar() {
                             <Home size={18} className="shrink-0" aria-hidden />
                             <span className="hidden lg:inline">Home</span>
                         </Link>
-                        <Link
-                            href="/conexoes"
-                            className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-green-600 lg:gap-2 lg:px-2.5"
-                        >
-                            <Users size={18} className="shrink-0" aria-hidden />
-                            <span className="hidden lg:inline">Conexões</span>
-                        </Link>
-                        <Link
-                            href="/trabalhos"
-                            className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-green-600 lg:gap-2 lg:px-2.5"
-                        >
-                            <Briefcase size={18} className="shrink-0" aria-hidden />
-                            <span className="hidden lg:inline">Trabalhos</span>
-                        </Link>
-                        <button
-                            type="button"
-                            onClick={() => setExploreOpen(true)}
-                            className="flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-green-600 lg:gap-2 lg:px-2.5"
-                        >
-                            <Compass size={18} className="shrink-0" aria-hidden />
-                            <span className="hidden lg:inline">Explorar</span>
-                        </button>
+                        {isAuthenticated ? (
+                            <>
+                                <Link
+                                    href="/conexoes"
+                                    className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-green-600 lg:gap-2 lg:px-2.5"
+                                >
+                                    <Users size={18} className="shrink-0" aria-hidden />
+                                    <span className="hidden lg:inline">Conexões</span>
+                                </Link>
+                                <Link
+                                    href="/trabalhos"
+                                    className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-green-600 lg:gap-2 lg:px-2.5"
+                                >
+                                    <Briefcase size={18} className="shrink-0" aria-hidden />
+                                    <span className="hidden lg:inline">Trabalhos</span>
+                                </Link>
+                                <button
+                                    type="button"
+                                    onClick={() => setExploreOpen(true)}
+                                    className="flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-green-600 lg:gap-2 lg:px-2.5"
+                                >
+                                    <Compass size={18} className="shrink-0" aria-hidden />
+                                    <span className="hidden lg:inline">Explorar</span>
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <Link
+                                    href="/?filtro=solicitacoes"
+                                    className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-green-600 lg:gap-2 lg:px-2.5"
+                                >
+                                    <Users size={18} className="shrink-0" aria-hidden />
+                                    <span className="hidden lg:inline">Solicitações</span>
+                                </Link>
+                                <Link
+                                    href="/?filtro=profissionais"
+                                    className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-green-600 lg:gap-2 lg:px-2.5"
+                                >
+                                    <Briefcase size={18} className="shrink-0" aria-hidden />
+                                    <span className="hidden lg:inline">Profissionais</span>
+                                </Link>
+                            </>
+                        )}
                     </div>
 
                     {/* Ações à direita */}
@@ -166,33 +185,56 @@ export function Navbar() {
                                 <Home size={20} className="shrink-0 text-gray-500" aria-hidden />
                                 Home
                             </Link>
-                            <Link
-                                href="/conexoes"
-                                className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-green-600"
-                                onClick={() => setIsMenuOpen(false)}
-                            >
-                                <Users size={20} className="shrink-0 text-gray-500" aria-hidden />
-                                Conexões
-                            </Link>
-                            <Link
-                                href="/trabalhos"
-                                className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-green-600"
-                                onClick={() => setIsMenuOpen(false)}
-                            >
-                                <Briefcase size={20} className="shrink-0 text-gray-500" aria-hidden />
-                                Trabalhos
-                            </Link>
-                            <button
-                                type="button"
-                                className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-left text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-green-600"
-                                onClick={() => {
-                                    setIsMenuOpen(false)
-                                    setExploreOpen(true)
-                                }}
-                            >
-                                <Compass size={20} className="shrink-0 text-gray-500" aria-hidden />
-                                Explorar
-                            </button>
+                            {isAuthenticated ? (
+                                <>
+                                    <Link
+                                        href="/conexoes"
+                                        className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-green-600"
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        <Users size={20} className="shrink-0 text-gray-500" aria-hidden />
+                                        Conexões
+                                    </Link>
+                                    <Link
+                                        href="/trabalhos"
+                                        className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-green-600"
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        <Briefcase size={20} className="shrink-0 text-gray-500" aria-hidden />
+                                        Trabalhos
+                                    </Link>
+                                    <button
+                                        type="button"
+                                        className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-left text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-green-600"
+                                        onClick={() => {
+                                            setIsMenuOpen(false)
+                                            setExploreOpen(true)
+                                        }}
+                                    >
+                                        <Compass size={20} className="shrink-0 text-gray-500" aria-hidden />
+                                        Explorar
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <Link
+                                        href="/?filtro=solicitacoes"
+                                        className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-green-600"
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        <Users size={20} className="shrink-0 text-gray-500" aria-hidden />
+                                        Solicitações
+                                    </Link>
+                                    <Link
+                                        href="/?filtro=profissionais"
+                                        className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-green-600"
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        <Briefcase size={20} className="shrink-0 text-gray-500" aria-hidden />
+                                        Profissionais
+                                    </Link>
+                                </>
+                            )}
 
                             <div className="border-t border-gray-100 pt-3 md:hidden">
                                 {!isLoading && (

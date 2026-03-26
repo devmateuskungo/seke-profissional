@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState, useMemo, useEffect, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import HeroSection from "@/components/itemheaderpost/itemheaderpost";
 import ItemPostProfissonal from "@/components/itempostprofissional/itempostprofissional";
 import { ItemPostCriar } from "@/components/itempostcriar/itempostcriar";
@@ -108,9 +108,26 @@ const PROFISSIONAIS_MOCK: ProfissionalFeedRow[] = [
   }
 ];
 
-export default function Home() {
+function HomeInner() {
   const router = useRouter();
-  const [filtro, setFiltro] = useState<'todos' | 'solicitacoes' | 'profissionais'>('todos');
+  const searchParams = useSearchParams();
+  const [filtroLocal, setFiltroLocal] = useState<
+    'todos' | 'solicitacoes' | 'profissionais'
+  >('todos');
+
+  const filtroFromUrl = useMemo(() => {
+    const filtroParam = searchParams?.get('filtro')?.toLowerCase() ?? '';
+    if (
+      filtroParam === 'solicitacoes' ||
+      filtroParam === 'profissionais' ||
+      filtroParam === 'todos'
+    ) {
+      return filtroParam as 'todos' | 'solicitacoes' | 'profissionais';
+    }
+    return null;
+  }, [searchParams]);
+
+  const filtro = filtroFromUrl ?? filtroLocal;
 
   const [feedPosts, setFeedPosts] = useState<PostDetail[]>([]);
   const [feedPagination, setFeedPagination] = useState<GlobalFeedPagination>({
@@ -160,7 +177,7 @@ export default function Home() {
 
   const handleLoadMore = useCallback(() => {
     setFeedLoadingMore(true);
-    setFeedPage((p) => p + 1);
+    setFeedPage((previousPage) => previousPage + 1);
   }, []);
 
   const handlePostCreated = useCallback((post: PostRecord) => {
@@ -168,38 +185,40 @@ export default function Home() {
     if (detail) {
       setFeedPosts((prev) => {
         const id = String(detail.id);
-        const rest = prev.filter((p) => String(p.id) !== id);
+        const rest = prev.filter((postItem) => String(postItem.id) !== id);
         return [detail, ...rest];
       });
     }
     setFeedPage(1);
-    setFeedReloadKey((k) => k + 1);
+    setFeedReloadKey((previousKey) => previousKey + 1);
     setFeedLoading(true);
   }, []);
 
   const handleFeedPostUpdated = useCallback((detail: PostDetail) => {
     setFeedPosts((prev) =>
-      prev.map((p) => (String(p.id) === String(detail.id) ? detail : p))
+      prev.map((postItem) =>
+        String(postItem.id) === String(detail.id) ? detail : postItem
+      )
     );
   }, []);
 
   const handleFeedPostDeleted = useCallback((deletedId: string) => {
     setFeedPosts((prev) =>
-      prev.filter((p) => String(p.id) !== String(deletedId))
+      prev.filter((postItem) => String(postItem.id) !== String(deletedId))
     );
   }, []);
 
   const handleFeedLikeResult = useCallback(
     (postId: string, data: LikePostResponse) => {
       setFeedPosts((prev) =>
-        prev.map((p) =>
-          String(p.id) === String(postId)
+        prev.map((postItem) =>
+          String(postItem.id) === String(postId)
             ? {
-                ...p,
+                ...postItem,
                 liked_by_me: data.liked,
-                stats: { ...p.stats, likes: data.total_likes },
+                stats: { ...postItem.stats, likes: data.total_likes },
               }
-            : p
+            : postItem
         )
       );
     },
@@ -209,10 +228,10 @@ export default function Home() {
   const handleFeedFollowResult = useCallback(
     (authorUserId: string, data: FollowUserResponse) => {
       setFeedPosts((prev) =>
-        prev.map((p) =>
-          String(p.user.id) === String(authorUserId)
-            ? { ...p, following_author: data.following }
-            : p
+        prev.map((postItem) =>
+          String(postItem.user.id) === String(authorUserId)
+            ? { ...postItem, following_author: data.following }
+            : postItem
         )
       );
     },
@@ -223,13 +242,13 @@ export default function Home() {
     solicitacaoItems: FeedItem[],
     profissionalItems: FeedItem[]
   ): FeedItem[] => {
-    const out: FeedItem[] = [];
+    const interleaved: FeedItem[] = [];
     const n = Math.max(solicitacaoItems.length, profissionalItems.length);
     for (let i = 0; i < n; i++) {
-      if (i < solicitacaoItems.length) out.push(solicitacaoItems[i]);
-      if (i < profissionalItems.length) out.push(profissionalItems[i]);
+      if (i < solicitacaoItems.length) interleaved.push(solicitacaoItems[i]);
+      if (i < profissionalItems.length) interleaved.push(profissionalItems[i]);
     }
-    return out;
+    return interleaved;
   };
 
   const solicitacoesItems: FeedItem[] = useMemo(
@@ -239,8 +258,8 @@ export default function Home() {
 
   const profissionaisItemsApi: FeedItem[] = useMemo(
     () =>
-      feedPosts.map((p) =>
-        toProfissionalFeedItem(postDetailToProfissionalFeedRow(p))
+      feedPosts.map((postItem) =>
+        toProfissionalFeedItem(postDetailToProfissionalFeedRow(postItem))
       ),
     [feedPosts]
   );
@@ -283,7 +302,7 @@ export default function Home() {
       : PROFISSIONAIS_MOCK;
 
   return (
-    <div className="container mx-auto  lg:px-8 mt-4 py-20 justify-center items-center">
+    <div className="mt-4 justify-center items-center">
       <div className="flex gap-6">
         <aside
           className="hidden lg:block space-y-6"
@@ -312,18 +331,18 @@ export default function Home() {
               <HeroSection />
             </div>
 
-            <div className="px-4 sm:px-0 mt-4 mb-6">
+            <div className="mt-4 mb-6">
               <ItemPostCriar onSuccess={handlePostCreated} />
             </div>
 
-            <div>
-              <div className="flex items-center justify-between mb-3 mt-2">
+            <div className="mt-2">
+              <div className="flex items-center justify-between mb-3">
                 <h2 className="font-semibold text-gray-900">Filtro</h2>
               </div>
 
-              <div className="flex space-x-2">
+              <div className="flex gap-2">
                 <button
-                  onClick={() => setFiltro('todos')}
+                  onClick={() => setFiltroLocal('todos')}
                   className={`flex-1 py-2  rounded-md text-sm font-medium cursor-pointer transition-colors ${filtro === 'todos'
                     ? 'bg-[#18B481] text-white'
                     : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
@@ -332,7 +351,7 @@ export default function Home() {
                   Todos ({contarTodos})
                 </button>
                 <button
-                  onClick={() => setFiltro('solicitacoes')}
+                  onClick={() => setFiltroLocal('solicitacoes')}
                   className={`flex-1 flex items-center justify-center cursor-pointer space-x-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${filtro === 'solicitacoes'
                     ? 'bg-[#18B481] text-white'
                     : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
@@ -342,7 +361,7 @@ export default function Home() {
                   <span>Clientes ({contarSolicitacoes})</span>
                 </button>
                 <button
-                  onClick={() => setFiltro('profissionais')}
+                  onClick={() => setFiltroLocal('profissionais')}
                   className={`flex-1 flex items-center justify-center cursor-pointer space-x-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${filtro === 'profissionais'
                     ? 'bg-[#18B481] text-white'
                     : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
@@ -355,7 +374,7 @@ export default function Home() {
             </div>
 
             {feedError && (
-              <p className="text-sm text-destructive mt-4 px-4 sm:px-0" role="alert">
+              <p className="text-sm text-destructive mt-4" role="alert">
                 {feedError}
               </p>
             )}
@@ -469,4 +488,12 @@ export default function Home() {
       </div>
     </div>
   )
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">A carregar…</div>}>
+      <HomeInner />
+    </Suspense>
+  );
 }

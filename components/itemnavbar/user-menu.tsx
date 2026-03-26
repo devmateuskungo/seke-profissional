@@ -1,6 +1,6 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { signOut } from "next-auth/react"
 import { MessageCircle, User, Settings, LogOut, ChevronDown } from "lucide-react"
 import { DropdownMenu, Avatar } from "radix-ui"
@@ -24,11 +24,17 @@ function getDisplayHandle(name: string, email: string): string {
 
 export function UserMenu() {
   const router = useRouter()
+  const pathname = usePathname()
   const { user, logout } = useAuth()
 
   if (!user) return null
 
   const avatarSrc = resolveUserAvatarUrl(user.image)
+
+  const handleOpenMessages = () => {
+    const isProfissionalArea = pathname?.startsWith("/profissional")
+    router.push(isProfissionalArea ? "/profissional/mensagens" : "/clientes/mensagens")
+  }
 
   const handleLogout = async () => {
     const token =
@@ -49,7 +55,7 @@ export function UserMenu() {
     } finally {
       logout()
       await signOut({ redirect: false })
-      router.push("/auth/login")
+      router.push("/")
     }
   }
 
@@ -59,6 +65,7 @@ export function UserMenu() {
         type="button"
         className="p-2 text-gray-600 hover:text-green-600 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
         aria-label="Mensagens"
+        onClick={handleOpenMessages}
       >
         <MessageCircle size={20} />
       </button>
