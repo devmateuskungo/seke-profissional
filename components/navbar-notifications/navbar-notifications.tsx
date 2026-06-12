@@ -211,8 +211,8 @@ export function NavbarNotifications() {
         onClick={() => setOpen((o) => !o)}
         className={cn(
           "relative flex h-10 w-10 items-center justify-center rounded-full text-gray-600 transition-colors cursor-pointer",
-          "hover:bg-gray-100 hover:text-[#18B481]",
-          open && "bg-gray-100 text-[#18B481]"
+          "hover:bg-gray-100 hover:text-[#2b81e5]",
+          open && "bg-gray-100 text-[#2b81e5]"
         )}
         aria-label="Notificações"
         aria-expanded={open}
@@ -247,7 +247,7 @@ export function NavbarNotifications() {
                   type="button"
                   onClick={() => void handleMarkAllRead()}
                   disabled={markingAll}
-                  className="shrink-0 cursor-pointer text-xs font-medium text-[#18B481] hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="shrink-0 cursor-pointer text-xs font-medium text-[#2b81e5] hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {markingAll ? "A marcar…" : "Marcar todas"}
                 </button>
@@ -270,7 +270,7 @@ export function NavbarNotifications() {
                 className={cn(
                   "min-w-0 flex-1 cursor-pointer rounded-md px-1.5 py-2 text-center text-xs font-medium transition-colors",
                   listFilter === tab.id
-                    ? "text-[#18B481]"
+                    ? "text-[#2b81e5]"
                     : "text-gray-500 hover:text-gray-800"
                 )}
               >
@@ -278,7 +278,7 @@ export function NavbarNotifications() {
                   className={cn(
                     "inline-block w-full border-b-2 pb-1 transition-colors",
                     listFilter === tab.id
-                      ? "border-[#18B481]"
+                      ? "border-[#2b81e5]"
                       : "border-transparent"
                   )}
                 >
@@ -322,7 +322,7 @@ export function NavbarNotifications() {
                         "no-underline hover:no-underline focus:no-underline",
                         "hover:bg-gray-50",
                         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-300",
-                        !n.read && "border-l-[3px] border-l-[#18B481]"
+                        !n.read && "border-l-[3px] border-l-[#2b81e5]"
                       )}
                     >
                       <div className="relative shrink-0">

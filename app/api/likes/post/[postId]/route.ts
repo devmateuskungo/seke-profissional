@@ -110,7 +110,7 @@ export async function GET(
 }
 
 /**
- * POST /api/likes/post/:postId — proxy para POST …/likes/post/:postId
+ * POST /api/likes/post/:postId — proxy para POST …/likes/posts/:postId/like
  * Dar like numa publicação (Authorization obrigatório).
  * Resposta típica: { liked: true, total_likes: number }
  */
@@ -139,7 +139,7 @@ export async function POST(
     }
 
     const baseUrl = getBaseUrl()
-    const url = `${baseUrl}/likes/post/${encodeURIComponent(trimmed)}`
+    const url = `${baseUrl}/likes/posts/${encodeURIComponent(trimmed)}/like`
 
     const res = await fetch(url, {
       method: "POST",
@@ -200,7 +200,7 @@ export async function POST(
 }
 
 /**
- * DELETE /api/likes/post/:postId — proxy para DELETE …/likes/post/:postId
+ * DELETE /api/likes/post/:postId — proxy para DELETE …/likes/posts/:postId/like
  * Remover like (Authorization obrigatório).
  * Resposta típica: { liked: false, total_likes: number }
  */
@@ -229,7 +229,7 @@ export async function DELETE(
     }
 
     const baseUrl = getBaseUrl()
-    const url = `${baseUrl}/likes/post/${encodeURIComponent(trimmed)}`
+    const url = `${baseUrl}/likes/posts/${encodeURIComponent(trimmed)}/like`
 
     const res = await fetch(url, {
       method: "DELETE",

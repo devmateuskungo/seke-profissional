@@ -1,4 +1,5 @@
 import type { ApiErrorResponse } from "@/types/auth"
+import { parseLikedByMeFromObject } from "@/lib/parse-liked-by-me"
 import type { LikePostResponse, PostLikesListResponse } from "@/types/post"
 
 const LIKES_POST_API = "/api/likes/post"
@@ -11,27 +12,125 @@ export type FetchPostLikesOutcome =
   | { success: true; data: PostLikesListResponse }
   | { success: false; error: string; statusCode?: number }
 
-function unwrapLikesPayload(raw: unknown): unknown {
-  if (!raw || typeof raw !== "object") return raw
+function unwrapLikesPayload(raw: unknown, depth = 0): unknown {
+  if (depth > 6 || !raw || typeof raw !== "object") return raw
   const o = raw as Record<string, unknown>
-  if (o.data != null && typeof o.data === "object") return o.data
+  const inner = o.data ?? o.result ?? o.payload
+  if (inner != null && typeof inner === "object" && !Array.isArray(inner)) {
+    return unwrapLikesPayload(inner, depth + 1)
+  }
   return raw
 }
 
-function parseLikeResponse(raw: unknown): LikePostResponse | null {
+function parseBooleanish(v: unknown): boolean | undefined {
+  if (typeof v === "boolean") return v
+  if (typeof v === "number" && !Number.isNaN(v)) return v !== 0
+  if (typeof v === "string") {
+    const s = v.trim().toLowerCase()
+    if (s === "true" || s === "1" || s === "yes") return true
+    if (s === "false" || s === "0" || s === "no") return false
+  }
+  return undefined
+}
+
+function parseNumberish(v: unknown): number | undefined {
+  if (typeof v === "number" && !Number.isNaN(v)) return v
+  if (typeof v === "string" && v.trim()) {
+    const n = Number(v.trim())
+    if (!Number.isNaN(n)) return n
+  }
+  return undefined
+}
+
+function pickTotalLikesFromObject(o: Record<string, unknown>): number | undefined {
+  const topKeys = [
+    "total_likes",
+    "totalLikes",
+    "likes_count",
+    "like_count",
+    "likesCount",
+    "likeCount",
+    "likes",
+    "total",
+    "count",
+  ] as const
+  for (const k of topKeys) {
+    if (k in o) {
+      const n = parseNumberish(o[k])
+      if (n !== undefined) return n
+    }
+  }
+  const stats = o.stats
+  if (stats && typeof stats === "object" && !Array.isArray(stats)) {
+    const s = stats as Record<string, unknown>
+    for (const k of ["likes", "like_count", "total_likes", "totalLikes"]) {
+      const n = parseNumberish(s[k])
+      if (n !== undefined) return n
+    }
+  }
+  const post = o.post
+  if (post && typeof post === "object" && !Array.isArray(post)) {
+    const p = post as Record<string, unknown>
+    const st = p.stats
+    if (st && typeof st === "object" && !Array.isArray(st)) {
+      const n = parseNumberish((st as Record<string, unknown>).likes)
+      if (n !== undefined) return n
+    }
+  }
+  return undefined
+}
+
+function parseLikedFlagFromAction(o: Record<string, unknown>): boolean | undefined {
+  const a = o.action
+  if (typeof a !== "string") return undefined
+  const s = a.trim().toLowerCase()
+  if (s === "liked" || s === "like" || s === "created") return true
+  if (s === "unliked" || s === "unlike" || s === "removed" || s === "deleted") return false
+  return undefined
+}
+
+function parseLikedFlagFromObject(o: Record<string, unknown>): boolean | undefined {
+  const fromLiked = parseBooleanish(o.liked)
+  if (fromLiked !== undefined) return fromLiked
+  const fromAction = parseLikedFlagFromAction(o)
+  if (fromAction !== undefined) return fromAction
+  return parseLikedByMeFromObject(o)
+}
+
+type ParseLikeResponseOptions = {
+  /** Se a API não envia estado explícito, assume (ex.: POST → true, DELETE → false). */
+  defaultLiked?: boolean
+  /**
+   * Contagem de gostos já mostrada antes do pedido.
+   * Se a API não devolver total (`total_likes`, `likes`, etc.), calcula-se +1 / −1.
+   */
+  previousLikeCount?: number
+  /** Qual operação foi pedida — usado só quando falta total na resposta. */
+  mode?: "like" | "unlike"
+}
+
+function parseLikeResponse(
+  raw: unknown,
+  options?: ParseLikeResponseOptions
+): LikePostResponse | null {
   const payload = unwrapLikesPayload(raw)
   if (!payload || typeof payload !== "object") return null
   const o = payload as Record<string, unknown>
-  if (typeof o.liked !== "boolean") return null
-  const totalRaw = o.total_likes ?? o.totalLikes
-  const total =
-    typeof totalRaw === "number" && !Number.isNaN(totalRaw)
-      ? totalRaw
-      : typeof totalRaw === "string"
-        ? Number(totalRaw)
-        : NaN
-  if (Number.isNaN(total)) return null
-  return { liked: o.liked, total_likes: total }
+
+  let liked = parseLikedFlagFromObject(o)
+  let total = pickTotalLikesFromObject(o)
+
+  if (liked === undefined && options?.defaultLiked !== undefined) {
+    liked = options.defaultLiked
+  }
+  if (liked === undefined) return null
+
+  if (total === undefined && options?.previousLikeCount !== undefined && options.mode) {
+    const prev = options.previousLikeCount
+    total = options.mode === "like" ? prev + 1 : Math.max(0, prev - 1)
+  }
+  if (total === undefined) return null
+  return { liked, total_likes: total }
 }
 
 function parsePostLikesListResponse(raw: unknown): PostLikesListResponse | null {
@@ -121,13 +220,19 @@ export async function fetchPostLikes(
   return { success: true, data: parsed }
 }
 
+export type LikePostRequestOptions = {
+  /** Contagem atual de gostos no UI; usada se a API só devolver p.ex. `{ action, liked, like_id }`. */
+  previousLikeCount?: number
+}
+
 /**
  * POST /api/likes/post/:postId — dar like numa publicação (Authorization obrigatório).
- * Resposta: { liked, total_likes }
+ * Resposta: { liked, total_likes } ou formato mínimo (ex. `action` / `like_id`).
  */
 export async function likePost(
   postId: string,
-  token: string
+  token: string,
+  requestOptions?: LikePostRequestOptions
 ): Promise<LikePostOutcome> {
   const res = await fetch(
     `${LIKES_POST_API}/${encodeURIComponent(postId)}`,
@@ -156,7 +261,11 @@ export async function likePost(
     }
   }
 
-  const parsed = parseLikeResponse(raw)
+  const parsed = parseLikeResponse(raw, {
+    defaultLiked: true,
+    previousLikeCount: requestOptions?.previousLikeCount,
+    mode: "like",
+  })
   if (!parsed) {
     return {
       success: false,
@@ -170,11 +279,12 @@ export async function likePost(
 
 /**
  * DELETE /api/likes/post/:postId — remover like (Authorization obrigatório).
- * Resposta: { liked, total_likes }
+ * Resposta: { liked, total_likes } ou formato mínimo (ex. `action` / `like_id`).
  */
 export async function unlikePost(
   postId: string,
-  token: string
+  token: string,
+  requestOptions?: LikePostRequestOptions
 ): Promise<LikePostOutcome> {
   const res = await fetch(
     `${LIKES_POST_API}/${encodeURIComponent(postId)}`,
@@ -203,7 +313,11 @@ export async function unlikePost(
     }
   }
 
-  const parsed = parseLikeResponse(raw)
+  const parsed = parseLikeResponse(raw, {
+    defaultLiked: false,
+    previousLikeCount: requestOptions?.previousLikeCount,
+    mode: "unlike",
+  })
   if (!parsed) {
     return {
       success: false,

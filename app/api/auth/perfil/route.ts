@@ -13,7 +13,10 @@ const getBaseUrl = (): string => {
 export async function GET(request: NextRequest) {
   try {
     const baseUrl = getBaseUrl()
-    const perfilEndpoint = `${baseUrl}/auth/perfil`
+    /** Predefinição: `GET {NEXT_PUBLIC_URL_API}/users/profile`. Sobrescreva com `API_USERS_PROFILE_PATH` (ex. `/api/users/profile`). */
+    const path =
+      process.env.API_USERS_PROFILE_PATH?.trim() || "/users/profile"
+    const perfilEndpoint = `${baseUrl.replace(/\/$/, "")}${path.startsWith("/") ? path : `/${path}`}`
 
     const authorization = request.headers.get("authorization")
 

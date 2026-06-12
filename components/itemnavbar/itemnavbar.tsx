@@ -48,7 +48,7 @@ export function Navbar() {
                     {/* Logo */}
                     <div className="shrink-0">
                         <Link href="/" className="flex items-center py-1">
-                            <span className="text-xl font-bold text-green-600 sm:text-2xl">Logo</span>
+                            <span className="text-xl font-bold text-primary sm:text-2xl">Logo</span>
                         </Link>
                     </div>
 
@@ -80,7 +80,7 @@ export function Navbar() {
                     <div className="hidden min-w-0 flex-1 items-center justify-center gap-0.5 md:flex lg:gap-1">
                         <Link
                             href="/"
-                            className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-green-600 lg:gap-2 lg:px-2.5"
+                            className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-primary lg:gap-2 lg:px-2.5"
                         >
                             <Home size={18} className="shrink-0" aria-hidden />
                             <span className="hidden lg:inline">Home</span>
@@ -89,14 +89,14 @@ export function Navbar() {
                             <>
                                 <Link
                                     href="/conexoes"
-                                    className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-green-600 lg:gap-2 lg:px-2.5"
+                                    className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-primary lg:gap-2 lg:px-2.5"
                                 >
                                     <Users size={18} className="shrink-0" aria-hidden />
                                     <span className="hidden lg:inline">Conexões</span>
                                 </Link>
                                 <Link
                                     href="/trabalhos"
-                                    className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-green-600 lg:gap-2 lg:px-2.5"
+                                    className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-primary lg:gap-2 lg:px-2.5"
                                 >
                                     <Briefcase size={18} className="shrink-0" aria-hidden />
                                     <span className="hidden lg:inline">Trabalhos</span>
@@ -104,7 +104,7 @@ export function Navbar() {
                                 <button
                                     type="button"
                                     onClick={() => setExploreOpen(true)}
-                                    className="flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-green-600 lg:gap-2 lg:px-2.5"
+                                    className="flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-primary lg:gap-2 lg:px-2.5"
                                 >
                                     <Compass size={18} className="shrink-0" aria-hidden />
                                     <span className="hidden lg:inline">Explorar</span>
@@ -114,14 +114,14 @@ export function Navbar() {
                             <>
                                 <Link
                                     href="/?filtro=solicitacoes"
-                                    className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-green-600 lg:gap-2 lg:px-2.5"
+                                    className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-primary lg:gap-2 lg:px-2.5"
                                 >
                                     <Users size={18} className="shrink-0" aria-hidden />
                                     <span className="hidden lg:inline">Solicitações</span>
                                 </Link>
                                 <Link
                                     href="/?filtro=profissionais"
-                                    className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-green-600 lg:gap-2 lg:px-2.5"
+                                    className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-primary lg:gap-2 lg:px-2.5"
                                 >
                                     <Briefcase size={18} className="shrink-0" aria-hidden />
                                     <span className="hidden lg:inline">Profissionais</span>
@@ -164,7 +164,7 @@ export function Navbar() {
                         <button
                             type="button"
                             onClick={() => setIsMenuOpen(!isMenuOpen)}
-                            className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 hover:text-green-600 md:hidden"
+                            className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 hover:text-primary md:hidden"
                             aria-expanded={isMenuOpen}
                             aria-label={isMenuOpen ? "Fechar menu" : "Abrir menu"}
                         >
@@ -179,7 +179,7 @@ export function Navbar() {
                         <div className="max-h-[min(70vh,calc(100dvh-4rem))] space-y-1 overflow-y-auto px-2 py-3 pb-4">
                             <Link
                                 href="/"
-                                className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-green-600"
+                                className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-primary"
                                 onClick={() => setIsMenuOpen(false)}
                             >
                                 <Home size={20} className="shrink-0 text-gray-500" aria-hidden />
@@ -189,7 +189,7 @@ export function Navbar() {
                                 <>
                                     <Link
                                         href="/conexoes"
-                                        className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-green-600"
+                                        className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-primary"
                                         onClick={() => setIsMenuOpen(false)}
                                     >
                                         <Users size={20} className="shrink-0 text-gray-500" aria-hidden />
@@ -197,7 +197,7 @@ export function Navbar() {
                                     </Link>
                                     <Link
                                         href="/trabalhos"
-                                        className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-green-600"
+                                        className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-primary"
                                         onClick={() => setIsMenuOpen(false)}
                                     >
                                         <Briefcase size={20} className="shrink-0 text-gray-500" aria-hidden />
@@ -205,7 +205,7 @@ export function Navbar() {
                                     </Link>
                                     <button
                                         type="button"
-                                        className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-left text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-green-600"
+                                        className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-left text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-primary"
                                         onClick={() => {
                                             setIsMenuOpen(false)
                                             setExploreOpen(true)
@@ -219,7 +219,7 @@ export function Navbar() {
                                 <>
                                     <Link
                                         href="/?filtro=solicitacoes"
-                                        className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-green-600"
+                                        className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-primary"
                                         onClick={() => setIsMenuOpen(false)}
                                     >
                                         <Users size={20} className="shrink-0 text-gray-500" aria-hidden />
@@ -227,7 +227,7 @@ export function Navbar() {
                                     </Link>
                                     <Link
                                         href="/?filtro=profissionais"
-                                        className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-green-600"
+                                        className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-primary"
                                         onClick={() => setIsMenuOpen(false)}
                                     >
                                         <Briefcase size={20} className="shrink-0 text-gray-500" aria-hidden />

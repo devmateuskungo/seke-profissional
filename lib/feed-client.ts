@@ -3,8 +3,9 @@ import { parseLikedByMeFromPostLike } from "@/lib/parse-liked-by-me"
 import type { PostDetail } from "@/types/post"
 import type { GlobalFeedPagination, GlobalFeedResponse } from "@/types/feed"
 
-const FEED_GLOBAL_API = "/api/feed/global"
+const FEED_GLOBAL_API = "/api/posts/posts"
 const FEED_MAIN_API = "/api/feed"
+const FEED_EXPLORE_API = "/api/feed/explore"
 
 function parseNumberField(v: unknown): number | null {
   if (typeof v === "number" && !Number.isNaN(v)) return v
@@ -36,11 +37,14 @@ function pickContent(o: Record<string, unknown>): string {
     const v = o[k]
     if (typeof v === "string") return v
   }
+  if (typeof o.title === "string") return o.title
   return ""
 }
 
 function pickCreatedAt(o: Record<string, unknown>): string {
   const raw =
+    pickString(o.published_at) ??
+    pickString(o.publishedAt) ??
     pickString(o.created_at) ??
     pickString(o.createdAt) ??
     pickString(o.updated_at) ??
@@ -119,6 +123,51 @@ function parseFollowingAuthor(
   return undefined
 }
 
+function inferMediaKindFromUrl(url: string): "image" | "video" | null {
+  const lower = url.toLowerCase()
+  if (/\.(mp4|webm|mov|m4v|ogv)(\?|#|$)/i.test(lower)) return "video"
+  if (/\.(jpg|jpeg|png|gif|webp|avif|svg)(\?|#|$)/i.test(lower)) return "image"
+  if (lower.includes("/video/upload/")) return "video"
+  if (lower.includes("/image/upload/")) return "image"
+  return null
+}
+
+function parseMediaFromTuple(
+  tuple: unknown[]
+): { type: PostDetail["media_type"]; url: string | null } {
+  if (tuple.length < 2) return { type: null, url: null }
+  const rawType = tuple[0]
+  const rawUrl = tuple[1]
+  if (typeof rawUrl !== "string" || !rawUrl.trim()) {
+    return { type: null, url: null }
+  }
+  const url = rawUrl.trim()
+  const normalizedType =
+    typeof rawType === "string" ? rawType.trim().toLowerCase() : ""
+
+  if (normalizedType === "image" || normalizedType === "imagem") {
+    return { type: "image", url }
+  }
+  if (normalizedType === "video" || normalizedType === "vídeo") {
+    return { type: "video", url }
+  }
+
+  const inferred = inferMediaKindFromUrl(url)
+  if (inferred) return { type: inferred, url }
+
+  if (!/^https?:\/\//i.test(url)) {
+    return { type: null, url: null }
+  }
+
+  return { type: null, url: null }
+}
+
+function pickUrlFromText(value: unknown): string | null {
+  if (typeof value !== "string" || !value.trim()) return null
+  const match = value.match(/https?:\/\/\S+/i)
+  return match ? match[0].trim() : null
+}
+
 /**
  * Item de lista no feed — tolerante a formatos reais da API (ids numéricos, author, etc.).
  */
@@ -129,11 +178,13 @@ function parseFeedPostItem(raw: unknown): PostDetail | null {
     o = o.post as Record<string, unknown>
   }
 
-  const id = pickId(o.id) ?? pickId(o.post_id) ?? pickId(o.uuid)
+  const id = pickId(o.id) ?? pickId(o._id) ?? pickId(o.post_id) ?? pickId(o.uuid)
   if (!id) return null
 
   const content = pickContent(o)
   const created_at = pickCreatedAt(o)
+  const title =
+    typeof o.title === "string" && o.title.trim() ? o.title.trim() : null
 
   const userNestedForFollow =
     (o.user && typeof o.user === "object" ? (o.user as Record<string, unknown>) : null) ??
@@ -156,13 +207,39 @@ function parseFeedPostItem(raw: unknown): PostDetail | null {
         ? o.image
         : null
 
+  let mediaType: PostDetail["media_type"] = null
+  let mediaUrl: PostDetail["media_url"] = null
+  if (Array.isArray(o.midia) && o.midia.length >= 2) {
+    const parsed = parseMediaFromTuple(o.midia)
+    mediaType = parsed.type
+    mediaUrl = parsed.url
+  }
+  // Alguns itens chegam como `midia: "ofline"` mas trazem URL dentro de `content`.
+  if (!mediaUrl) {
+    const contentUrl = pickUrlFromText(o.content)
+    if (contentUrl) {
+      mediaType = "image"
+      mediaUrl = contentUrl
+    }
+  }
+  if (!mediaUrl && image) {
+    mediaType = "image"
+    mediaUrl = image
+  }
+
   const detail: PostDetail = {
     id,
     content,
     created_at,
     image,
+    media_type: mediaType,
+    media_url: mediaUrl,
     user,
     stats: { likes, comments },
+  }
+
+  if (title) {
+    detail.title = title
   }
 
   const likedByMe = parseLikedByMeFromPostLike(o)
@@ -181,6 +258,7 @@ function parseFeedPostItem(raw: unknown): PostDetail | null {
 /** Vários backends envolvem a lista em `posts`, `data.posts`, `items`, etc. */
 function extractPostsArray(body: Record<string, unknown>): unknown[] {
   if (Array.isArray(body.posts)) return body.posts
+  if (Array.isArray(body.data)) return body.data
 
   const data = body.data
   if (data && typeof data === "object") {
@@ -243,18 +321,30 @@ function parsePagination(
 
 function normalizePagination(p: Record<string, unknown>): GlobalFeedPagination {
   const page = parseNumberField(p.page) ?? 1
-  const limit = parseNumberField(p.limit) ?? 10
+  const limit =
+    parseNumberField(p.limit) ??
+    parseNumberField(p.per_page) ??
+    parseNumberField(p.pageSize) ??
+    10
   const total = parseNumberField(p.total) ?? undefined
   const total_pages =
     parseNumberField(p.total_pages) ??
     parseNumberField(p.totalPages) ??
     undefined
-  const has_more =
+  let has_more: boolean | undefined =
     typeof p.has_more === "boolean"
       ? p.has_more
       : typeof p.hasMore === "boolean"
         ? p.hasMore
         : undefined
+  if (
+    has_more === undefined &&
+    total_pages != null &&
+    total_pages > 0 &&
+    page > 0
+  ) {
+    has_more = page < total_pages
+  }
 
   return {
     page,
@@ -275,6 +365,33 @@ export interface FetchGlobalFeedOptions {
   page?: number
   limit?: number
   token?: string | null
+}
+
+/** Evita mostrar erros técnicos do backend (ex.: `undefined.user_id`) na UI. */
+function toUserFacingFeedError(message: string): string {
+  const trimmed = message.trim()
+  if (!trimmed) return "Não foi possível carregar o feed."
+
+  if (
+    /cannot read properties of undefined/i.test(trimmed) &&
+    /user_id/i.test(trimmed)
+  ) {
+    return "Não foi possível carregar o feed. Tente novamente em instantes."
+  }
+
+  if (/cannot read properties of/i.test(trimmed)) {
+    return "Não foi possível carregar o feed."
+  }
+
+  return trimmed
+}
+
+function shouldTryFeedFallback(outcome: FetchGlobalFeedOutcome): boolean {
+  if (outcome.success) return false
+  const status = outcome.statusCode
+  if (status != null && status >= 500) return true
+  const msg = outcome.error.toLowerCase()
+  return msg.includes("user_id") || msg.includes("cannot read properties")
 }
 
 async function fetchFeedFromUrl(
@@ -313,10 +430,11 @@ async function fetchFeedFromUrl(
 
   if (!res.ok) {
     const data = raw as ApiErrorResponse
-    const message =
+    const message = toUserFacingFeedError(
       typeof data.message === "string"
         ? data.message
         : "Não foi possível carregar o feed."
+    )
     return {
       success: false,
       error: message,
@@ -350,7 +468,7 @@ async function fetchFeedFromUrl(
 }
 
 /**
- * GET /api/feed/global — feed global (posts recentes; token opcional).
+ * GET /api/posts/posts — lista global de publicações (token opcional no proxy).
  */
 export async function fetchGlobalFeed(
   options: FetchGlobalFeedOptions = {}
@@ -365,4 +483,41 @@ export async function fetchMainFeed(
   options: FetchGlobalFeedOptions = {}
 ): Promise<FetchGlobalFeedOutcome> {
   return fetchFeedFromUrl(FEED_MAIN_API, options, true)
+}
+
+/**
+ * GET /api/feed/explore — feed público para visitantes (token opcional no proxy).
+ */
+export async function fetchExploreFeed(
+  options: FetchGlobalFeedOptions = {}
+): Promise<FetchGlobalFeedOutcome> {
+  return fetchFeedFromUrl(FEED_EXPLORE_API, options, false)
+}
+
+/**
+ * Feed da home: com sessão usa `/api/feed`; sem sessão tenta explore e, se falhar,
+ * lista global de posts (`/api/posts/posts`).
+ */
+export async function fetchHomeFeed(
+  options: FetchGlobalFeedOptions = {}
+): Promise<FetchGlobalFeedOutcome> {
+  const token = options.token?.trim() ?? ""
+
+  if (token) {
+    const main = await fetchMainFeed(options)
+    if (main.success) return main
+    if (shouldTryFeedFallback(main)) {
+      const global = await fetchGlobalFeed(options)
+      if (global.success) return global
+    }
+    return main
+  }
+
+  const explore = await fetchExploreFeed(options)
+  if (explore.success) return explore
+  if (shouldTryFeedFallback(explore)) {
+    const global = await fetchGlobalFeed(options)
+    if (global.success) return global
+  }
+  return explore
 }

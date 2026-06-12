@@ -6,7 +6,7 @@ import { lightTheme } from "@/style/light"
 export function ConfirmationStep() {
     return (
         <div className="flex flex-col gap-4 text-center py-8">
-            <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                 <Check size={32} style={{ color: lightTheme.colors.primary }} />
             </div>
 

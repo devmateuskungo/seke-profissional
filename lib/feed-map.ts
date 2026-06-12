@@ -21,17 +21,37 @@ function deriveTitulo(content: string): string {
   return line.length > 80 ? `${line.slice(0, 80)}…` : line
 }
 
+function inferMediaKindFromUrl(url: string): "image" | "video" | null {
+  const lower = url.toLowerCase()
+  if (/\.(mp4|webm|mov|m4v|ogv)(\?|#|$)/i.test(lower)) return "video"
+  if (/\.(jpg|jpeg|png|gif|webp|avif|svg)(\?|#|$)/i.test(lower)) return "image"
+  if (lower.includes("/video/upload/")) return "video"
+  if (lower.includes("/image/upload/")) return "image"
+  return null
+}
+
 /** Converte um post da API para o cartão de profissional do feed. */
 export function postDetailToProfissionalFeedRow(post: PostDetail): ProfissionalFeedRow {
+  const author = post.user ?? {
+    id: "unknown",
+    name: "Utilizador",
+    avatar: null,
+  }
+  const titulo =
+    typeof post.title === "string" && post.title.trim()
+      ? post.title.trim()
+      : deriveTitulo(post.content)
   const props: ItemPostProfissonalProps = {
-    nome: post.user.name,
+    nome: author.name ?? "Utilizador",
     data: formatFeedDate(post.created_at),
     descricao: post.content,
-    titulo: deriveTitulo(post.content),
-    imagemPerfil: resolveUserAvatarUrl(post.user.avatar),
-    imagemPost: post.image?.trim() || undefined,
-    curtidas: post.stats.likes,
-    authorUserId: post.user.id,
+    titulo,
+    imagemPerfil: resolveUserAvatarUrl(author.avatar),
+    imagemPost: (post.media_type === "image" ? post.media_url : post.image)?.trim() || undefined,
+    mediaType: post.media_type ?? null,
+    mediaUrl: post.media_url ?? null,
+    curtidas: post.stats?.likes ?? 0,
+    authorUserId: author.id,
     likedByMe: post.liked_by_me === true,
     followingAuthor: post.following_author === true,
   }
@@ -68,6 +88,31 @@ export function postRecordToPostDetail(post: PostRecord): PostDetail | null {
       : typeof post.image === "string"
         ? post.image
         : null
+  let mediaType: PostDetail["media_type"] = null
+  let mediaUrl: PostDetail["media_url"] = null
+  if (Array.isArray(raw.midia) && raw.midia.length >= 2) {
+    const first = String(raw.midia[0]).trim().toLowerCase()
+    const second = typeof raw.midia[1] === "string" ? raw.midia[1].trim() : ""
+    if (second) {
+      if (first === "image" || first === "imagem") {
+        mediaType = "image"
+        mediaUrl = second
+      } else if (first === "video" || first === "vídeo") {
+        mediaType = "video"
+        mediaUrl = second
+      } else if (/^https?:\/\//i.test(second)) {
+        const inferred = inferMediaKindFromUrl(second)
+        if (inferred) {
+          mediaType = inferred
+          mediaUrl = second
+        }
+      }
+    }
+  }
+  if (!mediaUrl && image) {
+    mediaType = "image"
+    mediaUrl = image
+  }
 
   let user: PostDetail["user"] = {
     id: "me",
@@ -115,11 +160,19 @@ export function postRecordToPostDetail(post: PostRecord): PostDetail | null {
     }
   }
 
+  const title =
+    typeof raw.title === "string" && raw.title.trim()
+      ? raw.title.trim()
+      : null
+
   return {
     id,
     content,
+    ...(title ? { title } : {}),
     created_at,
     image,
+    media_type: mediaType,
+    media_url: mediaUrl,
     user,
     stats: { likes: 0, comments: 0 },
   }

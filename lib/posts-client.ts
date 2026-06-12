@@ -5,15 +5,189 @@ import type {
   CreatePostRequest,
   CreatePostResponse,
   DeletePostResponse,
+  MyPostSummary,
+  MyPostsPagination,
   PostDetail,
   UpdatePostRequest,
 } from "@/types/post"
 
 const POSTS_API = "/api/posts"
 
+/**
+ * Raiz da API externa (igual a `getBaseUrl()` nas API routes): costuma ser
+ * `https://host.../api` — os paths de posts são relativos a isto (`/posts/...`).
+ * O upload vive em `/apiextern/...` na raiz do host, não sob `/api`.
+ */
+const EXTERNAL_API_BASE_URL = (
+  process.env.NEXT_PUBLIC_URL_API?.trim() || "https://api-seke-v1.onrender.com/api"
+).replace(/\/+$/, "")
+
+const CREATE_POST_API = `${EXTERNAL_API_BASE_URL}/posts/posts/createpost`
+const ALL_MY_POSTS_API = `${EXTERNAL_API_BASE_URL}/posts/allmyposts`
+const PUBLISH_POST_API = `${EXTERNAL_API_BASE_URL}/posts/posts/setpublished`
+const UPLOAD_MEDIA_API = new URL(
+  "/apiextern/upload",
+  `${EXTERNAL_API_BASE_URL}/`
+).toString()
+
+/** Mesmo corpo JSON que POST createpost — reutilizado em PUT setpublished. */
+function buildCreatePostRequestBody(payload: CreatePostRequest) {
+  const normalizedMidia =
+    Array.isArray(payload.midia) && payload.midia.length > 0
+      ? payload.midia
+      : payload.image
+        ? ["image", payload.image]
+        : []
+
+  return {
+    title: payload.title ?? "",
+    content: payload.content,
+    midia: normalizedMidia,
+    ...(payload.image ? { image: payload.image } : {}),
+  }
+}
+
 export type CreatePostOutcome =
   | { success: true; data: CreatePostResponse }
   | { success: false; error: string; statusCode?: number }
+
+export type PublishPostOutcome =
+  | { success: true; data: unknown }
+  | { success: false; error: string; statusCode?: number }
+
+export type UploadMediaOutcome =
+  | { success: true; data: { url: string } }
+  | { success: false; error: string; statusCode?: number }
+
+function normalizeCreatePostResponse(raw: unknown): CreatePostResponse | null {
+  if (!raw || typeof raw !== "object") return null
+
+  const top = raw as Record<string, unknown>
+  if (top.post && typeof top.post === "object" && top.post !== null) {
+    return { post: top.post as CreatePostResponse["post"] }
+  }
+
+  if (top.data && typeof top.data === "object" && top.data !== null) {
+    const data = top.data as Record<string, unknown>
+    if (data.post && typeof data.post === "object" && data.post !== null) {
+      return { post: data.post as CreatePostResponse["post"] }
+    }
+    return { post: data as CreatePostResponse["post"] }
+  }
+
+  return { post: top as CreatePostResponse["post"] }
+}
+
+function pickUploadedUrl(raw: unknown): string | null {
+  if (typeof raw === "string") {
+    const trimmed = raw.trim()
+    return trimmed ? trimmed : null
+  }
+
+  if (Array.isArray(raw)) {
+    // Formato comum de media: ["image" | "video", "https://..."]
+    if (raw.length >= 2 && typeof raw[1] === "string" && raw[1].trim()) {
+      return raw[1].trim()
+    }
+    for (const item of raw) {
+      const nested = pickUploadedUrl(item)
+      if (nested) return nested
+    }
+    return null
+  }
+
+  if (!raw || typeof raw !== "object") return null
+  const o = raw as Record<string, unknown>
+
+  const directCandidates = [
+    o.url,
+    o.secure_url,
+    o.secureUrl,
+    o.media_url,
+    o.mediaUrl,
+    o.file_url,
+    o.fileUrl,
+    o.download_url,
+    o.downloadUrl,
+    o.location,
+    o.path,
+    o.image,
+    o.file,
+  ]
+  for (const c of directCandidates) {
+    if (typeof c === "string" && c.trim()) return c.trim()
+  }
+
+  const tupleCandidates = [o.midia, o.media, o.urls]
+  for (const candidate of tupleCandidates) {
+    const nested = pickUploadedUrl(candidate)
+    if (nested) return nested
+  }
+
+  const nestedCandidates = [
+    o.arquivo,
+    o.data,
+    o.result,
+    o.upload,
+    o.response,
+    o.payload,
+    o.file,
+  ]
+  for (const candidate of nestedCandidates) {
+    const nested = pickUploadedUrl(candidate)
+    if (nested) return nested
+  }
+
+  return null
+}
+
+/**
+ * Upload de ficheiro para Cloudinary via proxy interno do Next.
+ * Endpoint do cliente: POST /api/upload (campo multipart: "arquivo").
+ */
+export async function uploadMediaToCloudinary(
+  file: File,
+  token: string
+): Promise<UploadMediaOutcome> {
+  const formData = new FormData()
+  formData.append("arquivo", file, file.name)
+
+  const res = await fetch(UPLOAD_MEDIA_API, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  })
+
+  const raw = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    const data = raw as ApiErrorResponse
+    const message =
+      typeof data.message === "string" && data.message.trim()
+        ? data.message
+        : "Não foi possível enviar o ficheiro."
+    return {
+      success: false,
+      error: message,
+      statusCode: res.status,
+    }
+  }
+
+  const url = pickUploadedUrl(raw)
+  if (!url) {
+    return {
+      success: false,
+      error: "Upload concluído, mas a API não devolveu URL do ficheiro.",
+      statusCode: res.status,
+    }
+  }
+
+  return {
+    success: true,
+    data: { url },
+  }
+}
 
 /**
  * Cria uma publicação (texto + imagem opcional em base64/data URL).
@@ -23,21 +197,17 @@ export async function createPost(
   payload: CreatePostRequest,
   token: string
 ): Promise<CreatePostOutcome> {
-  const res = await fetch(POSTS_API, {
+  const res = await fetch(CREATE_POST_API, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({
-      content: payload.content,
-      ...(payload.image ? { image: payload.image } : {}),
-    }),
+    body: JSON.stringify(buildCreatePostRequestBody(payload)),
   })
 
-  const data = (await res.json().catch(() => ({}))) as
-    | CreatePostResponse
-    | ApiErrorResponse
+  const raw = await res.json().catch(() => ({}))
+  const data = raw as ApiErrorResponse
 
   if (!res.ok) {
     const message =
@@ -51,7 +221,8 @@ export async function createPost(
     }
   }
 
-  if (!("post" in data) || data.post == null) {
+  const normalized = normalizeCreatePostResponse(raw)
+  if (!normalized) {
     return {
       success: false,
       error: "Resposta inválida do servidor.",
@@ -61,7 +232,61 @@ export async function createPost(
 
   return {
     success: true,
-    data: data as CreatePostResponse,
+    data: normalized,
+  }
+}
+
+function pickEntityId(raw: unknown): string | null {
+  if (!raw || typeof raw !== "object") return null
+  const o = raw as Record<string, unknown>
+  const id = o.id
+  if (typeof id === "string" && id.trim()) return id.trim()
+  if (typeof id === "number" && !Number.isNaN(id)) return String(id)
+  return null
+}
+
+/**
+ * Publica um rascunho criado anteriormente.
+ * Envia no body o mesmo JSON que POST createpost (`title`, `content`, `midia`, `image` opcional).
+ * Endpoint externo: PUT (relativo a NEXT_PUBLIC_URL_API) `.../posts/posts/setpublished/:id`
+ */
+export async function publishPost(
+  postId: string,
+  payload: CreatePostRequest,
+  token: string
+): Promise<PublishPostOutcome> {
+  const trimmedId = postId.trim()
+  if (!trimmedId) {
+    return {
+      success: false,
+      error: "ID do post inválido para publicar.",
+    }
+  }
+
+  const endpoint = `${PUBLISH_POST_API}/${encodeURIComponent(trimmedId)}`
+  const res = await fetch(endpoint, {
+    method: "PUT",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(buildCreatePostRequestBody(payload)),
+  })
+
+  const raw = await res.json().catch(() => ({}))
+  if (res.ok) {
+    return { success: true, data: raw }
+  }
+
+  const data = raw as ApiErrorResponse
+  return {
+    success: false,
+    error:
+      typeof data.message === "string" && data.message.trim()
+        ? data.message
+        : "Não foi possível publicar a publicação.",
+    statusCode: res.status,
   }
 }
 
@@ -190,10 +415,7 @@ function parseNumberField(v: unknown): number | null {
 }
 
 function pickPostId(o: Record<string, unknown>): string | null {
-  const v = o.id
-  if (typeof v === "string" && v.trim()) return v.trim()
-  if (typeof v === "number" && !Number.isNaN(v)) return String(v)
-  return null
+  return pickEntityId(o)
 }
 
 function pickUserId(u: Record<string, unknown>): string | null {
@@ -315,11 +537,28 @@ function parsePostDetail(
         ? o.image
         : null
 
+  let mediaType: PostDetail["media_type"] = null
+  let mediaUrl: PostDetail["media_url"] = null
+  if (Array.isArray(o.midia) && o.midia.length >= 2) {
+    const first = o.midia[0]
+    const second = o.midia[1]
+    if ((first === "image" || first === "video") && typeof second === "string" && second.trim()) {
+      mediaType = first
+      mediaUrl = second.trim()
+    }
+  }
+  if (!mediaUrl && image) {
+    mediaType = "image"
+    mediaUrl = image
+  }
+
   const detail: PostDetail = {
     id,
     content,
     created_at,
     image,
+    media_type: mediaType,
+    media_url: mediaUrl,
     user,
     stats: { likes, comments },
   }
@@ -330,6 +569,120 @@ function parsePostDetail(
   }
 
   return detail
+}
+
+function pickOptionalNumericId(
+  v: unknown
+): number | string | null | undefined {
+  if (v === null) return null
+  if (v === undefined) return undefined
+  if (typeof v === "number" && !Number.isNaN(v)) return v
+  if (typeof v === "string") return v
+  return undefined
+}
+
+function parseMyPostSummary(raw: unknown): MyPostSummary | null {
+  if (!raw || typeof raw !== "object") return null
+  const o = raw as Record<string, unknown>
+  if (o.id == null) return null
+
+  const midia = Array.isArray(o.midia)
+    ? o.midia.filter((x): x is string => typeof x === "string")
+    : undefined
+
+  const created_at = pickCreatedAt(o)
+
+  let published_at: string | null | undefined
+  if (o.published_at === null) published_at = null
+  else if (typeof o.published_at === "string") published_at = o.published_at
+
+  return {
+    id: o.id as number | string,
+    author_id: pickOptionalNumericId(o.author_id),
+    author_name: typeof o.author_name === "string" ? o.author_name : null,
+    title: typeof o.title === "string" ? o.title : null,
+    content: typeof o.content === "string" ? o.content : "",
+    slug: typeof o.slug === "string" ? o.slug : null,
+    midia,
+    status: typeof o.status === "string" ? o.status : undefined,
+    views_count: typeof o.views_count === "number" ? o.views_count : undefined,
+    published_at,
+    created_at,
+    updated_at: typeof o.updated_at === "string" ? o.updated_at : null,
+    user_id: pickOptionalNumericId(o.user_id),
+  }
+}
+
+function parseMyPostsPagination(raw: unknown): MyPostsPagination | undefined {
+  if (!raw || typeof raw !== "object") return undefined
+  const p = raw as Record<string, unknown>
+  const total = typeof p.total === "number" ? p.total : undefined
+  const page = typeof p.page === "number" ? p.page : undefined
+  const totalPages = typeof p.totalPages === "number" ? p.totalPages : undefined
+  if (
+    total === undefined ||
+    page === undefined ||
+    totalPages === undefined
+  ) {
+    return undefined
+  }
+  return { total, page, totalPages }
+}
+
+export type FetchAllMyPostsOutcome =
+  | {
+      success: true
+      data: MyPostSummary[]
+      pagination?: MyPostsPagination
+    }
+  | { success: false; error: string; statusCode?: number }
+
+/**
+ * GET …/posts/allmyposts na API externa — lista as publicações do utilizador autenticado.
+ */
+export async function fetchAllMyPosts(
+  token: string
+): Promise<FetchAllMyPostsOutcome> {
+  const res = await fetch(ALL_MY_POSTS_API, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    cache: "no-store",
+  })
+
+  const raw = await res.json().catch(() => ({}))
+
+  if (!res.ok) {
+    const data = raw as ApiErrorResponse
+    return {
+      success: false,
+      error:
+        typeof data.message === "string" && data.message.trim()
+          ? data.message
+          : "Não foi possível carregar as suas publicações.",
+      statusCode: res.status,
+    }
+  }
+
+  const root = raw as Record<string, unknown>
+  const arr = root.data
+  const items: MyPostSummary[] = []
+  if (Array.isArray(arr)) {
+    for (const row of arr) {
+      const parsed = parseMyPostSummary(row)
+      if (parsed) items.push(parsed)
+    }
+  }
+
+  const pagination = parseMyPostsPagination(root.pagination)
+
+  return {
+    success: true,
+    data: items,
+    ...(pagination ? { pagination } : {}),
+  }
 }
 
 /**

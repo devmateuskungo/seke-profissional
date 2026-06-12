@@ -89,9 +89,9 @@ export function ExploreRightPanel({ open, onClose }: ExploreRightPanelProps) {
                 <Link
                   href={href}
                   onClick={onClose}
-                  className="flex items-center gap-3 rounded-lg border border-gray-100 bg-gray-50/80 px-3 py-3 text-sm font-medium text-gray-800 transition-colors hover:border-[#18B481]/40 hover:bg-[#18B481]/5 hover:text-[#18B481]"
+                  className="flex items-center gap-3 rounded-lg border border-gray-100 bg-gray-50/80 px-3 py-3 text-sm font-medium text-gray-800 transition-colors hover:border-[#2b81e5]/40 hover:bg-[#2b81e5]/5 hover:text-[#2b81e5]"
                 >
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-white text-[#18B481] shadow-sm ring-1 ring-gray-100">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-white text-[#2b81e5] shadow-sm ring-1 ring-gray-100">
                     <Icon className="size-5" aria-hidden />
                   </span>
                   {label}

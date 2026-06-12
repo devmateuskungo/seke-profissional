@@ -5,15 +5,15 @@ import { MessageCircle, Minimize2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-/** Cores do projeto (light.ts): primary #18B481, surface #F9FAFB, border #ECEFF3, text #111827, textSecondary #6B7280 */
+/** Cores do projeto (light.ts): primary #2b81e5, surface #ffffff, border #c7ddf6, text #192f52, textSecondary #214b87 */
 const CHAT_COLORS = {
-  primary: "#18B481",
-  primaryHover: "#159a6f",
-  surface: "#F9FAFB",
-  background: "#FFFFFF",
-  border: "#ECEFF3",
-  text: "#111827",
-  textSecondary: "#6B7280",
+  primary: "#2b81e5",
+  primaryHover: "#236bd2",
+  surface: "#ffffff",
+  background: "#f0f8fe",
+  border: "#c7ddf6",
+  text: "#192f52",
+  textSecondary: "#214b87",
 };
 
 interface ItemChatWidgetProps {

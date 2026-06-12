@@ -38,6 +38,67 @@ export async function GET(request: NextRequest) {
       cache: "no-store",
     })
 
+    // Algumas versões da API não expõem /notifications/unread-count.
+    // Neste caso, usamos o endpoint de listagem e reaproveitamos unread_count.
+    if (res.status === 404) {
+      const fallbackUrl = `${baseUrl}/notifications?page=1&limit=1&unread_only=true`
+      const fallbackRes = await fetch(fallbackUrl, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          Authorization: authorization,
+        },
+        cache: "no-store",
+      })
+
+      const fallbackText = await fallbackRes.text().catch(() => "")
+      if (!fallbackRes.ok) {
+        let message = "Não foi possível obter o contador."
+        if (fallbackText.trim()) {
+          try {
+            const err = JSON.parse(fallbackText) as { message?: string }
+            if (typeof err.message === "string" && err.message) message = err.message
+          } catch {
+            /* ignore */
+          }
+        }
+        return NextResponse.json(
+          { message } satisfies ApiErrorResponse,
+          { status: fallbackRes.status }
+        )
+      }
+
+      if (!fallbackText.trim()) {
+        return NextResponse.json({ count: 0 })
+      }
+
+      try {
+        const parsed = JSON.parse(fallbackText) as {
+          unread_count?: unknown
+          unreadCount?: unknown
+          data?: { unread_count?: unknown; unreadCount?: unknown }
+        }
+        const rawCount =
+          parsed.unread_count ??
+          parsed.unreadCount ??
+          parsed.data?.unread_count ??
+          parsed.data?.unreadCount
+
+        const count =
+          typeof rawCount === "number"
+            ? rawCount
+            : typeof rawCount === "string"
+              ? Number(rawCount)
+              : 0
+
+        return NextResponse.json({
+          count: Number.isFinite(count) && count >= 0 ? Math.floor(count) : 0,
+        })
+      } catch {
+        return NextResponse.json({ count: 0 })
+      }
+    }
+
     const text = await res.text().catch(() => "")
 
     if (!res.ok) {

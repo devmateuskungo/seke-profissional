@@ -61,7 +61,7 @@ export function UserMenu() {
     <div className="flex items-center gap-2">
       <button
         type="button"
-        className="p-2 text-gray-600 hover:text-green-600 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+        className="p-2 text-gray-600 hover:text-primary hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
         aria-label="Mensagens"
         onClick={handleOpenMessages}
       >
@@ -72,7 +72,7 @@ export function UserMenu() {
         <DropdownMenu.Trigger asChild>
           <button
             type="button"
-            className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 cursor-pointer transition-colors"
+            className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 cursor-pointer transition-colors"
             aria-label="Menu do utilizador"
           >
             <Avatar.Root className="inline-flex h-8 w-8 shrink-0 select-none items-center justify-center overflow-hidden rounded-full bg-gray-200 text-xs font-medium">

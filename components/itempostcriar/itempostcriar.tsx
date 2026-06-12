@@ -1,21 +1,28 @@
 "use client"
 
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import Image from "next/image"
-import { ImagePlus, Loader2, Send, X } from "lucide-react"
+import { ImagePlus, Loader2, Send, Video, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/toaster"
-import { compressImageToJpegDataUrl } from "@/lib/compress-image-client"
 import { useAuth } from "@/lib/use-auth"
 import { resolveUserAvatarUrl, userAvatarSrcUnoptimized } from "@/lib/user-avatar"
 import { cn } from "@/lib/utils"
-import { createPost } from "@/lib/posts-client"
+import { createPost, publishPost, uploadMediaToCloudinary } from "@/lib/posts-client"
 import type { PostRecord } from "@/types/post"
 
-/** Ficheiro original até 12 MB; o envio usa JPEG comprimido (muito menor que PNG em base64). */
+/** Limites de ficheiro aceites antes do upload para Cloudinary. */
 const MAX_FILE_BYTES = 12 * 1024 * 1024
+const MAX_VIDEO_BYTES = 80 * 1024 * 1024
 
 export interface ItemPostCriarProps {
   /** Chamado após criar com sucesso (recebe o objeto `post` da API) */
@@ -26,16 +33,82 @@ export interface ItemPostCriarProps {
 export function ItemPostCriar({ onSuccess, className }: ItemPostCriarProps) {
   const toast = useToast()
   const { user, isAuthenticated } = useAuth()
+  const [open, setOpen] = useState(false)
   const [content, setContent] = useState("")
-  const [imageDataUrl, setImageDataUrl] = useState<string | null>(null)
+  const [mediaType, setMediaType] = useState<"image" | "video" | null>(null)
+  const [videoFile, setVideoFile] = useState<File | null>(null)
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null)
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null)
   const [isCompressingImage, setIsCompressingImage] = useState(false)
+  const [isLoadingVideo, setIsLoadingVideo] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
-  const clearImage = useCallback(() => {
-    setImageDataUrl(null)
-  }, [])
+  const clearMedia = useCallback(() => {
+    setMediaType(null)
+    setImageFile(null)
+    setVideoFile(null)
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl)
+    }
+    setImagePreviewUrl(null)
+    if (videoPreviewUrl) {
+      URL.revokeObjectURL(videoPreviewUrl)
+    }
+    setVideoPreviewUrl(null)
+  }, [imagePreviewUrl, videoPreviewUrl])
 
-  const onFileChange = useCallback(
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl)
+      }
+      if (videoPreviewUrl) {
+        URL.revokeObjectURL(videoPreviewUrl)
+      }
+    }
+  }, [imagePreviewUrl, videoPreviewUrl])
+
+  const onVideoFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      e.target.value = ""
+      if (!file) return
+
+      if (!file.type.startsWith("video/")) {
+        toast.error("Selecione um ficheiro de vídeo.")
+        return
+      }
+      if (file.size > MAX_VIDEO_BYTES) {
+        toast.error("O vídeo deve ter no máximo 80 MB.")
+        return
+      }
+
+      setIsLoadingVideo(true)
+      try {
+        if (videoPreviewUrl) {
+          URL.revokeObjectURL(videoPreviewUrl)
+        }
+        if (imagePreviewUrl) {
+          URL.revokeObjectURL(imagePreviewUrl)
+        }
+        setMediaType("video")
+        setImageFile(null)
+        setImagePreviewUrl(null)
+        setVideoFile(file)
+        setVideoPreviewUrl(URL.createObjectURL(file))
+      } catch (err) {
+        const msg =
+          err instanceof Error ? err.message : "Não foi possível processar o vídeo."
+        toast.error(msg)
+      } finally {
+        setIsLoadingVideo(false)
+      }
+    },
+    [imagePreviewUrl, toast, videoPreviewUrl]
+  )
+
+  const onImageFileChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0]
       e.target.value = ""
@@ -52,8 +125,17 @@ export function ItemPostCriar({ onSuccess, className }: ItemPostCriarProps) {
 
       setIsCompressingImage(true)
       try {
-        const dataUrl = await compressImageToJpegDataUrl(file)
-        setImageDataUrl(dataUrl)
+        if (videoPreviewUrl) {
+          URL.revokeObjectURL(videoPreviewUrl)
+        }
+        if (imagePreviewUrl) {
+          URL.revokeObjectURL(imagePreviewUrl)
+        }
+        setMediaType("image")
+        setVideoFile(null)
+        setVideoPreviewUrl(null)
+        setImageFile(file)
+        setImagePreviewUrl(URL.createObjectURL(file))
       } catch (err) {
         const msg =
           err instanceof Error ? err.message : "Não foi possível processar a imagem."
@@ -62,18 +144,26 @@ export function ItemPostCriar({ onSuccess, className }: ItemPostCriarProps) {
         setIsCompressingImage(false)
       }
     },
-    [toast]
+    [imagePreviewUrl, toast, videoPreviewUrl]
   )
+
+  const resetDraft = useCallback(() => {
+    setContent("")
+    clearMedia()
+  }, [clearMedia])
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault()
 
-      const trimmed = content.trim()
+      const fullContent = content
+      const trimmed = fullContent.trim()
       if (!trimmed) {
         toast.error("Escreva algo sobre o seu trabalho.")
         return
       }
+      const firstLine = fullContent.split(/\r?\n/, 1)[0] ?? ""
+      const title = firstLine.trim()
 
       const token =
         typeof window !== "undefined"
@@ -87,18 +177,50 @@ export function ItemPostCriar({ onSuccess, className }: ItemPostCriarProps) {
 
       setIsLoading(true)
       try {
-        const result = await createPost(
-          {
-            content: trimmed,
-            ...(imageDataUrl ? { image: imageDataUrl } : {}),
-          },
-          token
-        )
+        let midia: string[] = []
+        let image: string | undefined
+        const selectedMedia = mediaType === "video" ? videoFile : imageFile
+
+        if (mediaType && selectedMedia) {
+          const upload = await uploadMediaToCloudinary(selectedMedia, token)
+          if (!upload.success) {
+            toast.error(upload.error)
+            return
+          }
+          midia = [mediaType, upload.data.url]
+          if (mediaType === "image") {
+            image = upload.data.url
+          }
+        }
+
+        const createPayload = {
+          title,
+          content: fullContent,
+          ...(midia.length > 0 ? { midia } : {}),
+          ...(image ? { image } : {}),
+        }
+
+        const result = await createPost(createPayload, token)
 
         if (result.success) {
-          toast.success("Publicação criada.")
-          setContent("")
-          setImageDataUrl(null)
+          const createdPostId =
+            typeof result.data.post.id === "string" || typeof result.data.post.id === "number"
+              ? String(result.data.post.id)
+              : null
+
+          if (createdPostId) {
+            const publish = await publishPost(createdPostId, createPayload, token)
+            if (!publish.success) {
+              toast.error("Publicação criada como rascunho. Publique para ficar visível.")
+            } else {
+              toast.success("Publicação criada e publicada.")
+            }
+          } else {
+            toast.success("Publicação criada.")
+          }
+
+          resetDraft()
+          setOpen(false)
           onSuccess?.(result.data.post)
           return
         }
@@ -110,14 +232,13 @@ export function ItemPostCriar({ onSuccess, className }: ItemPostCriarProps) {
         setIsLoading(false)
       }
     },
-    [content, imageDataUrl, onSuccess, toast]
+    [content, imageFile, mediaType, onSuccess, resetDraft, toast, videoFile]
   )
 
   if (!isAuthenticated) {
     return null
   }
 
-  const displayName = user?.name?.trim() || "Utilizador"
   const avatarSrc = resolveUserAvatarUrl(user?.image)
 
   return (
@@ -127,105 +248,158 @@ export function ItemPostCriar({ onSuccess, className }: ItemPostCriarProps) {
         className
       )}
     >
-      <form onSubmit={handleSubmit}>
-        <div className="p-4 pb-3">
-          <div className="flex gap-3">
-            <div className="size-11 shrink-0 overflow-hidden rounded-full bg-muted ring-1 ring-border/60">
-              <Image
-                src={avatarSrc}
-                alt=""
-                width={44}
-                height={44}
-                className="size-full object-cover"
-                unoptimized={userAvatarSrcUnoptimized(avatarSrc)}
-              />
-            </div>
-            <div className="min-w-0 flex-1 space-y-1">
-              <p className="truncate text-sm font-semibold leading-none text-foreground">
-                {displayName}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Visível no seu feed e no perfil
-              </p>
+      <div className="p-4">
+        <div className="flex items-center gap-3">
+          <div className="size-11 shrink-0 overflow-hidden rounded-full bg-muted ring-1 ring-border/60">
+            <Image
+              src={avatarSrc}
+              alt=""
+              width={44}
+              height={44}
+              className="size-full object-cover"
+              unoptimized={userAvatarSrcUnoptimized(avatarSrc)}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="h-11 w-full cursor-pointer rounded-full border border-border/70 bg-muted/30 px-4 text-left text-sm text-muted-foreground transition-colors hover:bg-muted/50"
+          >
+            Em que está a trabalhar?
+          </button>
+        </div>
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-2xl p-0 gap-0 overflow-hidden">
+          <form onSubmit={handleSubmit}>
+            <DialogHeader className="border-b border-border/60 px-4 py-3">
+              <DialogTitle>Criar publicação</DialogTitle>
+              <DialogDescription>
+                Partilhe texto e anexe imagem ou vídeo do seu computador.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="p-4 space-y-4">
               <Textarea
-                id="post-content"
-                placeholder="Em que está a trabalhar? Partilhe o projeto, dica ou atualização…"
+                id="post-content-modal"
+                placeholder="Escreva a sua publicação..."
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                rows={4}
-                disabled={isLoading || isCompressingImage}
-                className="mt-2 min-h-[100px] resize-none border-0 bg-muted/40 p-3 text-[15px] leading-relaxed shadow-none transition-colors placeholder:text-muted-foreground/80 focus-visible:bg-muted/60 focus-visible:ring-0 md:min-h-[88px]"
+                rows={6}
+                disabled={isLoading || isCompressingImage || isLoadingVideo}
+                className="min-h-[140px] resize-none"
               />
-            </div>
-          </div>
 
-          {imageDataUrl ? (
-            <div className="relative mt-4 overflow-hidden rounded-xl bg-muted ring-1 ring-border/50">
-              <div className="relative aspect-16/10 max-h-72 w-full">
-                <Image
-                  src={imageDataUrl}
-                  alt="Pré-visualização da publicação"
-                  fill
-                  className="object-contain"
-                  unoptimized
-                />
+              {mediaType === "video" && videoPreviewUrl ? (
+                <div className="relative overflow-hidden rounded-xl bg-black ring-1 ring-border/50">
+                  <div className="relative aspect-16/10 max-h-80 w-full">
+                    <video
+                      src={videoPreviewUrl}
+                      controls
+                      className="h-full w-full object-contain"
+                      preload="metadata"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon"
+                    className="absolute right-2 top-2 size-9 cursor-pointer rounded-full bg-white text-gray-500 shadow-md hover:bg-white/90 hover:text-gray-600"
+                    onClick={clearMedia}
+                    disabled={isLoading || isCompressingImage || isLoadingVideo}
+                    aria-label="Remover vídeo"
+                  >
+                    <X className="size-4" />
+                  </Button>
+                </div>
+              ) : mediaType === "image" && imagePreviewUrl ? (
+                <div className="relative overflow-hidden rounded-xl bg-muted ring-1 ring-border/50">
+                  <div className="relative aspect-16/10 max-h-80 w-full">
+                    <Image
+                      src={imagePreviewUrl}
+                      alt="Pré-visualização da publicação"
+                      fill
+                      className="object-contain"
+                      unoptimized
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon"
+                    className="absolute right-2 top-2 size-9 cursor-pointer rounded-full bg-white text-gray-500 shadow-md hover:bg-white/90 hover:text-gray-600"
+                    onClick={clearMedia}
+                    disabled={isLoading || isCompressingImage || isLoadingVideo}
+                    aria-label="Remover imagem"
+                  >
+                    <X className="size-4" />
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="flex items-center justify-between gap-3 border-t border-border/60 bg-muted/20 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-full px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground">
+                  <span className="flex size-9 items-center justify-center rounded-full bg-background text-primary shadow-sm ring-1 ring-border/60">
+                    {isCompressingImage ? (
+                      <Loader2 className="size-4 animate-spin" aria-hidden />
+                    ) : (
+                      <ImagePlus className="size-4" aria-hidden />
+                    )}
+                  </span>
+                  <span>Imagem</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={onImageFileChange}
+                    disabled={isLoading || isCompressingImage || isLoadingVideo}
+                  />
+                </label>
+
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-full px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground">
+                  <span className="flex size-9 items-center justify-center rounded-full bg-background text-primary shadow-sm ring-1 ring-border/60">
+                    {isLoadingVideo ? (
+                      <Loader2 className="size-4 animate-spin" aria-hidden />
+                    ) : (
+                      <Video className="size-4" aria-hidden />
+                    )}
+                  </span>
+                  <span>Vídeo</span>
+                  <input
+                    type="file"
+                    accept="video/*"
+                    className="sr-only"
+                    onChange={onVideoFileChange}
+                    disabled={isLoading || isCompressingImage || isLoadingVideo}
+                  />
+                </label>
               </div>
+
               <Button
-                type="button"
-                variant="secondary"
-                size="icon"
-                className="absolute right-2 top-2 size-9 rounded-full shadow-md"
-                onClick={clearImage}
-                disabled={isLoading || isCompressingImage}
-                aria-label="Remover imagem"
+                type="submit"
+                size="sm"
+                disabled={isLoading || isCompressingImage || isLoadingVideo}
+                className="cursor-pointer gap-2 rounded-full px-5 shadow-none"
               >
-                <X className="size-4" />
+                {isLoading ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    A publicar...
+                  </>
+                ) : (
+                  <>
+                    <Send className="size-4" />
+                    Publicar
+                  </>
+                )}
               </Button>
             </div>
-          ) : null}
-        </div>
-
-        <div className="flex items-center justify-between gap-3 border-t border-border/60 bg-muted/20 px-3 py-2.5 sm:px-4">
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-full px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground">
-            <span className="flex size-9 items-center justify-center rounded-full bg-background text-primary shadow-sm ring-1 ring-border/60">
-              {isCompressingImage ? (
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-              ) : (
-                <ImagePlus className="size-4" aria-hidden />
-              )}
-            </span>
-            <span className="hidden sm:inline">
-              {isCompressingImage ? "A processar…" : "Foto"}
-            </span>
-            <input
-              type="file"
-              accept="image/*"
-              className="sr-only"
-              onChange={onFileChange}
-              disabled={isLoading || isCompressingImage}
-            />
-          </label>
-
-          <Button
-            type="submit"
-            size="sm"
-            disabled={isLoading || isCompressingImage}
-            className="gap-2 rounded-full px-5 shadow-none"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="size-4 animate-spin" />
-                A publicar…
-              </>
-            ) : (
-              <>
-                <Send className="size-4" />
-                Publicar
-              </>
-            )}
-          </Button>
-        </div>
-      </form>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

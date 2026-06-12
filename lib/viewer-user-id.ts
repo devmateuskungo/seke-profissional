@@ -52,8 +52,15 @@ export function getStoredUserId(): string | null {
   try {
     const raw = window.sessionStorage.getItem("user_data")
     if (!raw) return null
-    const data = JSON.parse(raw) as { id?: string | number }
-    const id = data.id
+    const parsed: unknown = JSON.parse(raw)
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return null
+    }
+    const data = parsed as {
+      id?: string | number
+      user_id?: string | number
+    }
+    const id = data.user_id ?? data.id
     if (typeof id === "string" && id.trim()) return id.trim()
     if (typeof id === "number" && !Number.isNaN(id)) return String(id)
     return null

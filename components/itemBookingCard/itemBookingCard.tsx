@@ -21,7 +21,7 @@ export default function ItemBookingCard() {
             </p>
           </div>
 
-          <span className="bg-green-100 text-green-600 text-xs sm:text-sm px-2 sm:px-3 py-1 rounded-md whitespace-nowrap">
+          <span className="bg-primary/10 text-primary text-xs sm:text-sm px-2 sm:px-3 py-1 rounded-md whitespace-nowrap">
             Disponível Hoje
           </span>
         </div>
@@ -36,7 +36,7 @@ export default function ItemBookingCard() {
             <input
               type="text"
               placeholder="1/08/2026"
-              className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 sm:px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 sm:px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
 
@@ -48,7 +48,7 @@ export default function ItemBookingCard() {
             <input
               type="text"
               placeholder="10:00"
-              className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 sm:px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 sm:px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
         </div>
@@ -61,12 +61,12 @@ export default function ItemBookingCard() {
           <input
             type="text"
             placeholder="Seu Endereço"
-            className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 sm:px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 sm:px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
 
         {/* Button */}
-        <button  style={{ backgroundColor: lightTheme.colors.primary}} className="w-full hover:bg-green-700 transition text-white py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base cursor-pointer">
+        <button  style={{ backgroundColor: lightTheme.colors.primary}} className="w-full hover:opacity-90 transition text-white py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base cursor-pointer">
           Agendar Agora
         </button>
 

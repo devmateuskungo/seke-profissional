@@ -81,7 +81,7 @@ export default function ProfessionalList() {
             }}
             className={`px-4 py-2 rounded-md text-sm transition ${
               selectedCategory === cat
-                ? "bg-[#18B481] text-white"
+                ? "bg-[#2b81e5] text-white"
                 : "bg-gray-200 text-gray-700 hover:bg-gray-300 cursor-pointer"
             }`}
           >
@@ -119,7 +119,7 @@ export default function ProfessionalList() {
       {hasMore && (
         <button
           onClick={() => setVisible((prev) => prev + ITEMS_PER_PAGE)}
-          className="text-[#18B481] px-6 py-3 rounded-lg transition cursor-pointer hover:bg-green-50"
+          className="text-[#2b81e5] px-6 py-3 rounded-lg transition cursor-pointer hover:bg-[#dceffd]"
         >
           Ver mais profissionais
         </button>

@@ -62,7 +62,7 @@ export default function ItemlistcategoriaProfissional({
         </h3>
 
         {verified && (
-          <CheckCircle className="text-[#18B481] w-5 h-5 shrink-0" />
+          <CheckCircle className="text-[#2b81e5] w-5 h-5 shrink-0" />
         )}
       </div>
 

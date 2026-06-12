@@ -1,6 +1,9 @@
 /** Corpo enviado em POST /api/posts */
 export interface CreatePostRequest {
+  title?: string
   content: string
+  /** Formato novo da API: ex. ["video", "https://..."] */
+  midia?: string[]
   /** Opcional: URL, base64 ou data URL, conforme a API */
   image?: string
 }
@@ -93,7 +96,11 @@ export interface PostDetailStats {
 export interface PostDetail {
   id: string
   content: string
+  /** Título vindo da API (ex. GET /posts/posts) */
+  title?: string | null
   image?: string | null
+  media_type?: "image" | "video" | null
+  media_url?: string | null
   created_at: string
   user: PostDetailUser
   stats: PostDetailStats
@@ -105,3 +112,26 @@ export interface PostDetail {
 
 /** Alias semântico — resposta de sucesso de GET /api/posts/:id */
 export type GetPostResponse = PostDetail
+
+/** Item em GET …/posts/allmyposts (listagem das próprias publicações na API externa) */
+export interface MyPostSummary {
+  id: number | string
+  author_id?: number | string | null
+  author_name?: string | null
+  title?: string | null
+  content: string
+  slug?: string | null
+  midia?: string[]
+  status?: string
+  views_count?: number
+  published_at?: string | null
+  created_at: string
+  updated_at?: string | null
+  user_id?: number | string | null
+}
+
+export interface MyPostsPagination {
+  total: number
+  page: number
+  totalPages: number
+}

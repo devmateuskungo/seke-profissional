@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
-import type { RegisterRequest, RegisterResponse, ApiErrorResponse } from "@/types/auth"
+import type {
+  RegisterRequest,
+  RegisterResponse,
+  RegisterRole,
+  ApiErrorResponse,
+} from "@/types/auth"
+
+const VALID_ROLES: RegisterRole[] = ["client", "professional"]
 
 const getBaseUrl = (): string => {
   const url = process.env.NEXT_PUBLIC_URL_API?.trim()
@@ -14,24 +21,31 @@ export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as RegisterRequest
 
-    const { name, email, password } = body
+    const { full_name, email, password, phone, role } = body
 
-    if (!name?.trim() || !email?.trim() || !password) {
+    if (!full_name?.trim() || !email?.trim() || !password || !phone?.trim()) {
       return NextResponse.json(
         {
-          message: "Nome, e-mail e senha são obrigatórios.",
+          message: "Nome, e-mail, telefone e senha são obrigatórios.",
         } satisfies ApiErrorResponse,
         { status: 400 }
       )
     }
 
+    const normalizedRole =
+      typeof role === "string" && VALID_ROLES.includes(role as RegisterRole)
+        ? (role as RegisterRole)
+        : "client"
+
     const baseUrl = getBaseUrl()
     const registerEndpoint = `${baseUrl}/auth/register`
 
     const payload: RegisterRequest = {
-      name: name.trim(),
       email: email.trim(),
       password,
+      full_name: full_name.trim(),
+      phone: phone.trim(),
+      role: normalizedRole,
     }
 
     const res = await fetch(registerEndpoint, {

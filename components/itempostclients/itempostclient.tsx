@@ -72,7 +72,7 @@ export default function SolicitacaoCliente({
           </div>
           
           <div>
-            <h3 className="font-medium text-gray-900">{nome}</h3>
+            <h3 className="text-xs font-medium text-gray-900">{nome}</h3>
             <div className="flex items-center gap-2 text-xs text-gray-500">
               <MapPin size={10} className="text-gray-400" />
               <span>{bairro}, {localizacao}</span>

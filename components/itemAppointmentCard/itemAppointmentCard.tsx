@@ -65,7 +65,7 @@ export default function AppointmentCard({
         {/* Status e preço um abaixo do outro */}
         <div className="flex flex-col gap-1.5 items-start sm:items-end">
           {status === "confirmado" && (
-            <span className="inline-flex items-center gap-1.5 text-green-700 bg-green-100 px-2.5 py-1 rounded-md text-xs sm:text-sm font-medium">
+            <span className="inline-flex items-center gap-1.5 text-primary bg-primary/10 px-2.5 py-1 rounded-md text-xs sm:text-sm font-medium">
               <CheckCircle size={14} className="shrink-0" />
               Confirmado
             </span>
@@ -76,7 +76,7 @@ export default function AppointmentCard({
         {/* Botões ao lado */}
         <div className="flex flex-col gap-2 w-full sm:w-[160px] shrink-0">
           <button
-            className="w-full hover:bg-green-700 text-white px-4 py-2.5 rounded-md text-sm font-medium transition-colors"
+            className="w-full hover:opacity-90 text-white px-4 py-2.5 rounded-md text-sm font-medium transition-colors"
             style={{ backgroundColor: lightTheme.colors.primary }}
           >
             Ver Detalhes

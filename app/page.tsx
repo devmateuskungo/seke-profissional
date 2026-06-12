@@ -6,11 +6,11 @@ import HeroSection from "@/components/itemheaderpost/itemheaderpost";
 import ItemPostProfissonal from "@/components/itempostprofissional/itempostprofissional";
 import { ItemPostCriar } from "@/components/itempostcriar/itempostcriar";
 
-import { Users, Briefcase } from 'lucide-react';
+import { Users, Briefcase, AlertCircle, RefreshCcw } from 'lucide-react';
 import SolicitacaoCliente from '@/components/itempostclients/itempostclient';
 import { lightTheme } from '@/style/light';
 import { Button } from '@/components/ui/button';
-import { fetchGlobalFeed } from '@/lib/feed-client';
+import { fetchHomeFeed } from '@/lib/feed-client';
 import { postDetailToProfissionalFeedRow, postRecordToPostDetail } from '@/lib/feed-map';
 import type {
   FollowUserResponse,
@@ -75,38 +75,44 @@ const SOLICITACOES_MOCK: SolicitacaoFeedRow[] = [
   }
 ];
 
-const PROFISSIONAIS_MOCK: ProfissionalFeedRow[] = [
-  {
-    id: 'prof-mock-1',
-    nome: "Carlos Ferreira",
-    data: "—",
-    descricao: "Disponível para serviços de electricidade residencial e comercial.",
-    titulo: "ELECTRICISTA CERTIFICADO",
-    imagemPerfil: "/user.svg",
-    imagemPost: "/imageprofissional.png",
-    curtidas: 28
-  },
-  {
-    id: 'prof-mock-2',
-    nome: "Ana Paula",
-    data: "—",
-    descricao: "Especialista em canalização e instalações hidráulicas.",
-    titulo: "CANALIZADORA PROFISSIONAL",
-    imagemPerfil: "/user.svg",
-    imagemPost: "/imageprofissional.png",
-    curtidas: 42
-  },
-  {
-    id: 'prof-mock-3',
-    nome: "Pedro Mendes",
-    data: "—",
-    descricao: "Pintor com experiência em interiores e exteriores.",
-    titulo: "PINTOR ESPECIALISTA",
-    imagemPerfil: "/user.svg",
-    imagemPost: "/imageprofissional.png",
-    curtidas: 15
-  }
-];
+function FeedErrorEmptyState({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry: () => void;
+}) {
+  return (
+    <div
+      className="w-full py-12 sm:py-16 grid place-items-center"
+      role="alert"
+      aria-live="polite"
+    >
+      <div className="max-w-md w-full rounded-lg bg-white px-6 py-8 text-center">
+        <div className="mx-auto mb-4 grid size-12 place-items-center rounded-full bg-red-50 text-red-600">
+          <AlertCircle className="size-6" aria-hidden />
+        </div>
+        <h3 className="text-base font-semibold text-gray-900">
+          Não foi possível carregar o feed
+        </h3>
+        <p className="mt-1 text-sm text-gray-500">
+          {message?.trim() ? message : 'Verifique a sua ligação e tente novamente.'}
+        </p>
+        <div className="mt-5 flex justify-center">
+          <Button
+            type="button"
+            onClick={onRetry}
+            style={{ backgroundColor: lightTheme.colors.primary }}
+            className="gap-2 text-white hover:opacity-90"
+          >
+            <RefreshCcw className="size-4" aria-hidden />
+            Tentar novamente
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function HomeInner() {
   const router = useRouter();
@@ -132,7 +138,7 @@ function HomeInner() {
   const [feedPosts, setFeedPosts] = useState<PostDetail[]>([]);
   const [feedPagination, setFeedPagination] = useState<GlobalFeedPagination>({
     page: 1,
-    limit: 10,
+    limit: 50,
   });
   const [feedPage, setFeedPage] = useState(1);
   const [feedReloadKey, setFeedReloadKey] = useState(0);
@@ -145,9 +151,9 @@ function HomeInner() {
 
     async function run() {
       const token = getSessionToken();
-      const result = await fetchGlobalFeed({
+      const result = await fetchHomeFeed({
         page: feedPage,
-        limit: 10,
+        limit: 50,
         token,
       });
 
@@ -178,6 +184,15 @@ function HomeInner() {
   const handleLoadMore = useCallback(() => {
     setFeedLoadingMore(true);
     setFeedPage((previousPage) => previousPage + 1);
+  }, []);
+
+  const handleRetryFeed = useCallback(() => {
+    setFeedError(null);
+    setFeedPage(1);
+    setFeedPosts([]);
+    setFeedLoading(true);
+    setFeedLoadingMore(false);
+    setFeedReloadKey((previousKey) => previousKey + 1);
   }, []);
 
   const handlePostCreated = useCallback((post: PostRecord) => {
@@ -229,6 +244,7 @@ function HomeInner() {
     (authorUserId: string, data: FollowUserResponse) => {
       setFeedPosts((prev) =>
         prev.map((postItem) =>
+          postItem.user &&
           String(postItem.user.id) === String(authorUserId)
             ? { ...postItem, following_author: data.following }
             : postItem
@@ -237,19 +253,6 @@ function HomeInner() {
     },
     []
   );
-
-  const interleaveFeedItems = (
-    solicitacaoItems: FeedItem[],
-    profissionalItems: FeedItem[]
-  ): FeedItem[] => {
-    const interleaved: FeedItem[] = [];
-    const n = Math.max(solicitacaoItems.length, profissionalItems.length);
-    for (let i = 0; i < n; i++) {
-      if (i < solicitacaoItems.length) interleaved.push(solicitacaoItems[i]);
-      if (i < profissionalItems.length) interleaved.push(profissionalItems[i]);
-    }
-    return interleaved;
-  };
 
   const solicitacoesItems: FeedItem[] = useMemo(
     () => SOLICITACOES_MOCK.map(toSolicitacaoFeedItem),
@@ -264,9 +267,9 @@ function HomeInner() {
     [feedPosts]
   );
 
+  /** Todos os posts da API em sequência; solicitações mock só depois (sem intercalar). */
   const todosItems = useMemo(
-    (): FeedItem[] =>
-      interleaveFeedItems(solicitacoesItems, profissionaisItemsApi),
+    (): FeedItem[] => [...profissionaisItemsApi, ...solicitacoesItems],
     [solicitacoesItems, profissionaisItemsApi]
   );
 
@@ -296,10 +299,13 @@ function HomeInner() {
     (typeof feedPagination.totalPages === 'number' &&
       feedPage < feedPagination.totalPages);
 
-  const sidebarProfRows: ProfissionalFeedRow[] =
-    feedPosts.length > 0
-      ? feedPosts.slice(0, 3).map(postDetailToProfissionalFeedRow)
-      : PROFISSIONAIS_MOCK;
+  const sidebarProfRows: ProfissionalFeedRow[] = useMemo(
+    () =>
+      feedPosts.length > 0
+        ? feedPosts.slice(0, 3).map(postDetailToProfissionalFeedRow)
+        : [],
+    [feedPosts]
+  );
 
   return (
     <div className="mt-4 justify-center items-center">
@@ -311,7 +317,7 @@ function HomeInner() {
           <div className="bg-white p-6 rounded-md border border-gray-200">
             <div className="flex items-center gap-3 mb-4">
               <div>
-                <h3 className="font-semibold">Preciso de um Profissional</h3>
+                <h3 className="text-base font-semibold">Preciso de um Profissional</h3>
                 <p className="text-sm text-gray-500">Encontra especialista agora</p>
               </div>
             </div>
@@ -337,14 +343,14 @@ function HomeInner() {
 
             <div className="mt-2">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="font-semibold text-gray-900">Filtro</h2>
+                <h2 className="text-base font-semibold text-gray-900">Filtro</h2>
               </div>
 
               <div className="flex gap-2">
                 <button
                   onClick={() => setFiltroLocal('todos')}
                   className={`flex-1 py-2  rounded-md text-sm font-medium cursor-pointer transition-colors ${filtro === 'todos'
-                    ? 'bg-[#18B481] text-white'
+                    ? 'bg-[#2b81e5] text-white'
                     : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
                     }`}
                 >
@@ -353,7 +359,7 @@ function HomeInner() {
                 <button
                   onClick={() => setFiltroLocal('solicitacoes')}
                   className={`flex-1 flex items-center justify-center cursor-pointer space-x-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${filtro === 'solicitacoes'
-                    ? 'bg-[#18B481] text-white'
+                    ? 'bg-[#2b81e5] text-white'
                     : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
                     }`}
                 >
@@ -363,7 +369,7 @@ function HomeInner() {
                 <button
                   onClick={() => setFiltroLocal('profissionais')}
                   className={`flex-1 flex items-center justify-center cursor-pointer space-x-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${filtro === 'profissionais'
-                    ? 'bg-[#18B481] text-white'
+                    ? 'bg-[#2b81e5] text-white'
                     : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
                     }`}
                 >
@@ -373,15 +379,11 @@ function HomeInner() {
               </div>
             </div>
 
-            {feedError && (
-              <p className="text-sm text-destructive mt-4" role="alert">
-                {feedError}
-              </p>
-            )}
-
             <div className="">
               {feedLoading && feedPosts.length === 0 && (filtro === 'todos' || filtro === 'profissionais') ? (
                 <HomeFeedSkeleton count={4} />
+              ) : feedError && feedPosts.length === 0 && (filtro === 'todos' || filtro === 'profissionais') ? (
+                <FeedErrorEmptyState message={feedError} onRetry={handleRetryFeed} />
               ) : itemsParaMostrar.length > 0 ? (
                 <>
                   {itemsParaMostrar.map((item) => (
@@ -432,6 +434,12 @@ function HomeInner() {
                 </div>
               )}
             </div>
+
+            {feedError && feedPosts.length > 0 ? (
+              <p className="text-sm text-destructive mt-4" role="alert">
+                {feedError}
+              </p>
+            ) : null}
           </div>
         </main>
 
@@ -441,37 +449,43 @@ function HomeInner() {
         >
           <div className="bg-white rounded-md border border-gray-200">
             <div className="p-4 border-b border-gray-200">
-              <h3 className="font-semibold">Profissionais recomendados</h3>
+              <h3 className="text-base font-semibold">Profissionais recomendados</h3>
             </div>
             <div className="p-4 space-y-4">
-              {sidebarProfRows.map((prof) => (
-                <div key={prof.id} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gray-200 rounded-full" />
-                    <div>
-                      <p className="font-medium text-sm">{prof.nome}</p>
-                      <p className="text-xs text-gray-500">{prof.titulo}</p>
+              {sidebarProfRows.length === 0 ? (
+                <p className="text-sm text-gray-500">
+                  As publicações do feed aparecem aqui quando existirem autores na lista.
+                </p>
+              ) : (
+                sidebarProfRows.map((prof) => (
+                  <div key={prof.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-gray-200 rounded-full" />
+                      <div>
+                        <p className="font-medium text-xs">{prof.nome}</p>
+                        <p className="text-xs text-gray-500">{prof.titulo}</p>
+                      </div>
                     </div>
+                    <button
+                      type="button"
+                      className="text-xs text-[#2b81e5] font-medium hover:text-[#2b81e5]/80 transition-colors cursor-pointer"
+                    >
+                      Contactar
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    className="text-xs text-[#18B481] font-medium hover:text-[#18B481]/80 transition-colors cursor-pointer"
-                  >
-                    Contactar
-                  </button>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
 
           <div className="bg-white rounded-md border border-gray-200">
             <div className="p-4 border-b border-gray-200">
-              <h3 className="font-semibold">Solicitações recentes</h3>
+              <h3 className="text-base font-semibold">Solicitações recentes</h3>
             </div>
             <div className="p-4 space-y-3">
               {SOLICITACOES_MOCK.slice(0, 3).map((sol) => (
                 <div key={sol.id} className="text-sm">
-                  <p className="font-medium">{sol.nome}</p>
+                  <p className="font-medium text-xs">{sol.nome}</p>
                   <p className="text-xs text-gray-500">{sol.servico} • {sol.bairro}</p>
                   <span className={`text-xs px-2 py-0.5 rounded-full inline-block mt-1 ${sol.prioridade === 'alta' ? 'bg-red-50 text-red-600' :
                     sol.prioridade === 'media' ? 'bg-amber-50 text-amber-600' :

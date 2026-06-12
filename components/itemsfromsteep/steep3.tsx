@@ -61,7 +61,7 @@ export function DocumentStep({
                                 ) : (
                                     <>
                                         <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-2">
-                                            <Upload size={28} className="text-[#18B481]" />
+                                            <Upload size={28} className="text-[#2b81e5]" />
                                         </div>
                                         <p className="text-sm font-medium text-gray-800">
                                             Clique para enviar a FRENTE

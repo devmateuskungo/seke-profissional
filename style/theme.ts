@@ -33,6 +33,15 @@ export interface Theme {
     success: string
     error: string
     warning: string
+    inkButton?: string
+    deepInk?: string
+    primaryDeep?: string
+    primarySoft?: string
+    surfaceSoft?: string
+    hairlineSoft?: string
+    disabledText?: string
+    stone?: string
+    fbBlue?: string
   }
 
   typography: {
@@ -55,12 +64,30 @@ export interface Theme {
       h3: string // 20px
       h2: string // 24px
       h1: string // 32px
+      hero?: string
+      display?: string
+      headingMd?: string
+      subtitle?: string
+      caption?: string
     }
     fontWeight: {
       regular: number
       medium: number
       semibold: number
       bold: number
+      light?: number
+    }
+    lineHeight?: {
+      tight?: string
+      heading?: string
+      body?: string
+      compact?: string
+      caption?: string
+    }
+    letterSpacing?: {
+      body?: string
+      compact?: string
+      normal?: string
     }
   }
 
@@ -83,12 +110,20 @@ export interface Theme {
     xl: string
     "2xl": string
     "3xl": string
+    sectionSm?: string
+    section?: string
+    sectionLg?: string
+    hero?: string
   }
 
   borderRadius: {
     small: string
     medium: string
     large: string
+    xxl?: string
+    xxxl?: string
+    feature?: string
     round: string
+    circle?: string
   }
 }

@@ -3,8 +3,8 @@
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
-import { Briefcase, Heart, Loader2, UserMinus, UserPlus } from "lucide-react"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { Briefcase, Heart, Loader2, Play, UserMinus, UserPlus, Volume2, VolumeX } from "lucide-react"
 
 import { DeletePostConfirmDialog } from "@/components/delete-post-confirm-dialog/delete-post-confirm-dialog"
 import { PostLikesTooltip } from "@/components/post-likes-tooltip/post-likes-tooltip"
@@ -37,6 +37,120 @@ function imageNeedsUnoptimized(src: string): boolean {
   )
 }
 
+function normalizeMediaSrc(value: string | null | undefined): string | null {
+  if (typeof value !== "string") return null
+  const trimmed = value.trim()
+  if (!trimmed) return null
+
+  if (trimmed.startsWith("/")) return trimmed
+  if (trimmed.startsWith("data:")) return trimmed
+  if (trimmed.startsWith("//")) return `https:${trimmed}`
+
+  try {
+    return new URL(trimmed).toString()
+  } catch {
+    if (!trimmed.includes(" ") && trimmed.includes(".")) {
+      try {
+        return new URL(`https://${trimmed}`).toString()
+      } catch {
+        return null
+      }
+    }
+    return null
+  }
+}
+
+const MEDIA_FRAME_CLASS =
+  "relative w-full aspect-video max-h-[min(560px,80vh)] min-h-[220px] bg-black"
+
+function FeedInlineVideo({
+  src,
+  posterUrl,
+}: {
+  src: string
+  posterUrl?: string | null
+}) {
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const [playing, setPlaying] = useState(false)
+  const [muted, setMuted] = useState(true)
+
+  const syncPlaying = useCallback(() => {
+    const el = videoRef.current
+    if (!el) return
+    setPlaying(!el.paused)
+  }, [])
+
+  const togglePlay = async () => {
+    const el = videoRef.current
+    if (!el) return
+    if (el.paused) {
+      try {
+        await el.play()
+      } catch {
+        /* ignore — autoplay policies / load errors */
+      }
+    } else {
+      el.pause()
+    }
+    syncPlaying()
+  }
+
+  const toggleMuted = () => {
+    const el = videoRef.current
+    if (!el) return
+    const next = !el.muted
+    el.muted = next
+    setMuted(next)
+  }
+
+  return (
+    <div key={src} className={MEDIA_FRAME_CLASS}>
+      <video
+        ref={videoRef}
+        src={src}
+        className="h-full w-full object-contain"
+        playsInline
+        muted={muted}
+        preload="metadata"
+        poster={posterUrl ?? undefined}
+        onClick={() => void togglePlay()}
+        onPlay={syncPlaying}
+        onPause={syncPlaying}
+        onEnded={() => setPlaying(false)}
+      />
+      {!playing ? (
+        <button
+          type="button"
+          onClick={() => void togglePlay()}
+          className="absolute inset-0 grid place-items-center bg-black/40 transition-colors hover:bg-black/50"
+          aria-label="Reproduzir vídeo"
+        >
+          <span className="inline-flex size-17 items-center justify-center rounded-full border-2 border-white/40 bg-black/50 text-white shadow-lg backdrop-blur-[2px]">
+            <Play className="size-8 translate-x-0.5" aria-hidden />
+          </span>
+        </button>
+      ) : null}
+      <div className="pointer-events-none absolute bottom-2 right-2 flex gap-2">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            toggleMuted()
+          }}
+          className="pointer-events-auto inline-flex size-9 items-center justify-center rounded-full border border-white/25 bg-black/45 text-white shadow-sm backdrop-blur-sm hover:bg-black/55"
+          aria-label={muted ? "Ativar som" : "Silenciar"}
+        >
+          {muted ? (
+            <VolumeX className="size-4" aria-hidden />
+          ) : (
+            <Volume2 className="size-4" aria-hidden />
+          )}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export interface ItemPostProfissonalProps {
   nome?: string
   data?: string
@@ -44,6 +158,8 @@ export interface ItemPostProfissonalProps {
   titulo?: string
   imagemPerfil?: string
   imagemPost?: string
+  mediaType?: "image" | "video" | null
+  mediaUrl?: string | null
   curtidas?: number
   /** ID da publicação (obrigatório para editar/eliminar no feed) */
   postId?: string
@@ -67,8 +183,10 @@ export default function ItemPostProfissonal({
   descricao = "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s.",
   titulo = "TÍTULO DO POST",
   imagemPerfil,
-  imagemPost = "/imageprofissional.png",
-  curtidas = 42,
+  imagemPost,
+  mediaType = null,
+  mediaUrl = null,
+  curtidas = 0,
   postId,
   authorUserId,
   onPostUpdated,
@@ -89,10 +207,15 @@ export default function ItemPostProfissonal({
   const [liking, setLiking] = useState(false)
   const [following, setFollowing] = useState(followingAuthor)
   const [followingLoading, setFollowingLoading] = useState(false)
+  const [likedVisual, setLikedVisual] = useState(likedByMe)
 
   useEffect(() => {
     setFollowing(followingAuthor)
   }, [followingAuthor])
+
+  useEffect(() => {
+    setLikedVisual(likedByMe)
+  }, [likedByMe])
 
   const isOwnPost =
     !!postId &&
@@ -104,6 +227,17 @@ export default function ItemPostProfissonal({
     : "/detalhesuser"
 
   const avatarSrc = resolveUserAvatarUrl(imagemPerfil)
+  const normalizedMediaUrl = normalizeMediaSrc(mediaUrl)
+  const normalizedImagemPost = imagemPost
+    ? normalizeMediaSrc(imagemPost)
+    : null
+  const resolvedImageSrc =
+    mediaType === "image"
+      ? normalizedMediaUrl ?? normalizedImagemPost
+      : normalizedImagemPost
+  const resolvedVideoSrc = mediaType === "video" ? normalizedMediaUrl : null
+  const videoPoster =
+    mediaType === "video" ? normalizedImagemPost ?? null : null
 
   const startEdit = () => {
     setEditModalOpen(true)
@@ -152,14 +286,17 @@ export default function ItemPostProfissonal({
       toast.error("Inicie sessão para gostar desta publicação.")
       return
     }
+    const wasLiked = likedVisual
+    setLikedVisual(!wasLiked)
     setLiking(true)
-    const result = likedByMe
-      ? await unlikePost(postId, token)
-      : await likePost(postId, token)
+    const result = wasLiked
+      ? await unlikePost(postId, token, { previousLikeCount: curtidas })
+      : await likePost(postId, token, { previousLikeCount: curtidas })
     setLiking(false)
     if (result.success) {
       onLikeResult?.(result.data)
     } else {
+      setLikedVisual(wasLiked)
       toast.error(result.error)
     }
   }
@@ -200,7 +337,7 @@ export default function ItemPostProfissonal({
           <div className="space-y-0.5 min-w-0">
             <div className="flex items-center gap-2 min-w-0 flex-wrap">
               <Link href={profileHref} className="min-w-0">
-                <h3 className="font-semibold text-sm hover:underline cursor-pointer truncate">
+                <h3 className="text-xs font-semibold hover:underline cursor-pointer truncate">
                   {nome}
                 </h3>
               </Link>
@@ -274,25 +411,12 @@ export default function ItemPostProfissonal({
         </div>
       </div>
 
-      {imagemPost ? (
-        <div className="relative w-full h-64 bg-muted">
-          <Image
-            src={imagemPost}
-            alt="Post image"
-            fill
-            className="object-cover"
-            unoptimized={imageNeedsUnoptimized(imagemPost)}
-          />
-        </div>
-      ) : null}
-
-      <div className="p-4 space-y-3">
-        <h2 className="text-lg md:text-xl font-semibold tracking-tight">
+      <div className="px-4 pt-1 pb-2 space-y-1.5">
+        <h2 className="text-[15px] sm:text-base font-semibold text-foreground leading-snug tracking-tight">
           {titulo}
         </h2>
-
         <div>
-          <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
+          <p className="text-sm text-foreground/90 leading-relaxed line-clamp-4 whitespace-pre-wrap">
             {descricao}
           </p>
           <button
@@ -303,6 +427,21 @@ export default function ItemPostProfissonal({
           </button>
         </div>
       </div>
+
+      {resolvedVideoSrc ? (
+        <FeedInlineVideo src={resolvedVideoSrc} posterUrl={videoPoster} />
+      ) : resolvedImageSrc ? (
+        <div className={MEDIA_FRAME_CLASS}>
+          <Image
+            src={resolvedImageSrc}
+            alt=""
+            fill
+            sizes="(max-width: 768px) 100vw, 680px"
+            className="object-contain"
+            unoptimized={imageNeedsUnoptimized(resolvedImageSrc)}
+          />
+        </div>
+      ) : null}
 
       {postId && token && isOwnPost ? (
         <>
@@ -332,7 +471,7 @@ export default function ItemPostProfissonal({
         <div
           className={cn(
             "flex items-center gap-2 group rounded-md p-1 -m-1 transition-colors",
-            likedByMe && "text-red-500"
+            likedVisual && "text-red-500"
           )}
         >
           <button
@@ -341,22 +480,25 @@ export default function ItemPostProfissonal({
             disabled={liking || !postId}
             className={cn(
               "flex shrink-0 disabled:opacity-60",
-              likedByMe ? "text-red-500" : "text-muted-foreground"
+              likedVisual ? "text-red-500" : "text-muted-foreground"
             )}
-            title={likedByMe ? "Gostou" : "Gostar"}
-            aria-label={likedByMe ? "Retirar gosto" : "Gostar"}
+            title={likedVisual ? "Gostou" : "Gostar"}
+            aria-label={likedVisual ? "Retirar gosto" : "Gostar"}
           >
             <div
               className={cn(
                 "w-8 h-8 rounded-full flex items-center justify-center transition-colors",
-                likedByMe
+                likedVisual
                   ? "bg-red-50"
                   : "bg-muted group-hover:bg-red-50"
               )}
             >
               {liking ? (
                 <Loader2
-                  className="size-4 animate-spin text-muted-foreground"
+                  className={cn(
+                    "size-4 animate-spin shrink-0",
+                    likedVisual ? "text-red-500" : "text-muted-foreground"
+                  )}
                   aria-hidden
                 />
               ) : (
@@ -364,7 +506,7 @@ export default function ItemPostProfissonal({
                   size={16}
                   className={cn(
                     "transition-colors",
-                    likedByMe
+                    likedVisual
                       ? "fill-red-500 text-red-500"
                       : "text-muted-foreground group-hover:text-red-500"
                   )}
@@ -380,7 +522,7 @@ export default function ItemPostProfissonal({
               token={token}
               triggerClassName={cn(
                 "text-xs tabular-nums",
-                likedByMe
+                likedVisual
                   ? "text-red-500 font-medium"
                   : "text-muted-foreground group-hover:text-foreground"
               )}
@@ -391,7 +533,7 @@ export default function ItemPostProfissonal({
             <span
               className={cn(
                 "text-xs tabular-nums",
-                likedByMe
+                likedVisual
                   ? "text-red-500 font-medium"
                   : "text-muted-foreground"
               )}

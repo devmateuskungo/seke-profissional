@@ -9,12 +9,12 @@ import { cn } from "@/lib/utils";
 
 /** Cores do projeto */
 const COLORS = {
-  primary: "#18B481",
-  surface: "#F9FAFB",
-  background: "#FFFFFF",
-  border: "#ECEFF3",
-  text: "#111827",
-  textSecondary: "#6B7280",
+  primary: "#2b81e5",
+  surface: "#ffffff",
+  background: "#f0f8fe",
+  border: "#c7ddf6",
+  text: "#192f52",
+  textSecondary: "#214b87",
 };
 
 export interface Conversation {
@@ -288,7 +288,7 @@ export default function ItemChatPage({
                     >
                       <div
                         className={cn(
-                          "rounded-2xl px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-[15px] leading-relaxed break-words",
+                          "rounded-2xl px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-[15px] leading-relaxed wrap-break-word",
                           msg.isOwn
                             ? "rounded-br-md text-white"
                             : "rounded-bl-md bg-gray-100 text-gray-900 border border-gray-200/80"

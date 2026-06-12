@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/toaster"
 import { lightTheme } from "@/style/light"
 import { loginWithCredentials } from "@/lib/auth-client"
+import { extractUserIdFromJwt } from "@/lib/jwt-user-id"
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -65,12 +66,18 @@ export function ItemLogin() {
             const token = result.data.token ?? result.data.accessToken
             if (token) window.sessionStorage.setItem("auth_token", token)
             const u = result.data.user
+            const apiUser = u as { user_id?: string; avatar?: string } | undefined
+            const resolvedId =
+              u?.id?.trim() ||
+              apiUser?.user_id?.trim() ||
+              (token ? extractUserIdFromJwt(token) : null) ||
+              ""
             const userData = {
-              id: u?.id ?? "",
+              id: resolvedId,
+              user_id: resolvedId,
               name: u?.name ?? trimmedEmail.split("@")[0],
               email: u?.email ?? trimmedEmail,
-              // Prioriza avatar retornado pela API, com fallback para image
-              image: (u as unknown as { avatar?: string })?.avatar ?? u?.image,
+              image: apiUser?.avatar ?? u?.image,
             }
             window.sessionStorage.setItem("user_data", JSON.stringify(userData))
           }
