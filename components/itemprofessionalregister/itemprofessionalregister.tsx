@@ -42,8 +42,8 @@ export function ItemProfessionalRegister({
 }: ItemProfessionalRegisterProps) {
   const toast = useToast()
   const [hourlyRate, setHourlyRate] = useState(String(DEFAULT_PROFESSIONAL_PROFILE.hourly_rate))
-  const [bio, setBio] = useState(DEFAULT_PROFESSIONAL_PROFILE.bio)
-  const [isAvailable, setIsAvailable] = useState(DEFAULT_PROFESSIONAL_PROFILE.is_available)
+  const [bio, setBio] = useState<string>(DEFAULT_PROFESSIONAL_PROFILE.bio)
+  const [isAvailable, setIsAvailable] = useState<boolean>(DEFAULT_PROFESSIONAL_PROFILE.is_available)
 
   const handleSubmit = useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {

@@ -48,8 +48,9 @@ export async function fetchMarketplaceCategories(
     }
   }
 
-  const categories = Array.isArray(raw.data)
-    ? raw.data
+  const data = raw as MarketplaceCategoriesResponse
+  const categories = Array.isArray(data.data)
+    ? data.data
         .filter(
           (item): item is MarketplaceCategory =>
             typeof item === "object" &&
@@ -105,8 +106,9 @@ export async function fetchMyMarketplaceServices(
     }
   }
 
-  const services = Array.isArray(raw.data)
-    ? raw.data.filter(isMarketplaceService)
+  const data = raw as MarketplaceMyServicesResponse
+  const services = Array.isArray(data.data)
+    ? data.data.filter(isMarketplaceService)
     : []
 
   return { success: true, data: services }

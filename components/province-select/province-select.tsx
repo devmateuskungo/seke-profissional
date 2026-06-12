@@ -29,7 +29,7 @@ export function ProvinceSelect({
   const containerRef = useRef<HTMLDivElement>(null)
 
   const options = useMemo(() => {
-    const all = [...ANGOLA_PROVINCES]
+    const all: string[] = [...ANGOLA_PROVINCES]
     const current = value.trim()
     if (
       current &&

@@ -38,20 +38,26 @@ export function ItemChooseRole() {
   const router = useRouter()
   const toast = useToast()
   const registerStarted = useRef(false)
+  const flowCompletedRef = useRef(false)
   const [step, setStep] = useState<Step>("loading")
   const [isLoading, setIsLoading] = useState(false)
   const [userId, setUserId] = useState("")
   const [authToken, setAuthToken] = useState<string | undefined>()
 
-  const finishRegistration = useCallback(() => {
-    clearRegisterFlow()
-    toast.success("Conta criada com sucesso. Faça login para continuar.")
-    router.replace("/auth/login")
-  }, [router, toast])
+  const finishRegistration = useCallback(
+    (message = "Conta criada com sucesso. Faça login para continuar.") => {
+      flowCompletedRef.current = true
+      clearRegisterFlow()
+      router.replace("/auth/login")
+      toast.success(message)
+    },
+    [router, toast]
+  )
 
   useEffect(() => {
     const pending = readPendingRegister()
     if (!pending) {
+      if (flowCompletedRef.current) return
       router.replace("/auth/register")
       return
     }
@@ -128,9 +134,7 @@ export function ItemChooseRole() {
       try {
         const token = await resolveAuthToken(authToken, pending.email, pending.password)
         if (!token) {
-          clearRegisterFlow()
-          toast.success("Conta criada. Faça login para continuar.")
-          router.replace("/auth/login")
+          finishRegistration("Conta criada. Faça login para continuar.")
           return
         }
 
@@ -140,16 +144,14 @@ export function ItemChooseRole() {
           return
         }
 
-        clearRegisterFlow()
-        toast.success("Perfil profissional criado. Faça login para continuar.")
-        router.replace("/auth/login")
+        finishRegistration("Perfil profissional criado. Faça login para continuar.")
       } catch {
         toast.error("Erro de conexão. Verifique sua internet e tente novamente.")
       } finally {
         setIsLoading(false)
       }
     },
-    [authToken, router, toast]
+    [authToken, finishRegistration, router, toast]
   )
 
   if (step === "loading") {

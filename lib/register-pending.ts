@@ -81,6 +81,9 @@ export function clearRegisteredSession(): void {
 export function clearRegisterFlow(): void {
   clearPendingRegister()
   clearRegisteredSession()
+  if (typeof window !== "undefined") {
+    sessionStorage.removeItem("auth_token")
+  }
 }
 
 export type AccountTypeChoice = RegisterRole
