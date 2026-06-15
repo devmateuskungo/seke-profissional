@@ -5,11 +5,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import HeroSection from "@/components/itemheaderpost/itemheaderpost";
 import ItemPostProfissonal from "@/components/itempostprofissional/itempostprofissional";
 import { ItemPostCriar } from "@/components/itempostcriar/itempostcriar";
+import { ItemSolicitacaoCriar } from "@/components/itemsolicitacaocriar/itemsolicitacaocriar";
 
 import { Users, Briefcase, AlertCircle, RefreshCcw } from 'lucide-react';
 import SolicitacaoCliente from '@/components/itempostclients/itempostclient';
 import { lightTheme } from '@/style/light';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/toaster';
 import { fetchHomeFeed } from '@/lib/feed-client';
 import { postDetailToProfissionalFeedRow, postRecordToPostDetail } from '@/lib/feed-map';
 import type {
@@ -26,6 +28,11 @@ import {
   toProfissionalFeedItem,
   toSolicitacaoFeedItem,
 } from '@/types/home-feed';
+import { fetchServiceRequests } from '@/lib/service-request-client';
+import { acceptProposal, rejectProposal } from '@/lib/proposals-client';
+import { serviceRequestToSolicitacaoRow } from '@/lib/service-request-map';
+import type { MarketplaceServiceRequest, ServiceRequestPagination } from '@/types/service-request';
+import { useAccountRole } from '@/lib/use-account-role';
 import {
   HomeFeedPostSkeleton,
   HomeFeedSkeleton,
@@ -35,45 +42,6 @@ function getSessionToken(): string | null {
   if (typeof window === 'undefined') return null;
   return window.sessionStorage.getItem('auth_token');
 }
-
-const SOLICITACOES_MOCK: SolicitacaoFeedRow[] = [
-  {
-    id: 'sol1',
-    nome: "António Fernandes",
-    tempoSolicitacao: "há 5 min",
-    distancia: "1.2 km",
-    servico: "Electricista",
-    descricao: "Instalação de ar condicionado no apartamento",
-    localizacao: "Luanda",
-    bairro: "Kilamba",
-    prioridade: "alta" as const,
-    telefone: "+244 923 456 789"
-  },
-  {
-    id: 'sol2',
-    nome: "Maria Santos",
-    tempoSolicitacao: "há 15 min",
-    distancia: "3.5 km",
-    servico: "Canalizador",
-    descricao: "Torneira com vazamento na cozinha",
-    localizacao: "Luanda",
-    bairro: "Talatona",
-    prioridade: "media" as const,
-    telefone: "+244 933 456 123"
-  },
-  {
-    id: 'sol3',
-    nome: "João Paulo",
-    tempoSolicitacao: "há 30 min",
-    distancia: "5.0 km",
-    servico: "Pintor",
-    descricao: "Pintura de sala e quartos",
-    localizacao: "Luanda",
-    bairro: "Ingombotas",
-    prioridade: "baixa" as const,
-    telefone: "+244 913 456 789"
-  }
-];
 
 function FeedErrorEmptyState({
   message,
@@ -117,6 +85,7 @@ function FeedErrorEmptyState({
 function HomeInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const toast = useToast();
   const [filtroLocal, setFiltroLocal] = useState<
     'todos' | 'solicitacoes' | 'profissionais'
   >('todos');
@@ -134,6 +103,7 @@ function HomeInner() {
   }, [searchParams]);
 
   const filtro = filtroFromUrl ?? filtroLocal;
+  const { role: accountRole, isLoading: accountRoleLoading } = useAccountRole();
 
   const [feedPosts, setFeedPosts] = useState<PostDetail[]>([]);
   const [feedPagination, setFeedPagination] = useState<GlobalFeedPagination>({
@@ -146,6 +116,25 @@ function HomeInner() {
   const [feedLoadingMore, setFeedLoadingMore] = useState(false);
   const [feedError, setFeedError] = useState<string | null>(null);
 
+  const [serviceRequests, setServiceRequests] = useState<MarketplaceServiceRequest[]>([]);
+  const [serviceRequestsPagination, setServiceRequestsPagination] =
+    useState<ServiceRequestPagination | null>(null);
+  const [serviceRequestsPage, setServiceRequestsPage] = useState(1);
+  const [serviceRequestsReloadKey, setServiceRequestsReloadKey] = useState(0);
+  const [serviceRequestsLoading, setServiceRequestsLoading] = useState(true);
+  const [serviceRequestsLoadingMore, setServiceRequestsLoadingMore] = useState(false);
+  const [serviceRequestsError, setServiceRequestsError] = useState<string | null>(null);
+  const [processingRequest, setProcessingRequest] = useState<{
+    id: string;
+    action: 'accept' | 'reject';
+  } | null>(null);
+  const [acceptedRequestIds, setAcceptedRequestIds] = useState<Set<string>>(
+    () => new Set()
+  );
+  const [rejectedRequestIds, setRejectedRequestIds] = useState<Set<string>>(
+    () => new Set()
+  );
+
   useEffect(() => {
     let cancelled = false;
 
@@ -154,7 +143,7 @@ function HomeInner() {
       const result = await fetchHomeFeed({
         page: feedPage,
         limit: 50,
-        token,
+        token: token ?? undefined,
       });
 
       if (cancelled) return;
@@ -181,6 +170,43 @@ function HomeInner() {
     };
   }, [feedPage, feedReloadKey]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function run() {
+      const token = getSessionToken();
+      const result = await fetchServiceRequests({
+        page: serviceRequestsPage,
+        limit: 20,
+        token: token ?? undefined,
+      });
+
+      if (cancelled) return;
+
+      if (result.success) {
+        const { requests, pagination } = result.data;
+        setServiceRequests((prev) =>
+          serviceRequestsPage === 1 ? requests : [...prev, ...requests]
+        );
+        setServiceRequestsPagination(pagination ?? null);
+        setServiceRequestsError(null);
+      } else {
+        setServiceRequestsError(result.error);
+        if (serviceRequestsPage === 1) {
+          setServiceRequests([]);
+        }
+      }
+
+      setServiceRequestsLoading(false);
+      setServiceRequestsLoadingMore(false);
+    }
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [serviceRequestsPage, serviceRequestsReloadKey]);
+
   const handleLoadMore = useCallback(() => {
     setFeedLoadingMore(true);
     setFeedPage((previousPage) => previousPage + 1);
@@ -193,6 +219,20 @@ function HomeInner() {
     setFeedLoading(true);
     setFeedLoadingMore(false);
     setFeedReloadKey((previousKey) => previousKey + 1);
+  }, []);
+
+  const handleRetryServiceRequests = useCallback(() => {
+    setServiceRequestsError(null);
+    setServiceRequestsPage(1);
+    setServiceRequests([]);
+    setServiceRequestsLoading(true);
+    setServiceRequestsLoadingMore(false);
+    setServiceRequestsReloadKey((previousKey) => previousKey + 1);
+  }, []);
+
+  const handleLoadMoreServiceRequests = useCallback(() => {
+    setServiceRequestsLoadingMore(true);
+    setServiceRequestsPage((previousPage) => previousPage + 1);
   }, []);
 
   const handlePostCreated = useCallback((post: PostRecord) => {
@@ -208,6 +248,84 @@ function HomeInner() {
     setFeedReloadKey((previousKey) => previousKey + 1);
     setFeedLoading(true);
   }, []);
+
+  const handleServiceRequestCreated = useCallback(
+    (request: MarketplaceServiceRequest) => {
+      setServiceRequests((prev) => {
+        const rest = prev.filter((item) => item.id !== request.id);
+        return [request, ...rest];
+      });
+      setServiceRequestsPage(1);
+      setServiceRequestsReloadKey((previousKey) => previousKey + 1);
+      setServiceRequestsLoading(true);
+    },
+    []
+  );
+
+  const handleAcceptServiceRequest = useCallback(
+    async (serviceRequestId: string, proposalId?: string | null) => {
+      const token = getSessionToken();
+      if (!token) {
+        toast.error("Inicie sessão para aceitar o serviço.");
+        return;
+      }
+
+      const acceptId = proposalId?.trim() || serviceRequestId.trim();
+
+      setProcessingRequest({ id: serviceRequestId, action: 'accept' });
+      try {
+        const result = await acceptProposal(acceptId, token);
+
+        if (!result.success) {
+          toast.error(result.error);
+          return;
+        }
+
+        toast.success("Serviço aceite com sucesso.");
+        setAcceptedRequestIds((prev) => new Set(prev).add(serviceRequestId));
+        setServiceRequestsReloadKey((previousKey) => previousKey + 1);
+        setServiceRequestsLoading(true);
+      } catch {
+        toast.error("Erro de ligação. Tente novamente.");
+      } finally {
+        setProcessingRequest(null);
+      }
+    },
+    [toast]
+  );
+
+  const handleRejectServiceRequest = useCallback(
+    async (serviceRequestId: string, proposalId?: string | null) => {
+      const token = getSessionToken();
+      if (!token) {
+        toast.error("Inicie sessão para rejeitar o serviço.");
+        return;
+      }
+
+      const rejectId = proposalId?.trim() || serviceRequestId.trim();
+
+      setProcessingRequest({ id: serviceRequestId, action: 'reject' });
+      try {
+        const result = await rejectProposal(rejectId, token);
+
+        if (!result.success) {
+          toast.error(result.error);
+          return;
+        }
+
+        toast.success("Serviço rejeitado.");
+        setRejectedRequestIds((prev) => new Set(prev).add(serviceRequestId));
+        setServiceRequests((prev) =>
+          prev.filter((item) => item.id !== serviceRequestId)
+        );
+      } catch {
+        toast.error("Erro de ligação. Tente novamente.");
+      } finally {
+        setProcessingRequest(null);
+      }
+    },
+    [toast]
+  );
 
   const handleFeedPostUpdated = useCallback((detail: PostDetail) => {
     setFeedPosts((prev) =>
@@ -254,9 +372,14 @@ function HomeInner() {
     []
   );
 
+  const solicitacoesRows: SolicitacaoFeedRow[] = useMemo(
+    () => serviceRequests.map(serviceRequestToSolicitacaoRow),
+    [serviceRequests]
+  );
+
   const solicitacoesItems: FeedItem[] = useMemo(
-    () => SOLICITACOES_MOCK.map(toSolicitacaoFeedItem),
-    []
+    () => solicitacoesRows.map(toSolicitacaoFeedItem),
+    [solicitacoesRows]
   );
 
   const profissionaisItemsApi: FeedItem[] = useMemo(
@@ -267,7 +390,7 @@ function HomeInner() {
     [feedPosts]
   );
 
-  /** Todos os posts da API em sequência; solicitações mock só depois (sem intercalar). */
+  /** Posts da API + solicitações de clientes. */
   const todosItems = useMemo(
     (): FeedItem[] => [...profissionaisItemsApi, ...solicitacoesItems],
     [solicitacoesItems, profissionaisItemsApi]
@@ -285,19 +408,29 @@ function HomeInner() {
     }
   }, [filtro, todosItems, solicitacoesItems, profissionaisItemsApi]);
 
-  const contarSolicitacoes = SOLICITACOES_MOCK.length;
+  const contarSolicitacoes =
+    serviceRequestsPagination?.total ?? serviceRequests.length;
   const contarProfissionais =
     feedPagination.total ?? feedPosts.length;
 
   const contarTodos = contarSolicitacoes + contarProfissionais;
 
-  const hasMore =
+  const hasMorePosts =
     feedPagination.has_more === true ||
     feedPagination.hasMore === true ||
     (typeof feedPagination.total_pages === 'number' &&
       feedPage < feedPagination.total_pages) ||
     (typeof feedPagination.totalPages === 'number' &&
       feedPage < feedPagination.totalPages);
+
+  const hasMoreServiceRequests =
+    serviceRequestsPagination != null &&
+    serviceRequestsPagination.page < serviceRequestsPagination.pages;
+
+  const sidebarSolicitacaoRows = useMemo(
+    () => solicitacoesRows.slice(0, 3),
+    [solicitacoesRows]
+  );
 
   const sidebarProfRows: ProfissionalFeedRow[] = useMemo(
     () =>
@@ -337,9 +470,17 @@ function HomeInner() {
               <HeroSection />
             </div>
 
-            <div className="mt-4 mb-6">
-              <ItemPostCriar onSuccess={handlePostCreated} />
-            </div>
+            {!accountRoleLoading && accountRole === 'client' ? (
+              <div className="mt-4 mb-6">
+                <ItemSolicitacaoCriar onSuccess={handleServiceRequestCreated} />
+              </div>
+            ) : null}
+
+            {!accountRoleLoading && accountRole === 'professional' ? (
+              <div className="mt-4 mb-6">
+                <ItemPostCriar onSuccess={handlePostCreated} />
+              </div>
+            ) : null}
 
             <div className="mt-2">
               <div className="flex items-center justify-between mb-3">
@@ -380,16 +521,62 @@ function HomeInner() {
             </div>
 
             <div className="">
-              {feedLoading && feedPosts.length === 0 && (filtro === 'todos' || filtro === 'profissionais') ? (
+              {feedLoading &&
+              feedPosts.length === 0 &&
+              (filtro === 'todos' || filtro === 'profissionais') ? (
                 <HomeFeedSkeleton count={4} />
-              ) : feedError && feedPosts.length === 0 && (filtro === 'todos' || filtro === 'profissionais') ? (
+              ) : serviceRequestsLoading &&
+                serviceRequests.length === 0 &&
+                (filtro === 'todos' || filtro === 'solicitacoes') ? (
+                <HomeFeedSkeleton count={4} />
+              ) : filtro === 'solicitacoes' &&
+                serviceRequestsError &&
+                serviceRequests.length === 0 ? (
+                <FeedErrorEmptyState
+                  message={serviceRequestsError}
+                  onRetry={handleRetryServiceRequests}
+                />
+              ) : feedError &&
+                feedPosts.length === 0 &&
+                (filtro === 'todos' || filtro === 'profissionais') ? (
                 <FeedErrorEmptyState message={feedError} onRetry={handleRetryFeed} />
               ) : itemsParaMostrar.length > 0 ? (
                 <>
                   {itemsParaMostrar.map((item) => (
                     <div key={item.id} className="py-4">
                       {item.tipo === 'solicitacao' ? (
-                        <SolicitacaoCliente {...item.data} />
+                        <SolicitacaoCliente
+                          {...item.data}
+                          showAcceptAction={accountRole === 'professional'}
+                          isProcessing={
+                            processingRequest?.id ===
+                            (item.data.serviceRequestId ?? item.id)
+                          }
+                          processingAction={
+                            processingRequest?.id ===
+                            (item.data.serviceRequestId ?? item.id)
+                              ? processingRequest.action
+                              : null
+                          }
+                          accepted={acceptedRequestIds.has(
+                            item.data.serviceRequestId ?? item.id
+                          )}
+                          rejected={rejectedRequestIds.has(
+                            item.data.serviceRequestId ?? item.id
+                          )}
+                          onAccept={() =>
+                            void handleAcceptServiceRequest(
+                              item.data.serviceRequestId ?? item.id,
+                              item.data.proposalId
+                            )
+                          }
+                          onReject={() =>
+                            void handleRejectServiceRequest(
+                              item.data.serviceRequestId ?? item.id,
+                              item.data.proposalId
+                            )
+                          }
+                        />
                       ) : (
                         <ItemPostProfissonal
                           {...item.data}
@@ -403,7 +590,7 @@ function HomeInner() {
                       )}
                     </div>
                   ))}
-                  {filtro !== 'solicitacoes' && hasMore && (
+                  {filtro === 'profissionais' && hasMorePosts && (
                     <div className="py-6">
                       {feedLoadingMore ? (
                         <div className="space-y-4">
@@ -427,6 +614,59 @@ function HomeInner() {
                       )}
                     </div>
                   )}
+                  {filtro === 'solicitacoes' && hasMoreServiceRequests && (
+                    <div className="py-6">
+                      {serviceRequestsLoadingMore ? (
+                        <div className="space-y-4">
+                          <div className="py-2">
+                            <HomeFeedPostSkeleton />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex justify-center">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleLoadMoreServiceRequests}
+                          >
+                            Carregar mais solicitações
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {filtro === 'todos' && (hasMorePosts || hasMoreServiceRequests) && (
+                    <div className="py-6">
+                      {feedLoadingMore || serviceRequestsLoadingMore ? (
+                        <div className="space-y-4">
+                          <div className="py-2">
+                            <HomeFeedPostSkeleton />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap justify-center gap-3">
+                          {hasMorePosts ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={handleLoadMore}
+                            >
+                              Carregar mais publicações
+                            </Button>
+                          ) : null}
+                          {hasMoreServiceRequests ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={handleLoadMoreServiceRequests}
+                            >
+                              Carregar mais solicitações
+                            </Button>
+                          ) : null}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="text-center py-12">
@@ -438,6 +678,12 @@ function HomeInner() {
             {feedError && feedPosts.length > 0 ? (
               <p className="text-sm text-destructive mt-4" role="alert">
                 {feedError}
+              </p>
+            ) : null}
+
+            {serviceRequestsError && serviceRequests.length > 0 ? (
+              <p className="text-sm text-destructive mt-4" role="alert">
+                {serviceRequestsError}
               </p>
             ) : null}
           </div>
@@ -483,19 +729,25 @@ function HomeInner() {
               <h3 className="text-base font-semibold">Solicitações recentes</h3>
             </div>
             <div className="p-4 space-y-3">
-              {SOLICITACOES_MOCK.slice(0, 3).map((sol) => (
-                <div key={sol.id} className="text-sm">
-                  <p className="font-medium text-xs">{sol.nome}</p>
-                  <p className="text-xs text-gray-500">{sol.servico} • {sol.bairro}</p>
-                  <span className={`text-xs px-2 py-0.5 rounded-full inline-block mt-1 ${sol.prioridade === 'alta' ? 'bg-red-50 text-red-600' :
-                    sol.prioridade === 'media' ? 'bg-amber-50 text-amber-600' :
-                      'bg-gray-100 text-gray-700'
-                    }`}>
-                    {sol.prioridade === 'alta' ? 'Urgente' :
-                      sol.prioridade === 'media' ? 'Normal' : 'Baixa prioridade'}
-                  </span>
-                </div>
-              ))}
+              {sidebarSolicitacaoRows.length === 0 ? (
+                <p className="text-sm text-gray-500">
+                  As solicitações de clientes aparecem aqui quando existirem.
+                </p>
+              ) : (
+                sidebarSolicitacaoRows.map((sol) => (
+                  <div key={sol.id} className="text-sm">
+                    <p className="font-medium text-xs">{sol.nome}</p>
+                    <p className="text-xs text-gray-500">{sol.servico} • {sol.bairro}</p>
+                    <span className={`text-xs px-2 py-0.5 rounded-full inline-block mt-1 ${sol.prioridade === 'alta' ? 'bg-red-50 text-red-600' :
+                      sol.prioridade === 'media' ? 'bg-amber-50 text-amber-600' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                      {sol.prioridade === 'alta' ? 'Urgente' :
+                        sol.prioridade === 'media' ? 'Normal' : 'Baixa prioridade'}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </aside>

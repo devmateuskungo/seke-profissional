@@ -18,6 +18,8 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/toaster"
 import { lightTheme } from "@/style/light"
 import { loginWithCredentials } from "@/lib/auth-client"
+import { extractProfileTypeFromProfile } from "@/lib/account-role"
+import { fetchProfile } from "@/lib/profile-client"
 import { extractUserIdFromJwt } from "@/lib/jwt-user-id"
 
 function GoogleIcon({ className }: { className?: string }) {
@@ -80,6 +82,19 @@ export function ItemLogin() {
               image: apiUser?.avatar ?? u?.image,
             }
             window.sessionStorage.setItem("user_data", JSON.stringify(userData))
+
+            if (token) {
+              const profileOutcome = await fetchProfile(token, resolvedId)
+              if (profileOutcome.success) {
+                const profileType = extractProfileTypeFromProfile(profileOutcome.data)
+                if (profileType) {
+                  window.sessionStorage.setItem(
+                    "user_data",
+                    JSON.stringify({ ...userData, profile_type: profileType })
+                  )
+                }
+              }
+            }
           }
           toast.success("Login realizado com sucesso.")
           router.push(DEFAULT_REDIRECT)
