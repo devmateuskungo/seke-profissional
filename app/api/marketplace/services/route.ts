@@ -3,6 +3,59 @@ import type { ApiErrorResponse } from "@/types/auth"
 import type { CreateServiceRequest } from "@/types/service"
 import { getApiBaseUrl, getAuthorizationHeader } from "@/lib/api-profile-proxy"
 
+/** GET /api/marketplace/services — proxy para API externa GET /marketplace/services */
+export async function GET(request: NextRequest) {
+  try {
+    const endpoint = `${getApiBaseUrl()}/marketplace/services`
+    const authorization = request.headers.get("authorization")
+    const headers: HeadersInit = { Accept: "application/json" }
+    if (authorization?.toLowerCase().startsWith("bearer ")) {
+      headers.Authorization = authorization
+    }
+
+    const { searchParams } = new URL(request.url)
+    const forwardParams = new URLSearchParams()
+    for (const key of ["category_id", "professional_id", "page", "limit"]) {
+      const value = searchParams.get(key)
+      if (value?.trim()) forwardParams.set(key, value.trim())
+    }
+
+    const url = forwardParams.toString()
+      ? `${endpoint}?${forwardParams}`
+      : endpoint
+
+    const res = await fetch(url, {
+      method: "GET",
+      headers,
+      cache: "no-store",
+    })
+
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      const message =
+        (data && typeof data.message === "string" && data.message) ||
+        "Não foi possível carregar os serviços."
+      return NextResponse.json(
+        { message } satisfies ApiErrorResponse,
+        { status: res.status }
+      )
+    }
+
+    return NextResponse.json(data)
+  } catch (err) {
+    if (err instanceof Error && err.message.includes("NEXT_PUBLIC_URL_API")) {
+      return NextResponse.json(
+        { message: "Configuração do servidor incompleta." } satisfies ApiErrorResponse,
+        { status: 503 }
+      )
+    }
+    return NextResponse.json(
+      { message: "Erro interno. Tente novamente mais tarde." } satisfies ApiErrorResponse,
+      { status: 500 }
+    )
+  }
+}
+
 /** POST /api/marketplace/services — proxy para API externa POST /marketplace/services */
 export async function POST(request: NextRequest) {
   try {

@@ -2,13 +2,14 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { BadgeCheck, MapPin, Star } from "lucide-react";
+import { BadgeCheck, MapPin, Navigation, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { lightTheme } from "@/style";
 import {
   resolveUserAvatarUrl,
   userAvatarSrcUnoptimized,
 } from "@/lib/user-avatar";
+import { formatDistanceKm } from "@/lib/professional-distance";
 
 interface ItemlistcategoriaProfissionalProps {
   professionalId: string;
@@ -22,6 +23,7 @@ interface ItemlistcategoriaProfissionalProps {
   municipality?: string | null;
   isAvailable?: boolean;
   totalReviews?: number;
+  distanceKm?: number | null;
 }
 
 function formatLocation(
@@ -44,6 +46,7 @@ export default function ItemlistcategoriaProfissional({
   municipality,
   isAvailable = true,
   totalReviews = 0,
+  distanceKm,
 }: ItemlistcategoriaProfissionalProps) {
   const router = useRouter();
   const avatarSrc = resolveUserAvatarUrl(image);
@@ -117,6 +120,13 @@ export default function ItemlistcategoriaProfissional({
           </p>
         ) : null}
 
+        {typeof distanceKm === "number" && !Number.isNaN(distanceKm) ? (
+          <p className="mt-1.5 flex items-center justify-center gap-1 text-xs font-medium text-[#2b81e5]">
+            <Navigation className="size-3 shrink-0" aria-hidden />
+            {formatDistanceKm(distanceKm)} de distância
+          </p>
+        ) : null}
+
         <p className="mt-3 text-sm font-semibold text-gray-900">
           {price > 0
             ? `${price.toLocaleString("pt-PT")} Kz/h`
@@ -125,8 +135,9 @@ export default function ItemlistcategoriaProfissional({
 
         <Button
           type="button"
+          size="xs"
           onClick={goToProfile}
-          className="mt-4 h-8 w-full text-sm text-white hover:opacity-90"
+          className="mt-3 h-8 w-full min-h-7 px-4 text-xs text-white hover:opacity-90"
           style={{ backgroundColor: lightTheme.colors.primary }}
         >
           Ver perfil

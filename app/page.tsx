@@ -9,6 +9,8 @@ import { ItemSolicitacaoCriar } from "@/components/itemsolicitacaocriar/itemsoli
 
 import { Users, Briefcase, AlertCircle, RefreshCcw } from 'lucide-react';
 import SolicitacaoCliente from '@/components/itempostclients/itempostclient';
+import { ItemPropostaEnviar } from '@/components/itempropostaenviar/itempropostaenviar';
+import { ItemPropostasGerir } from '@/components/itempropostasgerir/itempropostasgerir';
 import { lightTheme } from '@/style/light';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toaster';
@@ -29,10 +31,10 @@ import {
   toSolicitacaoFeedItem,
 } from '@/types/home-feed';
 import { fetchServiceRequests } from '@/lib/service-request-client';
-import { acceptProposal, rejectProposal } from '@/lib/proposals-client';
 import { serviceRequestToSolicitacaoRow } from '@/lib/service-request-map';
 import type { MarketplaceServiceRequest, ServiceRequestPagination } from '@/types/service-request';
 import { useAccountRole } from '@/lib/use-account-role';
+import { sameUserId, useViewerUserId } from '@/lib/viewer-user-id';
 import {
   HomeFeedPostSkeleton,
   HomeFeedSkeleton,
@@ -104,6 +106,7 @@ function HomeInner() {
 
   const filtro = filtroFromUrl ?? filtroLocal;
   const { role: accountRole, isLoading: accountRoleLoading } = useAccountRole();
+  const viewerUserId = useViewerUserId();
 
   const [feedPosts, setFeedPosts] = useState<PostDetail[]>([]);
   const [feedPagination, setFeedPagination] = useState<GlobalFeedPagination>({
@@ -124,16 +127,17 @@ function HomeInner() {
   const [serviceRequestsLoading, setServiceRequestsLoading] = useState(true);
   const [serviceRequestsLoadingMore, setServiceRequestsLoadingMore] = useState(false);
   const [serviceRequestsError, setServiceRequestsError] = useState<string | null>(null);
-  const [processingRequest, setProcessingRequest] = useState<{
+  const [proposalDialogRequest, setProposalDialogRequest] = useState<{
     id: string;
-    action: 'accept' | 'reject';
+    servico: string;
   } | null>(null);
-  const [acceptedRequestIds, setAcceptedRequestIds] = useState<Set<string>>(
+  const [proposalSentIds, setProposalSentIds] = useState<Set<string>>(
     () => new Set()
   );
-  const [rejectedRequestIds, setRejectedRequestIds] = useState<Set<string>>(
-    () => new Set()
-  );
+  const [manageProposalsDialogRequest, setManageProposalsDialogRequest] = useState<{
+    id: string;
+    servico: string;
+  } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -262,70 +266,66 @@ function HomeInner() {
     []
   );
 
-  const handleAcceptServiceRequest = useCallback(
-    async (serviceRequestId: string, proposalId?: string | null) => {
+  const handleOpenProposalDialog = useCallback(
+    (serviceRequestId: string, servico: string) => {
       const token = getSessionToken();
       if (!token) {
-        toast.error("Inicie sessão para aceitar o serviço.");
+        toast.error("Inicie sessão para enviar uma proposta.");
         return;
       }
-
-      const acceptId = proposalId?.trim() || serviceRequestId.trim();
-
-      setProcessingRequest({ id: serviceRequestId, action: 'accept' });
-      try {
-        const result = await acceptProposal(acceptId, token);
-
-        if (!result.success) {
-          toast.error(result.error);
-          return;
-        }
-
-        toast.success("Serviço aceite com sucesso.");
-        setAcceptedRequestIds((prev) => new Set(prev).add(serviceRequestId));
-        setServiceRequestsReloadKey((previousKey) => previousKey + 1);
-        setServiceRequestsLoading(true);
-      } catch {
-        toast.error("Erro de ligação. Tente novamente.");
-      } finally {
-        setProcessingRequest(null);
-      }
+      setProposalDialogRequest({ id: serviceRequestId, servico });
     },
     [toast]
   );
 
-  const handleRejectServiceRequest = useCallback(
-    async (serviceRequestId: string, proposalId?: string | null) => {
+  const handleProposalSuccess = useCallback((serviceRequestId: string) => {
+    setProposalSentIds((prev) => new Set(prev).add(serviceRequestId));
+    setServiceRequests((prev) =>
+      prev.map((item) =>
+        item.id === serviceRequestId
+          ? { ...item, has_my_proposal: true }
+          : item
+      )
+    );
+    setProposalDialogRequest(null);
+  }, []);
+
+  const handleOpenManageProposalsDialog = useCallback(
+    (serviceRequestId: string, servico: string) => {
       const token = getSessionToken();
       if (!token) {
-        toast.error("Inicie sessão para rejeitar o serviço.");
+        toast.error("Inicie sessão para ver as propostas.");
         return;
       }
-
-      const rejectId = proposalId?.trim() || serviceRequestId.trim();
-
-      setProcessingRequest({ id: serviceRequestId, action: 'reject' });
-      try {
-        const result = await rejectProposal(rejectId, token);
-
-        if (!result.success) {
-          toast.error(result.error);
-          return;
-        }
-
-        toast.success("Serviço rejeitado.");
-        setRejectedRequestIds((prev) => new Set(prev).add(serviceRequestId));
-        setServiceRequests((prev) =>
-          prev.filter((item) => item.id !== serviceRequestId)
-        );
-      } catch {
-        toast.error("Erro de ligação. Tente novamente.");
-      } finally {
-        setProcessingRequest(null);
-      }
+      setManageProposalsDialogRequest({ id: serviceRequestId, servico });
     },
     [toast]
   );
+
+  const handleProposalAccepted = useCallback((serviceRequestId: string) => {
+    setServiceRequests((prev) =>
+      prev.map((item) =>
+        item.id === serviceRequestId
+          ? { ...item, status: "matched", matched_professional_id: item.matched_professional_id }
+          : item
+      )
+    );
+    setServiceRequestsReloadKey((previousKey) => previousKey + 1);
+    setManageProposalsDialogRequest(null);
+  }, []);
+
+  const handleProposalRejected = useCallback((serviceRequestId: string) => {
+    setServiceRequests((prev) =>
+      prev.map((item) =>
+        item.id === serviceRequestId
+          ? {
+              ...item,
+              total_proposals: Math.max(0, Number(item.total_proposals) - 1),
+            }
+          : item
+      )
+    );
+  }, []);
 
   const handleFeedPostUpdated = useCallback((detail: PostDetail) => {
     setFeedPosts((prev) =>
@@ -547,33 +547,30 @@ function HomeInner() {
                       {item.tipo === 'solicitacao' ? (
                         <SolicitacaoCliente
                           {...item.data}
-                          showAcceptAction={accountRole === 'professional'}
-                          isProcessing={
-                            processingRequest?.id ===
-                            (item.data.serviceRequestId ?? item.id)
+                          showProposalAction={accountRole === 'professional'}
+                          showManageProposalsAction={
+                            accountRole === 'client' &&
+                            sameUserId(viewerUserId, item.data.clientId)
                           }
-                          processingAction={
-                            processingRequest?.id ===
-                            (item.data.serviceRequestId ?? item.id)
-                              ? processingRequest.action
-                              : null
-                          }
-                          accepted={acceptedRequestIds.has(
-                            item.data.serviceRequestId ?? item.id
-                          )}
-                          rejected={rejectedRequestIds.has(
-                            item.data.serviceRequestId ?? item.id
-                          )}
-                          onAccept={() =>
-                            void handleAcceptServiceRequest(
-                              item.data.serviceRequestId ?? item.id,
-                              item.data.proposalId
+                          hasMyProposal={
+                            item.data.hasMyProposal ||
+                            proposalSentIds.has(
+                              item.data.serviceRequestId ?? item.id
                             )
                           }
-                          onReject={() =>
-                            void handleRejectServiceRequest(
+                          proposalSent={proposalSentIds.has(
+                            item.data.serviceRequestId ?? item.id
+                          )}
+                          onSendProposal={() =>
+                            handleOpenProposalDialog(
                               item.data.serviceRequestId ?? item.id,
-                              item.data.proposalId
+                              item.data.servico ?? 'Serviço'
+                            )
+                          }
+                          onViewProposals={() =>
+                            handleOpenManageProposalsDialog(
+                              item.data.serviceRequestId ?? item.id,
+                              item.data.servico ?? 'Serviço'
                             )
                           }
                         />
@@ -752,6 +749,35 @@ function HomeInner() {
           </div>
         </aside>
       </div>
+
+      {proposalDialogRequest ? (
+        <ItemPropostaEnviar
+          serviceRequestId={proposalDialogRequest.id}
+          servico={proposalDialogRequest.servico}
+          open={!!proposalDialogRequest}
+          onOpenChange={(open) => {
+            if (!open) setProposalDialogRequest(null);
+          }}
+          onSuccess={() => handleProposalSuccess(proposalDialogRequest.id)}
+        />
+      ) : null}
+
+      {manageProposalsDialogRequest ? (
+        <ItemPropostasGerir
+          serviceRequestId={manageProposalsDialogRequest.id}
+          servico={manageProposalsDialogRequest.servico}
+          open={!!manageProposalsDialogRequest}
+          onOpenChange={(open) => {
+            if (!open) setManageProposalsDialogRequest(null);
+          }}
+          onProposalAccepted={() =>
+            handleProposalAccepted(manageProposalsDialogRequest.id)
+          }
+          onProposalRejected={() =>
+            handleProposalRejected(manageProposalsDialogRequest.id)
+          }
+        />
+      ) : null}
     </div>
   )
 }

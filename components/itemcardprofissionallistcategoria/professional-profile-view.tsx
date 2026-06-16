@@ -16,7 +16,6 @@ import {
   MessageSquare,
   Phone,
   RefreshCcw,
-  Send,
   Share2,
   Star,
 } from "lucide-react";
@@ -31,11 +30,19 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/toaster";
-import { ItemSolicitacaoCriar } from "@/components/itemsolicitacaocriar/itemsolicitacaocriar";
 import { ProfileLayoutSkeleton } from "@/components/profile/profile-layout-skeleton";
 import { lightTheme } from "@/style";
+import { createBooking } from "@/lib/bookings-client";
+import { fetchProfessionalMarketplaceServices } from "@/lib/marketplace-client";
 import { fetchProfessionalById } from "@/lib/professionals-client";
 import { useAuth } from "@/lib/use-auth";
 import {
@@ -43,6 +50,7 @@ import {
   userAvatarSrcUnoptimized,
 } from "@/lib/user-avatar";
 import { sameUserId, useViewerUserId } from "@/lib/viewer-user-id";
+import type { MarketplaceService } from "@/types/marketplace";
 import type { ProfessionalDetail } from "@/types/professional";
 
 function getSessionToken(): string | null {
@@ -88,6 +96,34 @@ function getDefaultScheduleDate(): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function toApiIso(datetimeLocal: string): string {
+  const d = new Date(datetimeLocal);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString().replace(/\.\d{3}Z$/, "Z");
+}
+
+function addMinutesToDatetimeLocal(
+  datetimeLocal: string,
+  minutes: number
+): string {
+  const d = new Date(datetimeLocal);
+  if (Number.isNaN(d.getTime())) return "";
+  d.setMinutes(d.getMinutes() + minutes);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function formatServiceOptionLabel(service: MarketplaceService): string {
+  const price =
+    Number(service.price) > 0
+      ? `${Number(service.price).toLocaleString("pt-PT")} Kz`
+      : null;
+  const duration =
+    service.duration_minutes > 0 ? `${service.duration_minutes} min` : null;
+  const details = [price, duration].filter(Boolean).join(" · ");
+  return details ? `${service.title} — ${details}` : service.title;
+}
+
 interface ProfessionalProfileViewProps {
   professionalId: string;
 }
@@ -108,10 +144,15 @@ export default function ProfessionalProfileView({
   const [reloadKey, setReloadKey] = useState(0);
   const [bioExpanded, setBioExpanded] = useState(false);
 
-  const [solicitOpen, setSolicitOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [scheduleServices, setScheduleServices] = useState<MarketplaceService[]>(
+    []
+  );
+  const [scheduleServicesLoading, setScheduleServicesLoading] = useState(false);
+  const [selectedServiceId, setSelectedServiceId] = useState("");
   const [scheduleDate, setScheduleDate] = useState(getDefaultScheduleDate);
-  const [scheduleNotes, setScheduleNotes] = useState("");
+  const [scheduleEndDate, setScheduleEndDate] = useState("");
+  const [scheduleNotes, setScheduleNotes] = useState("Serviço agendado");
   const [scheduleSubmitting, setScheduleSubmitting] = useState(false);
 
   useEffect(() => {
@@ -179,36 +220,150 @@ export default function ProfessionalProfileView({
     router.push(`/chat?${params.toString()}`);
   }, [professional, requireAuth, router]);
 
-  const handleSolicit = useCallback(() => {
-    if (!requireAuth("solicitar um serviço")) return;
-    setSolicitOpen(true);
-  }, [requireAuth]);
-
-  const handleScheduleOpen = useCallback(() => {
+  const handleScheduleOpen = useCallback(async () => {
+    if (!professional) return;
     if (!requireAuth("agendar um serviço")) return;
-    setScheduleDate(getDefaultScheduleDate());
-    setScheduleNotes("");
+
+    const defaultStart = getDefaultScheduleDate();
+    setScheduleDate(defaultStart);
+    setScheduleNotes("Serviço agendado");
+    setSelectedServiceId("");
+    setScheduleEndDate("");
+    setScheduleServices([]);
     setScheduleOpen(true);
-  }, [requireAuth]);
+    setScheduleServicesLoading(true);
+
+    const token = getSessionToken();
+    const result = await fetchProfessionalMarketplaceServices(
+      { id: professional.id, user_id: professional.user_id },
+      token ?? undefined
+    );
+
+    setScheduleServicesLoading(false);
+
+    if (!result.success) {
+      toast.error(result.error);
+      return;
+    }
+
+    const active = result.data.filter((service) => service.is_active !== false);
+    setScheduleServices(active);
+
+    if (active.length === 1) {
+      setSelectedServiceId(active[0].id);
+      const duration = active[0].duration_minutes || 60;
+      setScheduleEndDate(addMinutesToDatetimeLocal(defaultStart, duration));
+    }
+
+    if (active.length === 0) {
+      toast.error("Este profissional não tem serviços ativos para agendar.");
+    }
+  }, [professional, requireAuth, toast]);
+
+  const handleServiceChange = useCallback(
+    (serviceId: string) => {
+      setSelectedServiceId(serviceId);
+      const service = scheduleServices.find((item) => item.id === serviceId);
+      if (service && scheduleDate) {
+        const duration = service.duration_minutes || 60;
+        setScheduleEndDate(addMinutesToDatetimeLocal(scheduleDate, duration));
+      }
+    },
+    [scheduleServices, scheduleDate]
+  );
+
+  const handleScheduleStartChange = useCallback(
+    (value: string) => {
+      setScheduleDate(value);
+      const service = scheduleServices.find(
+        (item) => item.id === selectedServiceId
+      );
+      if (service && value) {
+        const duration = service.duration_minutes || 60;
+        setScheduleEndDate(addMinutesToDatetimeLocal(value, duration));
+      }
+    },
+    [scheduleServices, selectedServiceId]
+  );
 
   const handleScheduleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
       if (!professional) return;
+
+      const token = getSessionToken();
+      if (!token) {
+        toast.error("Inicie sessão para agendar um serviço.");
+        return;
+      }
+
+      if (!selectedServiceId.trim()) {
+        toast.error("Selecione um serviço.");
+        return;
+      }
+
       if (!scheduleDate.trim()) {
-        toast.error("Selecione data e hora para o agendamento.");
+        toast.error("Selecione data e hora de início.");
+        return;
+      }
+
+      const scheduledStart = toApiIso(scheduleDate);
+      const endLocal =
+        scheduleEndDate.trim() ||
+        addMinutesToDatetimeLocal(
+          scheduleDate,
+          scheduleServices.find((item) => item.id === selectedServiceId)
+            ?.duration_minutes || 60
+        );
+      const scheduledEnd = toApiIso(endLocal);
+
+      if (!scheduledStart || !scheduledEnd) {
+        toast.error("Data ou hora inválida.");
+        return;
+      }
+
+      if (new Date(scheduledEnd).getTime() <= new Date(scheduledStart).getTime()) {
+        toast.error("A hora de fim deve ser posterior à de início.");
         return;
       }
 
       setScheduleSubmitting(true);
-      await new Promise((r) => setTimeout(r, 400));
-      setScheduleSubmitting(false);
-      setScheduleOpen(false);
-      toast.success(
-        `Pedido de agendamento enviado a ${professional.full_name}. Aguarde confirmação.`
-      );
+      try {
+        const result = await createBooking(
+          {
+            professional_id: professional.id,
+            service_id: selectedServiceId.trim(),
+            scheduled_start: scheduledStart,
+            scheduled_end: scheduledEnd,
+            description: scheduleNotes.trim() || "Serviço agendado",
+          },
+          token
+        );
+
+        if (!result.success) {
+          toast.error(result.error);
+          return;
+        }
+
+        setScheduleOpen(false);
+        toast.success(
+          `Agendamento enviado a ${professional.full_name}. Aguarde confirmação.`
+        );
+      } catch {
+        toast.error("Erro de ligação. Tente novamente.");
+      } finally {
+        setScheduleSubmitting(false);
+      }
     },
-    [professional, scheduleDate, toast]
+    [
+      professional,
+      selectedServiceId,
+      scheduleDate,
+      scheduleEndDate,
+      scheduleServices,
+      scheduleNotes,
+      toast,
+    ]
   );
 
   if (isLoading) {
@@ -552,17 +707,6 @@ export default function ProfessionalProfileView({
                   <div className="space-y-2">
                     <Button
                       type="button"
-                      className="w-full gap-2 text-white"
-                      style={{ backgroundColor: lightTheme.colors.primary }}
-                      onClick={handleSolicit}
-                      disabled={!professional.is_available}
-                    >
-                      <Send className="size-4" />
-                      Solicitar serviço
-                    </Button>
-
-                    <Button
-                      type="button"
                       variant="outline"
                       className="w-full gap-2"
                       onClick={handleMessage}
@@ -573,9 +717,9 @@ export default function ProfessionalProfileView({
 
                     <Button
                       type="button"
-                      variant="outline"
-                      className="w-full gap-2"
-                      onClick={handleScheduleOpen}
+                      className="w-full gap-2 text-white"
+                      style={{ backgroundColor: lightTheme.colors.primary }}
+                      onClick={() => void handleScheduleOpen()}
                       disabled={!professional.is_available}
                     >
                       <CalendarClock className="size-4" />
@@ -631,46 +775,109 @@ export default function ProfessionalProfileView({
         </div>
       </div>
 
-      <ItemSolicitacaoCriar
-        dialogOnly
-        open={solicitOpen}
-        onOpenChange={setSolicitOpen}
-        professionalContext={{ name: professional.full_name }}
-        onSuccess={() => setSolicitOpen(false)}
-      />
-
       <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
         <DialogContent className="sm:max-w-md">
           <form onSubmit={handleScheduleSubmit}>
             <DialogHeader>
               <DialogTitle>Agendar serviço</DialogTitle>
               <DialogDescription>
-                Escolha data e hora preferidas. {professional.full_name} será
+                Escolha o serviço e o horário. {professional.full_name} será
                 notificado do seu pedido.
               </DialogDescription>
             </DialogHeader>
 
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="schedule-date">Data e hora</Label>
+                <Label htmlFor="schedule-service">
+                  Serviço
+                  {scheduleServices.length > 1 ? (
+                    <span className="font-normal text-muted-foreground">
+                      {" "}
+                      ({scheduleServices.length} disponíveis)
+                    </span>
+                  ) : null}
+                </Label>
+                <Select
+                  value={selectedServiceId}
+                  onValueChange={handleServiceChange}
+                  disabled={
+                    scheduleSubmitting ||
+                    scheduleServicesLoading ||
+                    scheduleServices.length === 0
+                  }
+                >
+                  <SelectTrigger id="schedule-service" className="w-full">
+                    <SelectValue
+                      placeholder={
+                        scheduleServicesLoading
+                          ? "A carregar serviços…"
+                          : scheduleServices.length === 0
+                            ? "Nenhum serviço disponível"
+                            : "Selecione um serviço"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {scheduleServices.map((service) => (
+                      <SelectItem key={service.id} value={service.id}>
+                        {formatServiceOptionLabel(service)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!scheduleServicesLoading && scheduleServices.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    Este profissional ainda não tem serviços disponíveis para
+                    agendamento.
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="schedule-date">Início</Label>
                 <Input
                   id="schedule-date"
                   type="datetime-local"
                   value={scheduleDate}
-                  onChange={(e) => setScheduleDate(e.target.value)}
+                  onChange={(e) => handleScheduleStartChange(e.target.value)}
                   required
-                  disabled={scheduleSubmitting}
+                  disabled={
+                    scheduleSubmitting ||
+                    scheduleServicesLoading ||
+                    scheduleServices.length === 0
+                  }
                 />
               </div>
+
               <div className="grid gap-2">
-                <Label htmlFor="schedule-notes">Observações (opcional)</Label>
+                <Label htmlFor="schedule-end">Fim</Label>
+                <Input
+                  id="schedule-end"
+                  type="datetime-local"
+                  value={scheduleEndDate}
+                  onChange={(e) => setScheduleEndDate(e.target.value)}
+                  required
+                  disabled={
+                    scheduleSubmitting ||
+                    scheduleServicesLoading ||
+                    scheduleServices.length === 0
+                  }
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="schedule-notes">Descrição</Label>
                 <Textarea
                   id="schedule-notes"
                   value={scheduleNotes}
                   onChange={(e) => setScheduleNotes(e.target.value)}
-                  placeholder="Descreva brevemente o serviço ou local"
+                  placeholder="Serviço agendado"
                   rows={3}
-                  disabled={scheduleSubmitting}
+                  disabled={
+                    scheduleSubmitting ||
+                    scheduleServicesLoading ||
+                    scheduleServices.length === 0
+                  }
                 />
               </div>
             </div>
@@ -684,7 +891,17 @@ export default function ProfessionalProfileView({
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={scheduleSubmitting}>
+              <Button
+                type="submit"
+                disabled={
+                  scheduleSubmitting ||
+                  scheduleServicesLoading ||
+                  scheduleServices.length === 0 ||
+                  !selectedServiceId
+                }
+                className="text-white"
+                style={{ backgroundColor: lightTheme.colors.primary }}
+              >
                 {scheduleSubmitting ? "A enviar…" : "Confirmar agendamento"}
               </Button>
             </DialogFooter>

@@ -90,17 +90,59 @@ export async function fetchProfessionalById(
   return { success: true, data }
 }
 
-export async function fetchProfessionals(options?: {
+export type FetchProfessionalsFilters = {
   page?: number
   limit?: number
   token?: string
-}): Promise<FetchProfessionalsOutcome> {
+  category_id?: string
+  province?: string
+  municipality?: string
+  latitude?: number
+  longitude?: number
+  radius_km?: number
+  sort?: "distance" | "rating" | "recent"
+}
+
+export async function fetchProfessionals(
+  options?: FetchProfessionalsFilters
+): Promise<FetchProfessionalsOutcome> {
   const page = options?.page ?? 1
   const limit = options?.limit ?? 30
   const params = new URLSearchParams({
     page: String(page),
     limit: String(limit),
   })
+
+  if (options?.category_id?.trim()) {
+    params.set("category_id", options.category_id.trim())
+  }
+  if (options?.province?.trim()) {
+    params.set("province", options.province.trim())
+  }
+  if (options?.municipality?.trim()) {
+    params.set("municipality", options.municipality.trim())
+  }
+  if (
+    typeof options?.latitude === "number" &&
+    !Number.isNaN(options.latitude)
+  ) {
+    params.set("latitude", String(options.latitude))
+  }
+  if (
+    typeof options?.longitude === "number" &&
+    !Number.isNaN(options.longitude)
+  ) {
+    params.set("longitude", String(options.longitude))
+  }
+  if (
+    typeof options?.radius_km === "number" &&
+    !Number.isNaN(options.radius_km)
+  ) {
+    params.set("radius_km", String(options.radius_km))
+  }
+  if (options?.sort) {
+    params.set("sort", options.sort)
+  }
 
   const headers: HeadersInit = { Accept: "application/json" }
   if (options?.token?.trim()) {

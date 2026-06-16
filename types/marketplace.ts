@@ -42,3 +42,8 @@ export interface MarketplaceMyServicesResponse {
   success: boolean
   data: MarketplaceService[]
 }
+
+export interface MarketplaceServicesListResponse {
+  success: boolean
+  data: MarketplaceService[]
+}

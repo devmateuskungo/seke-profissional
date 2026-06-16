@@ -24,6 +24,7 @@ import {
 import { useToast } from "@/components/ui/toaster"
 import { savePendingRegister } from "@/lib/register-pending"
 import { lightTheme } from "@/style/light"
+import { cn } from "@/lib/utils"
 import type { RegisterRole } from "@/types/auth"
 
 function GoogleIcon({ className }: { className?: string }) {
@@ -106,14 +107,15 @@ export function ItemRegister() {
     signIn("google", { callbackUrl: "/" })
   }, [ensureTermsAccepted])
 
-  const inputBorder = { border: `1px solid ${lightTheme.colors.border}` }
+  const authFieldClass =
+    "border-0 bg-muted/50 shadow-none focus-visible:ring-2 focus-visible:ring-primary/20"
 
   return (
     <Card
+      className="border-0 shadow-none"
       style={{
         padding: lightTheme.spacing.md,
         borderRadius: lightTheme.borderRadius.small,
-        border: `1px solid ${lightTheme.colors.border}`,
         fontFamily: lightTheme.typography.fontFamily,
       }}
     >
@@ -140,7 +142,7 @@ export function ItemRegister() {
                 autoComplete="name"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                style={inputBorder}
+                className={authFieldClass}
                 required
               />
             </div>
@@ -153,7 +155,7 @@ export function ItemRegister() {
                 autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                style={inputBorder}
+                className={authFieldClass}
                 required
               />
             </div>
@@ -166,7 +168,7 @@ export function ItemRegister() {
                 autoComplete="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                style={inputBorder}
+                className={authFieldClass}
                 required
               />
             </div>
@@ -176,7 +178,7 @@ export function ItemRegister() {
                 value={role || undefined}
                 onValueChange={(value) => setRole(value as RegisterRole)}
               >
-                <SelectTrigger id="role" className="w-full" style={inputBorder}>
+                <SelectTrigger id="role" className={cn("w-full", authFieldClass)}>
                   <SelectValue placeholder="Selecione o tipo de conta" />
                 </SelectTrigger>
                 <SelectContent className="w-full">
@@ -194,7 +196,7 @@ export function ItemRegister() {
                 autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                style={inputBorder}
+                className={authFieldClass}
                 required
               />
             </div>
@@ -207,7 +209,7 @@ export function ItemRegister() {
                 autoComplete="new-password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                style={inputBorder}
+                className={authFieldClass}
                 required
               />
             </div>
@@ -218,8 +220,7 @@ export function ItemRegister() {
               type="checkbox"
               checked={acceptedTerms}
               onChange={(e) => setAcceptedTerms(e.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 rounded border"
-              style={{ borderColor: lightTheme.colors.border }}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-0 bg-muted/50 ring-1 ring-muted-foreground/20"
               aria-describedby="terms-description"
             />
             <span id="terms-description" className="text-sm leading-snug" style={{ color: lightTheme.colors.text }}>
@@ -257,21 +258,15 @@ export function ItemRegister() {
           </Button>
 
           <div className="relative w-full">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" style={{ borderColor: lightTheme.colors.border }} />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="px-2 bg-card" style={{ color: lightTheme.colors.textSecondary }}>
-                ou
-              </span>
+            <div className="flex justify-center text-xs uppercase">
+              <span style={{ color: lightTheme.colors.textSecondary }}>ou</span>
             </div>
           </div>
 
           <Button
             type="button"
-            variant="outline"
-            className="w-full cursor-pointer h-10 gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ borderColor: lightTheme.colors.border }}
+            variant="ghost"
+            className="w-full cursor-pointer h-10 gap-2 bg-muted/50 hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={handleGoogleSignUp}
             disabled={!acceptedTerms}
           >

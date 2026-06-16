@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
+import { Loader2 } from "lucide-react"
 import {
   Card,
   CardContent,
@@ -157,14 +158,18 @@ export function ItemChooseRole() {
   if (step === "loading") {
     return (
       <Card
+        className="border-0 shadow-none"
         style={{
           padding: lightTheme.spacing.md,
           borderRadius: lightTheme.borderRadius.small,
-          border: `1px solid ${lightTheme.colors.border}`,
           fontFamily: lightTheme.typography.fontFamily,
         }}
       >
-        <CardContent className="py-12 text-center text-sm" style={{ color: lightTheme.colors.textSecondary }}>
+        <CardContent
+          className="flex flex-col items-center justify-center gap-3 py-12 text-center text-sm"
+          style={{ color: lightTheme.colors.textSecondary }}
+        >
+          <Loader2 className="size-6 animate-spin text-primary" aria-hidden />
           {isLoading ? "A criar a sua conta…" : "A carregar…"}
         </CardContent>
       </Card>

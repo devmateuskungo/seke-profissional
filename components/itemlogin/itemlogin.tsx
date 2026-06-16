@@ -35,6 +35,9 @@ function GoogleIcon({ className }: { className?: string }) {
 
 const DEFAULT_REDIRECT = "/"
 
+const authFieldClass =
+  "border-0 bg-muted/50 shadow-none focus-visible:ring-2 focus-visible:ring-primary/20"
+
 export function ItemLogin() {
   const router = useRouter()
   const toast = useToast()
@@ -118,10 +121,10 @@ export function ItemLogin() {
 
   return (
     <Card
+      className="border-0 shadow-none"
       style={{
         padding: lightTheme.spacing.md,
         borderRadius: lightTheme.borderRadius.small,
-        border: `1px solid ${lightTheme.colors.border}`,
         fontFamily: lightTheme.typography.fontFamily,
       }}
     >
@@ -149,7 +152,7 @@ export function ItemLogin() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
-                style={{ border: `1px solid ${lightTheme.colors.border}` }}
+                className={authFieldClass}
               />
             </div>
             <div className="grid gap-2">
@@ -170,10 +173,7 @@ export function ItemLogin() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
-                style={{
-                  border: `1px solid ${lightTheme.colors.border}`,
-                  outlineColor: lightTheme.colors.primary,
-                }}
+                className={authFieldClass}
               />
             </div>
           </div>
@@ -191,20 +191,14 @@ export function ItemLogin() {
       </CardContent>
       <CardFooter className="flex-col gap-2">
         <div className="relative w-full my-4">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" style={{ borderColor: lightTheme.colors.border }} />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="px-2 bg-card" style={{ color: lightTheme.colors.textSecondary }}>
-              ou
-            </span>
+          <div className="flex justify-center text-xs uppercase">
+            <span style={{ color: lightTheme.colors.textSecondary }}>ou</span>
           </div>
         </div>
         <Button
           type="button"
-          variant="outline"
-          className="w-full cursor-pointer h-10 gap-2"
-          style={{ borderColor: lightTheme.colors.border }}
+          variant="ghost"
+          className="w-full cursor-pointer h-10 gap-2 bg-muted/50 hover:bg-muted"
           onClick={handleGoogleSignIn}
           disabled={isLoading}
         >

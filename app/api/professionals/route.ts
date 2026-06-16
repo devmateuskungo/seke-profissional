@@ -15,7 +15,30 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const page = searchParams.get("page") ?? "1"
     const limit = searchParams.get("limit") ?? "30"
-    const url = `${endpoint}?page=${encodeURIComponent(page)}&limit=${encodeURIComponent(limit)}`
+
+    const forwardParams = new URLSearchParams({
+      page,
+      limit,
+    })
+
+    const optionalKeys = [
+      "category_id",
+      "province",
+      "municipality",
+      "latitude",
+      "longitude",
+      "radius_km",
+      "sort",
+    ] as const
+
+    for (const key of optionalKeys) {
+      const value = searchParams.get(key)
+      if (value?.trim()) {
+        forwardParams.set(key, value.trim())
+      }
+    }
+
+    const url = `${endpoint}?${forwardParams.toString()}`
 
     const res = await fetch(url, {
       method: "GET",

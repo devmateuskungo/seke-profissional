@@ -13,13 +13,17 @@ import { Label } from "@/components/ui/label"
 import { lightTheme } from "@/style/light"
 import Link from "next/dist/client/link"
 
+const authFieldClass =
+  "border-0 bg-muted/50 shadow-none focus-visible:ring-2 focus-visible:ring-primary/20"
+
 export function ItemSendPhone() {
     return (
 
-        <Card style={{
+        <Card
+          className="border-0 shadow-none"
+          style={{
             padding: lightTheme.spacing.md,
             borderRadius: lightTheme.borderRadius.small,
-            border: `1px solid ${lightTheme.colors.border}`,
             fontFamily: lightTheme.typography.fontFamily,
         }}>
             <CardHeader className="mt-6">
@@ -42,7 +46,7 @@ export function ItemSendPhone() {
                                 id="email"
                                 type="tel"
                                 placeholder="Número de telefone"
-                                style={{ border: `1px solid ${lightTheme.colors.border}`, }}
+                                className={authFieldClass}
                                 required
                             />
                         </div>

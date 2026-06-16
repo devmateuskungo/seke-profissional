@@ -6,7 +6,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -21,6 +20,9 @@ export const DEFAULT_PROFESSIONAL_PROFILE = {
   bio: "Professional experience",
   is_available: true,
 } as const
+
+const authFieldClass =
+  "border-0 bg-muted/50 shadow-none focus-visible:ring-2 focus-visible:ring-primary/20"
 
 interface ItemProfessionalRegisterProps {
   userId: string
@@ -73,15 +75,15 @@ export function ItemProfessionalRegister({
 
   return (
     <Card
+      className="border-0 shadow-none"
       style={{
         padding: lightTheme.spacing.md,
         borderRadius: lightTheme.borderRadius.small,
-        border: `1px solid ${lightTheme.colors.border}`,
         fontFamily: lightTheme.typography.fontFamily,
       }}
     >
-      <CardHeader className="mt-6">
-        <CardTitle>Perfil profissional</CardTitle>
+      <CardHeader className="space-y-1 pb-4">
+        <CardTitle className="mt-6">Perfil profissional</CardTitle>
         <CardDescription
           style={{
             color: lightTheme.colors.textSecondary,
@@ -91,9 +93,9 @@ export function ItemProfessionalRegister({
           Complete os dados para ativar a sua conta como profissional.
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          <div className="grid gap-2">
+      <CardContent className="pt-0">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="grid gap-1.5">
             <Label htmlFor="hourly_rate">Tarifa horária (Kz)</Label>
             <Input
               id="hourly_rate"
@@ -103,36 +105,36 @@ export function ItemProfessionalRegister({
               value={hourlyRate}
               onChange={(e) => setHourlyRate(e.target.value)}
               disabled={isLoading}
-              style={{ border: `1px solid ${lightTheme.colors.border}` }}
+              className={authFieldClass}
               required
             />
           </div>
-          <div className="grid gap-2">
+          <div className="grid gap-1.5">
             <Label htmlFor="bio">Biografia</Label>
             <Textarea
               id="bio"
-              rows={4}
+              rows={7}
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               disabled={isLoading}
-              style={{ border: `1px solid ${lightTheme.colors.border}` }}
+              className={`${authFieldClass} min-h-40`}
+              placeholder="Descreva a sua experiência e áreas de atuação"
               required
             />
           </div>
-          <label className="flex items-center gap-3 cursor-pointer">
+          <label className="flex items-start gap-3 cursor-pointer">
             <input
               type="checkbox"
               checked={isAvailable}
               onChange={(e) => setIsAvailable(e.target.checked)}
               disabled={isLoading}
-              className="h-4 w-4 rounded border"
-              style={{ borderColor: lightTheme.colors.border }}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-0 bg-muted/50 ring-1 ring-muted-foreground/20"
             />
-            <span className="text-sm" style={{ color: lightTheme.colors.text }}>
+            <span className="text-sm leading-snug" style={{ color: lightTheme.colors.text }}>
               Disponível para receber pedidos
             </span>
           </label>
-          <CardFooter className="flex flex-col gap-3 px-0 pb-0">
+          <div className="flex flex-col gap-2 pt-2">
             <Button
               type="submit"
               className="w-full cursor-pointer text-white h-10"
@@ -143,15 +145,14 @@ export function ItemProfessionalRegister({
             </Button>
             <Button
               type="button"
-              variant="outline"
-              className="w-full cursor-pointer h-10"
-              style={{ borderColor: lightTheme.colors.border }}
+              variant="ghost"
+              className="w-full cursor-pointer h-10 bg-muted/50 hover:bg-muted"
               disabled={isLoading}
               onClick={onBack}
             >
               Voltar
             </Button>
-          </CardFooter>
+          </div>
         </form>
       </CardContent>
     </Card>

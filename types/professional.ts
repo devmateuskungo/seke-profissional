@@ -30,6 +30,11 @@ export interface ProfessionalListItem {
   province?: string | null
   municipality?: string | null
   bio?: string | null
+  latitude?: string | number | null
+  longitude?: string | number | null
+  category_ids?: string[]
+  /** Distância calculada no cliente (km). */
+  distance_km?: number | null
 }
 
 export interface ProfessionalsListResponse {
