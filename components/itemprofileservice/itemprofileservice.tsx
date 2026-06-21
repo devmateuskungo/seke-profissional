@@ -39,6 +39,20 @@ export const DEFAULT_SERVICE_FORM: CreateServiceRequest = {
   max_distance_km: 10,
 }
 
+function getEmptyFormState() {
+  return {
+    categoryId: "",
+    title: "",
+    description: "",
+    price: "",
+    priceUnit: "fixed" as ServicePriceUnit,
+    durationMinutes: "60",
+    isRemote: false,
+    isOnSite: true,
+    maxDistanceKm: "10",
+  }
+}
+
 function getDefaultFormState() {
   return {
     categoryId: DEFAULT_SERVICE_FORM.category_id,
@@ -124,6 +138,9 @@ interface ServiceRegisterModalProps {
   /** Fallback sem recarregar a página inteira (ex.: API não devolveu o id). */
   onFallbackRefresh?: () => void
   service?: MarketplaceService | null
+  /** Apenas recolhe os dados sem chamar a API (ex.: cadastro profissional). */
+  collectOnly?: boolean
+  onCollect?: (payload: CreateServiceRequest, categoryName?: string) => void
 }
 
 export function ServiceRegisterModal({
@@ -132,6 +149,8 @@ export function ServiceRegisterModal({
   onSuccess,
   onFallbackRefresh,
   service = null,
+  collectOnly = false,
+  onCollect,
 }: ServiceRegisterModalProps) {
   const isEditMode = Boolean(service)
   const toast = useToast()
@@ -155,7 +174,7 @@ export function ServiceRegisterModal({
   const [loadingCategories, setLoadingCategories] = useState(false)
 
   const resetForm = useCallback(() => {
-    const defaults = getDefaultFormState()
+    const defaults = collectOnly ? getEmptyFormState() : getDefaultFormState()
     setCategoryId(defaults.categoryId)
     setTitle(defaults.title)
     setDescription(defaults.description)
@@ -165,7 +184,7 @@ export function ServiceRegisterModal({
     setIsRemote(defaults.isRemote)
     setIsOnSite(defaults.isOnSite)
     setMaxDistanceKm(defaults.maxDistanceKm)
-  }, [])
+  }, [collectOnly])
 
   useEffect(() => {
     if (!open) {
@@ -234,7 +253,8 @@ export function ServiceRegisterModal({
         typeof window !== "undefined"
           ? window.sessionStorage.getItem("auth_token")
           : null
-      if (!token) {
+
+      if (!collectOnly && !token) {
         toast.error("Sessão inválida. Inicie sessão novamente.")
         return
       }
@@ -292,8 +312,23 @@ export function ServiceRegisterModal({
         max_distance_km: distanceNum,
       }
 
+      if (collectOnly && onCollect) {
+        const categoryName = categories.find(
+          (category) => category.id === trimmedCategory
+        )?.name
+        onCollect(payload, categoryName)
+        toast.success("Serviço adicionado à lista.")
+        onOpenChange(false)
+        return
+      }
+
       setSaving(true)
       try {
+        if (!token) {
+          toast.error("Sessão inválida. Inicie sessão novamente.")
+          return
+        }
+
         const result = service
           ? await updateService(service.id, payload, token)
           : await createService(payload, token)
@@ -344,11 +379,13 @@ export function ServiceRegisterModal({
     [
       categories,
       categoryId,
+      collectOnly,
       description,
       durationMinutes,
       isOnSite,
       isRemote,
       maxDistanceKm,
+      onCollect,
       onFallbackRefresh,
       onOpenChange,
       onSuccess,

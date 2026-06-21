@@ -1475,10 +1475,9 @@ export default function PerfilPage() {
 
   return (
     <div className="">
-      <div className="mx-auto grid  grid-cols-1 gap-6 p-4  lg:grid-cols-12">
-          {/* Sidebar esquerda */}
-          <aside className="space-y-6 lg:col-span-3">
-           
+      <div className="mx-auto grid grid-cols-1 gap-6 p-4 lg:grid-cols-12">
+          {/* Sidebar esquerda — abaixo no mobile, à esquerda no desktop */}
+          <aside className="order-2 space-y-6 lg:order-1 lg:col-span-3">
 
             <Card>
               <div className="mb-3 border-b border-border/40 pb-3">
@@ -1531,8 +1530,8 @@ export default function PerfilPage() {
             </Card>
           </aside>
 
-          {/* Conteúdo central */}
-          <div className="space-y-6 lg:col-span-9">
+          {/* Conteúdo central — capa e perfil sempre por cima no mobile */}
+          <div className="order-1 space-y-6 lg:order-2 lg:col-span-9">
             <div className="overflow-hidden rounded-md border border-border/45 bg-card">
               <div className="relative h-48 bg-primary/15">
                 {coverImageSrc ? (

@@ -56,3 +56,101 @@ export interface CreateServiceRequestPayload {
   latitude: number
   longitude: number
 }
+
+/** Métricas GET /marketplace/service-requests/stats/client */
+export interface ServiceRequestStatusStat {
+  count: number
+  percentage: number
+  totalBudget: number
+}
+
+export interface ClientRecentRequest {
+  id: string
+  title: string
+  status: string
+  created_at: string
+  category_name?: string
+}
+
+export interface ClientServiceRequestStats {
+  totalRequests: number
+  totalBudget: number
+  byStatus: Record<string, ServiceRequestStatusStat>
+  recentRequests: ClientRecentRequest[]
+}
+
+export interface ProfessionalProposalStat {
+  _id: string
+  count: number
+  totalValue: number
+}
+
+/** Métricas GET /marketplace/service-requests/stats/professional */
+export interface ProfessionalServiceRequestStats {
+  totalProposals: number
+  totalValue: number
+  proposalStats: ProfessionalProposalStat[]
+  pendingRequests: number
+  acceptedProposals: number
+}
+
+export interface ServiceRequestStatsResponse {
+  success?: boolean
+  message?: string
+  data?: Record<string, unknown>
+}
+
+/** Proposta embutida em GET /marketplace/service-requests/:id */
+export interface ServiceRequestProposalDetail {
+  id: string
+  professional_id: string
+  price: number
+  estimated_duration: number
+  message: string | null
+  status: string
+  viewed_at?: string | null
+  created_at?: string
+  updated_at?: string
+  professional_name?: string
+  professional_email?: string
+  professional_phone?: string
+  professional_photo?: string | null
+  professional_bio?: string
+  professional_rating?: number
+  professional_total_reviews?: number
+  professional_is_verified?: boolean
+  professional_is_available?: boolean
+  professional_hourly_rate?: string | number | null
+}
+
+/** Detalhe GET /marketplace/service-requests/:id (cliente) */
+export interface ServiceRequestDetail extends MarketplaceServiceRequest {
+  client_email?: string
+  client_phone?: string
+  client_photo?: string | null
+  client_province?: string
+  client_municipality?: string
+  category_icon?: string | null
+  category_description?: string
+  proposals: ServiceRequestProposalDetail[]
+  pending_proposals?: string | number
+  accepted_proposals?: string | number
+  accepted_proposal_details?: unknown | null
+  matched_professional_user_id?: string | null
+  matched_professional_name?: string | null
+  matched_professional_email?: string | null
+  matched_professional_photo?: string | null
+  matched_professional_rating?: number | null
+  matched_professional_verified?: boolean | null
+  booking_scheduled_start?: string | null
+  booking_scheduled_end?: string | null
+  booking_status?: string | null
+  booking_total_price?: string | number | null
+  booking_description?: string | null
+}
+
+export interface ServiceRequestDetailResponse {
+  success?: boolean
+  message?: string
+  data?: ServiceRequestDetail
+}

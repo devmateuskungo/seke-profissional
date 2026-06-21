@@ -1,20 +1,21 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useMemo } from "react"
 import { createPortal } from "react-dom"
 import Link from "next/link"
 import {
   X,
   UserCog,
   ClipboardList,
+  Send,
   Users,
   LayoutGrid,
   Settings,
 } from "lucide-react"
+import { useAccountRole } from "@/lib/use-account-role"
 
-const items = [
+const baseItems = [
   { label: "Gerir conta", href: "/perfil", icon: UserCog },
-  { label: "Solicitações", href: "/clientes/meus-pedidos", icon: ClipboardList },
   { label: "Seguidores", href: "/conexoes", icon: Users },
   { label: "Categorias", href: "/categoria-profissional", icon: LayoutGrid },
   { label: "Configurações", href: "/configuracoes", icon: Settings },
@@ -26,6 +27,20 @@ export interface ExploreRightPanelProps {
 }
 
 export function ExploreRightPanel({ open, onClose }: ExploreRightPanelProps) {
+  const { role } = useAccountRole()
+
+  const items = useMemo(() => {
+    const marketplace =
+      role === "professional"
+        ? [{ label: "Propostas", href: "/propostas", icon: Send }]
+        : [{ label: "Solicitações", href: "/solicitacoes", icon: ClipboardList }]
+
+    return [
+      baseItems[0],
+      ...marketplace,
+      ...baseItems.slice(1),
+    ]
+  }, [role])
   useEffect(() => {
     if (!open) return
     const prev = document.body.style.overflow
@@ -89,7 +104,7 @@ export function ExploreRightPanel({ open, onClose }: ExploreRightPanelProps) {
                 <Link
                   href={href}
                   onClick={onClose}
-                  className="flex items-center gap-3 rounded-lg border border-gray-100 bg-gray-50/80 px-3 py-3 text-sm font-medium text-gray-800 transition-colors hover:border-[#2b81e5]/40 hover:bg-[#2b81e5]/5 hover:text-[#2b81e5]"
+                  className="flex items-center gap-3 rounded-lg border border-gray-100 bg-gray-50/80 px-3 py-3 text-sm font-medium text-gray-800 no-underline transition-colors hover:border-[#2b81e5]/40 hover:bg-[#2b81e5]/5 hover:text-[#2b81e5] hover:no-underline focus:no-underline"
                 >
                   <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-white text-[#2b81e5] shadow-sm ring-1 ring-gray-100">
                     <Icon className="size-5" aria-hidden />

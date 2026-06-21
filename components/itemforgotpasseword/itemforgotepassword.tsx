@@ -8,7 +8,7 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { Label } from "@/components/ui/label"
 import { lightTheme } from "@/style/light"
 import Link from "next/dist/client/link"
@@ -39,9 +39,8 @@ export function ItemForgotPassword() {
                     <div className="flex flex-col gap-6">
                         <div className="grid gap-2">
                             <Label htmlFor="email">Nova Senha</Label>
-                            <Input
+                            <PasswordInput
                                 id="email"
-                                type="password"
                                 placeholder="Nova Senha"
                                 style={{ border: `1px solid ${lightTheme.colors.border}`, }}
                                 required
@@ -52,7 +51,7 @@ export function ItemForgotPassword() {
                                 <Label htmlFor="password">Confirmar  Senha</Label>
                                 
                             </div>
-                            <Input id="password" type="password" placeholder="confirmar senha" required style={{
+                            <PasswordInput id="password" placeholder="confirmar senha" required style={{
                                 border: `1px solid ${lightTheme.colors.border}`,
                                 outlineColor: lightTheme.colors.primary
                             }} />

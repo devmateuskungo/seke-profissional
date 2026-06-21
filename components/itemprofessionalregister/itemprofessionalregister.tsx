@@ -1,6 +1,17 @@
 "use client"
 
-import { useCallback, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
+import {
+  Briefcase,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  MapPin,
+  Sparkles,
+  Trash2,
+  UserRound,
+  Wallet,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -12,149 +23,602 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { ProvinceSelect } from "@/components/province-select/province-select"
+import { ServiceRegisterModal } from "@/components/itemprofileservice/itemprofileservice"
 import { useToast } from "@/components/ui/toaster"
+import { cn } from "@/lib/utils"
 import { lightTheme } from "@/style/light"
-
-export const DEFAULT_PROFESSIONAL_PROFILE = {
-  hourly_rate: 5000,
-  bio: "Professional experience",
-  is_available: true,
-} as const
+import type { ProfessionalRegisterFormPayload } from "@/types/professional"
+import type { CreateServiceRequest } from "@/types/service"
 
 const authFieldClass =
   "border-0 bg-muted/50 shadow-none focus-visible:ring-2 focus-visible:ring-primary/20"
 
+const STEPS = [
+  {
+    id: 1,
+    title: "Apresentação",
+    description: "Conte quem é e a sua experiência",
+    icon: UserRound,
+  },
+  {
+    id: 2,
+    title: "Tarifas",
+    description: "Defina preços e disponibilidade",
+    icon: Wallet,
+  },
+  {
+    id: 3,
+    title: "Serviços",
+    description: "Opcional — o que oferece",
+    icon: Briefcase,
+  },
+  {
+    id: 4,
+    title: "Concluir",
+    description: "Localização e revisão",
+    icon: MapPin,
+  },
+] as const
+
+type DraftService = CreateServiceRequest & {
+  tempId: string
+  categoryName?: string
+}
+
+function formatDraftPrice(service: DraftService): string {
+  const value = Number(service.price)
+  const formatted = Number.isFinite(value)
+    ? value.toLocaleString("pt-AO", { minimumFractionDigits: 0 })
+    : String(service.price)
+  const suffix = service.price_unit === "hourly" ? "/hora" : ""
+  return `${formatted} Kz${suffix}`
+}
+
+function StepIndicator({
+  currentStep,
+  totalSteps,
+}: {
+  currentStep: number
+  totalSteps: number
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-1.5">
+        {Array.from({ length: totalSteps }, (_, index) => {
+          const stepNumber = index + 1
+          const isActive = stepNumber === currentStep
+          const isCompleted = stepNumber < currentStep
+          return (
+            <div
+              key={stepNumber}
+              className={cn(
+                "h-1.5 flex-1 rounded-full transition-all duration-300",
+                isCompleted || isActive ? "bg-primary" : "bg-muted"
+              )}
+              aria-hidden
+            />
+          )
+        })}
+      </div>
+      <div className="flex justify-between gap-2">
+        {STEPS.map((step, index) => {
+          const stepNumber = index + 1
+          const isActive = stepNumber === currentStep
+          const isCompleted = stepNumber < currentStep
+          const Icon = step.icon
+          return (
+            <div
+              key={step.id}
+              className={cn(
+                "flex min-w-0 flex-1 flex-col items-center gap-1 text-center",
+                index < STEPS.length - 1 && "max-w-[25%]"
+              )}
+            >
+              <div
+                className={cn(
+                  "flex size-8 items-center justify-center rounded-full border transition-colors",
+                  isCompleted
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : isActive
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-muted/40 text-muted-foreground"
+                )}
+              >
+                {isCompleted ? (
+                  <Check className="size-4" aria-hidden />
+                ) : (
+                  <Icon className="size-3.5" aria-hidden />
+                )}
+              </div>
+              <span
+                className={cn(
+                  "hidden text-[10px] font-medium leading-tight sm:block",
+                  isActive ? "text-foreground" : "text-muted-foreground"
+                )}
+              >
+                {step.title}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+      <p
+        className="text-center text-xs sm:hidden"
+        style={{ color: lightTheme.colors.textSecondary }}
+      >
+        Passo {currentStep} de {totalSteps}: {STEPS[currentStep - 1]?.title}
+      </p>
+    </div>
+  )
+}
+
+function SummaryRow({
+  label,
+  value,
+  empty = "—",
+}: {
+  label: string
+  value?: string | null
+  empty?: string
+}) {
+  const display = value?.trim() || empty
+  return (
+    <div className="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+      <dt className="text-xs font-medium text-muted-foreground shrink-0">
+        {label}
+      </dt>
+      <dd className="text-sm text-foreground text-left sm:text-right break-words">
+        {display}
+      </dd>
+    </div>
+  )
+}
+
 interface ItemProfessionalRegisterProps {
   userId: string
   isLoading: boolean
-  onSubmit: (payload: {
-    user_id: string
-    hourly_rate: number
-    bio: string
-    is_available: boolean
-  }) => void
-  onBack: () => void
+  onSubmit: (payload: ProfessionalRegisterFormPayload) => void
+  onSkip: () => void
 }
 
 export function ItemProfessionalRegister({
   userId,
   isLoading,
   onSubmit,
-  onBack,
+  onSkip,
 }: ItemProfessionalRegisterProps) {
   const toast = useToast()
-  const [hourlyRate, setHourlyRate] = useState(String(DEFAULT_PROFESSIONAL_PROFILE.hourly_rate))
-  const [bio, setBio] = useState<string>(DEFAULT_PROFESSIONAL_PROFILE.bio)
-  const [isAvailable, setIsAvailable] = useState<boolean>(DEFAULT_PROFESSIONAL_PROFILE.is_available)
+  const [currentStep, setCurrentStep] = useState(1)
+  const [hourlyRate, setHourlyRate] = useState("")
+  const [bio, setBio] = useState("")
+  const [province, setProvince] = useState("")
+  const [municipality, setMunicipality] = useState("")
+  const [isAvailable, setIsAvailable] = useState(true)
+  const [draftServices, setDraftServices] = useState<DraftService[]>([])
+  const [serviceModalOpen, setServiceModalOpen] = useState(false)
 
-  const handleSubmit = useCallback(
-    (e: React.FormEvent<HTMLFormElement>) => {
-      e.preventDefault()
+  const totalSteps = STEPS.length
+  const activeStep = STEPS[currentStep - 1]
 
-      const rate = Number(hourlyRate)
-      if (!Number.isFinite(rate) || rate < 0) {
-        toast.error("Informe uma tarifa horária válida.")
-        return
-      }
-
-      const trimmedBio = bio.trim()
-      if (!trimmedBio) {
-        toast.error("Escreva uma breve biografia.")
-        return
-      }
-
-      onSubmit({
-        user_id: userId,
-        hourly_rate: rate,
-        bio: trimmedBio,
-        is_available: isAvailable,
-      })
+  const handleCollectService = useCallback(
+    (payload: CreateServiceRequest, categoryName?: string) => {
+      setDraftServices((prev) => [
+        ...prev,
+        {
+          ...payload,
+          tempId: crypto.randomUUID(),
+          categoryName,
+        },
+      ])
     },
-    [hourlyRate, bio, isAvailable, onSubmit, toast, userId]
+    []
   )
 
+  const handleRemoveService = useCallback((tempId: string) => {
+    setDraftServices((prev) => prev.filter((item) => item.tempId !== tempId))
+  }, [])
+
+  const validateStep = useCallback(
+    (step: number): boolean => {
+      if (step === 1) {
+        if (!bio.trim()) {
+          toast.error("Escreva uma breve biografia para continuar.")
+          return false
+        }
+        return true
+      }
+      if (step === 2) {
+        const rate = Number(hourlyRate)
+        if (!Number.isFinite(rate) || rate < 0) {
+          toast.error("Informe uma tarifa horária válida.")
+          return false
+        }
+        return true
+      }
+      return true
+    },
+    [bio, hourlyRate, toast]
+  )
+
+  const goNext = useCallback(() => {
+    if (!validateStep(currentStep)) return
+    setCurrentStep((prev) => Math.min(prev + 1, totalSteps))
+  }, [currentStep, totalSteps, validateStep])
+
+  const goBack = useCallback(() => {
+    setCurrentStep((prev) => Math.max(prev - 1, 1))
+  }, [])
+
+  const handleFinish = useCallback(() => {
+    if (!validateStep(1) || !validateStep(2)) {
+      if (!bio.trim()) setCurrentStep(1)
+      else if (!Number.isFinite(Number(hourlyRate)) || Number(hourlyRate) < 0) {
+        setCurrentStep(2)
+      }
+      return
+    }
+
+    const rate = Number(hourlyRate)
+    onSubmit({
+      user_id: userId,
+      hourly_rate: rate,
+      bio: bio.trim(),
+      is_available: isAvailable,
+      province: province.trim() || undefined,
+      municipality: municipality.trim() || undefined,
+      services:
+        draftServices.length > 0
+          ? draftServices.map(
+              ({ tempId: _tempId, categoryName: _name, ...service }) => service
+            )
+          : undefined,
+    })
+  }, [
+    bio,
+    draftServices,
+    hourlyRate,
+    isAvailable,
+    municipality,
+    onSubmit,
+    province,
+    userId,
+    validateStep,
+  ])
+
+  const locationLabel = useMemo(() => {
+    const parts = [municipality.trim(), province.trim()].filter(Boolean)
+    return parts.length > 0 ? parts.join(", ") : undefined
+  }, [municipality, province])
+
   return (
-    <Card
-      className="border-0 shadow-none"
-      style={{
-        padding: lightTheme.spacing.md,
-        borderRadius: lightTheme.borderRadius.small,
-        fontFamily: lightTheme.typography.fontFamily,
-      }}
-    >
-      <CardHeader className="space-y-1 pb-4">
-        <CardTitle className="mt-6">Perfil profissional</CardTitle>
-        <CardDescription
-          style={{
-            color: lightTheme.colors.textSecondary,
-            fontSize: lightTheme.typography.fontSize.small,
-          }}
-        >
-          Complete os dados para ativar a sua conta como profissional.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="grid gap-1.5">
-            <Label htmlFor="hourly_rate">Tarifa horária (Kz)</Label>
-            <Input
-              id="hourly_rate"
-              type="number"
-              min={0}
-              step={100}
-              value={hourlyRate}
-              onChange={(e) => setHourlyRate(e.target.value)}
-              disabled={isLoading}
-              className={authFieldClass}
-              required
-            />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="bio">Biografia</Label>
-            <Textarea
-              id="bio"
-              rows={7}
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              disabled={isLoading}
-              className={`${authFieldClass} min-h-40`}
-              placeholder="Descreva a sua experiência e áreas de atuação"
-              required
-            />
-          </div>
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={isAvailable}
-              onChange={(e) => setIsAvailable(e.target.checked)}
-              disabled={isLoading}
-              className="mt-0.5 h-4 w-4 shrink-0 rounded border-0 bg-muted/50 ring-1 ring-muted-foreground/20"
-            />
-            <span className="text-sm leading-snug" style={{ color: lightTheme.colors.text }}>
-              Disponível para receber pedidos
-            </span>
-          </label>
-          <div className="flex flex-col gap-2 pt-2">
-            <Button
-              type="submit"
-              className="w-full cursor-pointer text-white h-10"
-              style={{ backgroundColor: lightTheme.colors.primary }}
-              disabled={isLoading}
-            >
-              {isLoading ? "A guardar…" : "Concluir cadastro"}
-            </Button>
+    <>
+      <Card
+        className="border-0 shadow-none w-full"
+        style={{
+          padding: lightTheme.spacing.md,
+          borderRadius: lightTheme.borderRadius.small,
+          fontFamily: lightTheme.typography.fontFamily,
+        }}
+      >
+        <CardHeader className="space-y-4 pb-2">
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <Sparkles
+                  className="size-4 shrink-0 text-primary"
+                  aria-hidden
+                />
+                <CardTitle className="text-lg sm:text-xl leading-snug">
+                  Perfil profissional
+                </CardTitle>
+              </div>
+              <CardDescription
+                style={{
+                  color: lightTheme.colors.textSecondary,
+                  fontSize: lightTheme.typography.fontSize.small,
+                }}
+              >
+                Conta criada com sucesso. Complete em {totalSteps} passos
+                simples ou salte e faça depois no login.
+              </CardDescription>
+            </div>
             <Button
               type="button"
               variant="ghost"
-              className="w-full cursor-pointer h-10 bg-muted/50 hover:bg-muted"
+              size="sm"
+              className="shrink-0 text-xs text-muted-foreground hover:text-foreground h-auto py-1 px-2"
               disabled={isLoading}
-              onClick={onBack}
+              onClick={onSkip}
             >
-              Voltar
+              Saltar
             </Button>
           </div>
-        </form>
-      </CardContent>
-    </Card>
+
+          <StepIndicator currentStep={currentStep} totalSteps={totalSteps} />
+        </CardHeader>
+
+        <CardContent className="pt-4">
+          <div
+            key={currentStep}
+            className="animate-in fade-in slide-in-from-right-2 duration-200"
+          >
+            <div className="mb-5 space-y-1">
+              <h2 className="text-base font-semibold">{activeStep?.title}</h2>
+              <p
+                className="text-sm"
+                style={{ color: lightTheme.colors.textSecondary }}
+              >
+                {activeStep?.description}
+              </p>
+            </div>
+
+            {currentStep === 1 && (
+              <div className="grid gap-1.5">
+                <Label htmlFor="bio">Biografia</Label>
+                <Textarea
+                  id="bio"
+                  rows={6}
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  disabled={isLoading}
+                  className={cn(authFieldClass, "min-h-36 resize-y")}
+                  placeholder="Ex.: Eletricista com 8 anos de experiência em instalações residenciais e comerciais em Luanda…"
+                  autoFocus
+                />
+                <p
+                  className="text-xs"
+                  style={{ color: lightTheme.colors.textSecondary }}
+                >
+                  {bio.trim().length > 0
+                    ? `${bio.trim().length} caracteres`
+                    : "Descreva a sua experiência, certificações e tipos de trabalho."}
+                </p>
+              </div>
+            )}
+
+            {currentStep === 2 && (
+              <div className="space-y-4">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="hourly_rate">Tarifa horária (Kz)</Label>
+                  <Input
+                    id="hourly_rate"
+                    type="number"
+                    min={0}
+                    step={100}
+                    inputMode="numeric"
+                    value={hourlyRate}
+                    onChange={(e) => setHourlyRate(e.target.value)}
+                    disabled={isLoading}
+                    className={authFieldClass}
+                    placeholder="Ex.: 5000"
+                    autoFocus
+                  />
+                  <p
+                    className="text-xs"
+                    style={{ color: lightTheme.colors.textSecondary }}
+                  >
+                    Valor médio que cobra por hora de trabalho.
+                  </p>
+                </div>
+                <label className="flex items-start gap-3 cursor-pointer rounded-xl border border-border/40 bg-muted/20 p-4">
+                  <input
+                    type="checkbox"
+                    checked={isAvailable}
+                    onChange={(e) => setIsAvailable(e.target.checked)}
+                    disabled={isLoading}
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-0 bg-muted/50 ring-1 ring-muted-foreground/20"
+                  />
+                  <span className="space-y-0.5">
+                    <span
+                      className="block text-sm font-medium"
+                      style={{ color: lightTheme.colors.text }}
+                    >
+                      Disponível para novos pedidos
+                    </span>
+                    <span
+                      className="block text-xs"
+                      style={{ color: lightTheme.colors.textSecondary }}
+                    >
+                      Clientes poderão solicitar os seus serviços na plataforma.
+                    </span>
+                  </span>
+                </label>
+              </div>
+            )}
+
+            {currentStep === 3 && (
+              <div className="space-y-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full cursor-pointer h-10"
+                  disabled={isLoading}
+                  onClick={() => setServiceModalOpen(true)}
+                >
+                  + Cadastrar serviço
+                </Button>
+
+                {draftServices.length === 0 ? (
+                  <div
+                    className="rounded-xl border border-dashed border-border/60 bg-muted/15 px-4 py-8 text-center"
+                  >
+                    <Briefcase
+                      className="mx-auto size-8 text-muted-foreground/60 mb-2"
+                      aria-hidden
+                    />
+                    <p className="text-sm font-medium text-foreground">
+                      Nenhum serviço adicionado
+                    </p>
+                    <p
+                      className="text-xs mt-1 max-w-xs mx-auto"
+                      style={{ color: lightTheme.colors.textSecondary }}
+                    >
+                      Este passo é opcional. Pode adicionar serviços agora ou
+                      depois na página de perfil.
+                    </p>
+                  </div>
+                ) : (
+                  <ul className="space-y-2">
+                    {draftServices.map((service) => (
+                      <li
+                        key={service.tempId}
+                        className="flex items-start gap-3 rounded-xl border border-border/40 bg-muted/20 p-3"
+                      >
+                        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                          <Briefcase className="size-4" aria-hidden />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">
+                            {service.title}
+                          </p>
+                          {service.categoryName ? (
+                            <p className="text-xs text-muted-foreground truncate">
+                              {service.categoryName}
+                            </p>
+                          ) : null}
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {formatDraftPrice(service)}
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          className="shrink-0 text-muted-foreground hover:text-destructive"
+                          disabled={isLoading}
+                          onClick={() => handleRemoveService(service.tempId)}
+                          aria-label={`Remover ${service.title}`}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {currentStep === 4 && (
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid gap-1.5 sm:col-span-2">
+                    <Label htmlFor="province">Província (opcional)</Label>
+                    <ProvinceSelect
+                      id="province"
+                      value={province}
+                      onChange={setProvince}
+                      disabled={isLoading}
+                      placeholder="Selecione a província"
+                      className={authFieldClass}
+                    />
+                  </div>
+                  <div className="grid gap-1.5 sm:col-span-2">
+                    <Label htmlFor="municipality">Município (opcional)</Label>
+                    <Input
+                      id="municipality"
+                      type="text"
+                      value={municipality}
+                      onChange={(e) => setMunicipality(e.target.value)}
+                      disabled={isLoading}
+                      className={authFieldClass}
+                      placeholder="Ex.: Talatona"
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-border/40 bg-muted/20 p-4 space-y-3">
+                  <h3 className="text-sm font-semibold">Resumo do perfil</h3>
+                  <dl className="space-y-3 divide-y divide-border/30">
+                    <div className="pt-0">
+                      <SummaryRow
+                        label="Biografia"
+                        value={
+                          bio.trim().length > 80
+                            ? `${bio.trim().slice(0, 80)}…`
+                            : bio.trim()
+                        }
+                      />
+                    </div>
+                    <div className="pt-3">
+                      <SummaryRow
+                        label="Tarifa horária"
+                        value={
+                          hourlyRate.trim()
+                            ? `${Number(hourlyRate).toLocaleString("pt-AO")} Kz`
+                            : undefined
+                        }
+                      />
+                    </div>
+                    <div className="pt-3">
+                      <SummaryRow
+                        label="Disponibilidade"
+                        value={isAvailable ? "Disponível" : "Indisponível"}
+                      />
+                    </div>
+                    <div className="pt-3">
+                      <SummaryRow
+                        label="Serviços"
+                        value={
+                          draftServices.length > 0
+                            ? `${draftServices.length} serviço${draftServices.length > 1 ? "s" : ""}`
+                            : "Nenhum (pode adicionar depois)"
+                        }
+                      />
+                    </div>
+                    <div className="pt-3">
+                      <SummaryRow label="Localização" value={locationLabel} />
+                    </div>
+                  </dl>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-8 flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full sm:w-auto cursor-pointer h-10 bg-muted/50 hover:bg-muted"
+              disabled={isLoading || currentStep === 1}
+              onClick={goBack}
+            >
+              <ChevronLeft className="size-4 mr-1" aria-hidden />
+              Voltar
+            </Button>
+
+            {currentStep < totalSteps ? (
+              <Button
+                type="button"
+                className="w-full sm:w-auto cursor-pointer text-white h-10 min-w-[140px]"
+                style={{ backgroundColor: lightTheme.colors.primary }}
+                disabled={isLoading}
+                onClick={goNext}
+              >
+                Continuar
+                <ChevronRight className="size-4 ml-1" aria-hidden />
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                className="w-full sm:w-auto cursor-pointer text-white h-10 min-w-[180px]"
+                style={{ backgroundColor: lightTheme.colors.primary }}
+                disabled={isLoading}
+                onClick={handleFinish}
+              >
+                {isLoading ? "A guardar…" : "Concluir cadastro"}
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <ServiceRegisterModal
+        open={serviceModalOpen}
+        onOpenChange={setServiceModalOpen}
+        collectOnly
+        onCollect={handleCollectService}
+      />
+    </>
   )
 }

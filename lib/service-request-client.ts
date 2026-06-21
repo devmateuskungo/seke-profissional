@@ -1,14 +1,29 @@
 import type { ApiErrorResponse } from "@/types/auth"
 import type {
+  ClientRecentRequest,
+  ClientServiceRequestStats,
   CreateServiceRequestPayload,
   MarketplaceServiceRequest,
   MarketplaceServiceRequestsResponse,
+  ProfessionalProposalStat,
+  ProfessionalServiceRequestStats,
+  ServiceRequestProposalDetail,
+  ServiceRequestDetail,
+  ServiceRequestDetailResponse,
+  ServiceRequestStatsResponse,
+  ServiceRequestStatusStat,
 } from "@/types/service-request"
 
 const EXTERNAL_API_BASE = process.env.NEXT_PUBLIC_URL_API?.trim()
 const SERVICE_REQUESTS_API = EXTERNAL_API_BASE
   ? `${EXTERNAL_API_BASE}/marketplace/service-requests`
   : "/api/marketplace/service-requests"
+const CLIENT_STATS_API = EXTERNAL_API_BASE
+  ? `${EXTERNAL_API_BASE}/marketplace/service-requests/stats/client`
+  : "/api/marketplace/service-requests/stats/client"
+const PROFESSIONAL_STATS_API = EXTERNAL_API_BASE
+  ? `${EXTERNAL_API_BASE}/marketplace/service-requests/stats/professional`
+  : "/api/marketplace/service-requests/stats/professional"
 
 type Outcome<T> =
   | { success: true; data: T }
@@ -202,4 +217,340 @@ export async function createServiceRequest(
   }
 
   return { success: true, data: item }
+}
+
+function readStatNumber(source: Record<string, unknown>, keys: string[]): number {
+  for (const key of keys) {
+    const value = source[key]
+    if (typeof value === "number" && Number.isFinite(value)) return value
+    if (typeof value === "string" && value.trim()) {
+      const parsed = Number(value)
+      if (Number.isFinite(parsed)) return parsed
+    }
+  }
+  return 0
+}
+
+function unwrapStatsPayload(raw: unknown): Record<string, unknown> {
+  if (!raw || typeof raw !== "object") return {}
+  const root = raw as Record<string, unknown>
+  if (root.data && typeof root.data === "object" && !Array.isArray(root.data)) {
+    return root.data as Record<string, unknown>
+  }
+  return root
+}
+
+function normalizeStatusStat(value: unknown): ServiceRequestStatusStat | null {
+  if (!value || typeof value !== "object") return null
+  const item = value as Record<string, unknown>
+  return {
+    count: readStatNumber(item, ["count"]),
+    percentage: readStatNumber(item, ["percentage"]),
+    totalBudget: readStatNumber(item, ["totalBudget", "total_budget"]),
+  }
+}
+
+function normalizeByStatus(value: unknown): Record<string, ServiceRequestStatusStat> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {}
+  const result: Record<string, ServiceRequestStatusStat> = {}
+  for (const [key, stat] of Object.entries(value as Record<string, unknown>)) {
+    const normalized = normalizeStatusStat(stat)
+    if (normalized) result[key] = normalized
+  }
+  return result
+}
+
+function normalizeRecentRequests(value: unknown): ClientRecentRequest[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null)
+    .map((item) => ({
+      id: String(item.id ?? ""),
+      title: typeof item.title === "string" ? item.title : "Serviço",
+      status: typeof item.status === "string" ? item.status : "open",
+      created_at: typeof item.created_at === "string" ? item.created_at : "",
+      category_name:
+        typeof item.category_name === "string" ? item.category_name : undefined,
+    }))
+    .filter((item) => item.id.trim() !== "")
+}
+
+function normalizeProposalStats(value: unknown): ProfessionalProposalStat[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null)
+    .map((item) => ({
+      _id: typeof item._id === "string" ? item._id : "unknown",
+      count: readStatNumber(item, ["count"]),
+      totalValue: readStatNumber(item, ["totalValue", "total_value"]),
+    }))
+}
+
+function normalizeClientStats(raw: unknown): ClientServiceRequestStats {
+  const source = unwrapStatsPayload(raw)
+  return {
+    totalRequests: readStatNumber(source, ["totalRequests", "total_requests"]),
+    totalBudget: readStatNumber(source, ["totalBudget", "total_budget"]),
+    byStatus: normalizeByStatus(source.byStatus ?? source.by_status),
+    recentRequests: normalizeRecentRequests(
+      source.recentRequests ?? source.recent_requests
+    ),
+  }
+}
+
+function normalizeProfessionalStats(raw: unknown): ProfessionalServiceRequestStats {
+  const source = unwrapStatsPayload(raw)
+  return {
+    totalProposals: readStatNumber(source, ["totalProposals", "total_proposals"]),
+    totalValue: readStatNumber(source, ["totalValue", "total_value"]),
+    proposalStats: normalizeProposalStats(
+      source.proposalStats ?? source.proposal_stats
+    ),
+    pendingRequests: readStatNumber(source, ["pendingRequests", "pending_requests"]),
+    acceptedProposals: readStatNumber(source, [
+      "acceptedProposals",
+      "accepted_proposals",
+    ]),
+  }
+}
+
+export type FetchClientServiceRequestStatsOutcome =
+  Outcome<ClientServiceRequestStats>
+
+export async function fetchClientServiceRequestStats(
+  token: string
+): Promise<FetchClientServiceRequestStatsOutcome> {
+  const res = await fetch(CLIENT_STATS_API, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token.trim()}`,
+      Accept: "application/json",
+    },
+    cache: "no-store",
+  })
+
+  const raw = (await res.json().catch(() => ({}))) as
+    | ServiceRequestStatsResponse
+    | ApiErrorResponse
+
+  if (!res.ok) {
+    const message =
+      "message" in raw && typeof raw.message === "string"
+        ? raw.message
+        : "Não foi possível carregar as métricas."
+    return { success: false, error: message, statusCode: res.status }
+  }
+
+  return { success: true, data: normalizeClientStats(raw) }
+}
+
+export type FetchProfessionalServiceRequestStatsOutcome =
+  Outcome<ProfessionalServiceRequestStats>
+
+export async function fetchProfessionalServiceRequestStats(
+  token: string
+): Promise<FetchProfessionalServiceRequestStatsOutcome> {
+  const res = await fetch(PROFESSIONAL_STATS_API, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token.trim()}`,
+      Accept: "application/json",
+    },
+    cache: "no-store",
+  })
+
+  const raw = (await res.json().catch(() => ({}))) as
+    | ServiceRequestStatsResponse
+    | ApiErrorResponse
+
+  if (!res.ok) {
+    const message =
+      "message" in raw && typeof raw.message === "string"
+        ? raw.message
+        : "Não foi possível carregar as métricas."
+    return { success: false, error: message, statusCode: res.status }
+  }
+
+  return { success: true, data: normalizeProfessionalStats(raw) }
+}
+
+function normalizeProposalDetail(item: Record<string, unknown>): ServiceRequestProposalDetail | null {
+  const id = item.id
+  const professionalId = item.professional_id
+  if (
+    !(
+      (typeof id === "string" && id.trim()) ||
+      (typeof id === "number" && !Number.isNaN(id))
+    )
+  ) {
+    return null
+  }
+  if (
+    !(
+      (typeof professionalId === "string" && professionalId.trim()) ||
+      (typeof professionalId === "number" && !Number.isNaN(professionalId))
+    )
+  ) {
+    return null
+  }
+
+  return {
+    id: String(id),
+    professional_id: String(professionalId),
+    price: readStatNumber(item, ["price"]),
+    estimated_duration: readStatNumber(item, ["estimated_duration"]),
+    message: typeof item.message === "string" ? item.message : null,
+    status: typeof item.status === "string" ? item.status : "pending",
+    viewed_at:
+      typeof item.viewed_at === "string" || item.viewed_at === null
+        ? item.viewed_at
+        : undefined,
+    created_at: typeof item.created_at === "string" ? item.created_at : undefined,
+    updated_at: typeof item.updated_at === "string" ? item.updated_at : undefined,
+    professional_name:
+      typeof item.professional_name === "string" ? item.professional_name : undefined,
+    professional_email:
+      typeof item.professional_email === "string" ? item.professional_email : undefined,
+    professional_phone:
+      typeof item.professional_phone === "string" ? item.professional_phone : undefined,
+    professional_photo:
+      typeof item.professional_photo === "string" || item.professional_photo === null
+        ? item.professional_photo
+        : undefined,
+    professional_bio:
+      typeof item.professional_bio === "string" ? item.professional_bio : undefined,
+    professional_rating: readStatNumber(item, ["professional_rating"]),
+    professional_total_reviews: readStatNumber(item, ["professional_total_reviews"]),
+    professional_is_verified: item.professional_is_verified === true,
+    professional_is_available: item.professional_is_available === true,
+    professional_hourly_rate:
+      typeof item.professional_hourly_rate === "string" ||
+      typeof item.professional_hourly_rate === "number"
+        ? item.professional_hourly_rate
+        : item.professional_hourly_rate === null
+          ? null
+          : undefined,
+  }
+}
+
+function normalizeServiceRequestDetail(raw: unknown): ServiceRequestDetail | null {
+  if (!raw || typeof raw !== "object") return null
+  const root = raw as Record<string, unknown>
+  const source =
+    root.data && typeof root.data === "object" && !Array.isArray(root.data)
+      ? (root.data as Record<string, unknown>)
+      : root
+
+  if (!isServiceRequest(source)) return null
+
+  const base = normalizeServiceRequest(source as MarketplaceServiceRequest)
+  const proposalsRaw = source.proposals
+  const proposals = Array.isArray(proposalsRaw)
+    ? proposalsRaw
+        .filter(
+          (item): item is Record<string, unknown> =>
+            typeof item === "object" && item !== null
+        )
+        .map((item) => normalizeProposalDetail(item))
+        .filter((item): item is ServiceRequestProposalDetail => item !== null)
+    : []
+
+  return {
+    ...base,
+    client_email:
+      typeof source.client_email === "string" ? source.client_email : undefined,
+    client_phone:
+      typeof source.client_phone === "string" ? source.client_phone : undefined,
+    client_photo:
+      typeof source.client_photo === "string" || source.client_photo === null
+        ? source.client_photo
+        : undefined,
+    client_province:
+      typeof source.client_province === "string" ? source.client_province : undefined,
+    client_municipality:
+      typeof source.client_municipality === "string"
+        ? source.client_municipality
+        : undefined,
+    category_icon:
+      typeof source.category_icon === "string" || source.category_icon === null
+        ? source.category_icon
+        : undefined,
+    category_description:
+      typeof source.category_description === "string"
+        ? source.category_description
+        : undefined,
+    proposals,
+    pending_proposals:
+      typeof source.pending_proposals === "string" ||
+      typeof source.pending_proposals === "number"
+        ? source.pending_proposals
+        : undefined,
+    accepted_proposals:
+      typeof source.accepted_proposals === "string" ||
+      typeof source.accepted_proposals === "number"
+        ? source.accepted_proposals
+        : undefined,
+    accepted_proposal_details: source.accepted_proposal_details ?? null,
+    matched_professional_user_id:
+      typeof source.matched_professional_user_id === "string"
+        ? source.matched_professional_user_id
+        : source.matched_professional_user_id === null
+          ? null
+          : undefined,
+    matched_professional_name:
+      typeof source.matched_professional_name === "string"
+        ? source.matched_professional_name
+        : source.matched_professional_name === null
+          ? null
+          : undefined,
+    total_proposals:
+      typeof source.total_proposals === "string" ||
+      typeof source.total_proposals === "number"
+        ? source.total_proposals
+        : proposals.length,
+  }
+}
+
+export type FetchServiceRequestDetailOutcome = Outcome<ServiceRequestDetail>
+
+export async function fetchServiceRequestById(
+  serviceRequestId: string,
+  token: string
+): Promise<FetchServiceRequestDetailOutcome> {
+  const trimmed = serviceRequestId.trim()
+  if (!trimmed) {
+    return { success: false, error: "ID da solicitação inválido." }
+  }
+
+  const url = EXTERNAL_API_BASE
+    ? `${SERVICE_REQUESTS_API.replace(/\/$/, "")}/${encodeURIComponent(trimmed)}`
+    : `/api/marketplace/service-requests/${encodeURIComponent(trimmed)}`
+
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token.trim()}`,
+      Accept: "application/json",
+    },
+    cache: "no-store",
+  })
+
+  const raw = (await res.json().catch(() => ({}))) as
+    | ServiceRequestDetailResponse
+    | ApiErrorResponse
+
+  if (!res.ok) {
+    const message =
+      "message" in raw && typeof raw.message === "string"
+        ? raw.message
+        : "Não foi possível carregar a solicitação."
+    return { success: false, error: message, statusCode: res.status }
+  }
+
+  const detail = normalizeServiceRequestDetail(raw)
+  if (!detail) {
+    return { success: false, error: "Resposta inválida do servidor." }
+  }
+
+  return { success: true, data: detail }
 }

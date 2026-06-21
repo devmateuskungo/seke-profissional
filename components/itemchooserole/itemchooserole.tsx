@@ -10,7 +10,9 @@ import {
 import { useToast } from "@/components/ui/toaster"
 import { ItemProfessionalRegister } from "@/components/itemprofessionalregister/itemprofessionalregister"
 import { loginWithCredentials, registerWithCredentials } from "@/lib/auth-client"
+import { updateProfile } from "@/lib/profile-client"
 import { createProfessionalProfile } from "@/lib/professional-client"
+import { createService } from "@/lib/services-client"
 import {
   clearRegisterFlow,
   readPendingRegister,
@@ -18,7 +20,7 @@ import {
   saveRegisteredSession,
 } from "@/lib/register-pending"
 import { lightTheme } from "@/style/light"
-import type { ProfessionalProfileRequest } from "@/types/professional"
+import type { ProfessionalRegisterFormPayload } from "@/types/professional"
 
 type Step = "loading" | "professional"
 
@@ -122,8 +124,14 @@ export function ItemChooseRole() {
     })()
   }, [router, toast, finishRegistration])
 
+  const handleSkipProfessionalProfile = useCallback(() => {
+    finishRegistration(
+      "Conta criada com sucesso. Pode completar o perfil profissional após o login."
+    )
+  }, [finishRegistration])
+
   const handleProfessionalSubmit = useCallback(
-    async (payload: ProfessionalProfileRequest) => {
+    async (payload: ProfessionalRegisterFormPayload) => {
       const pending = readPendingRegister()
       if (!pending) {
         toast.error("Sessão expirada. Preencha o formulário novamente.")
@@ -139,13 +147,45 @@ export function ItemChooseRole() {
           return
         }
 
-        const result = await createProfessionalProfile(payload, token)
+        const { province, municipality, services, ...profilePayload } = payload
+        const result = await createProfessionalProfile(profilePayload, token)
         if (!result.success) {
           toast.error(result.error)
           return
         }
 
-        finishRegistration("Perfil profissional criado. Faça login para continuar.")
+        const hasLocation = Boolean(province?.trim() || municipality?.trim())
+        if (hasLocation) {
+          const profileUpdate = await updateProfile(token, {
+            user_id: payload.user_id,
+            full_name: pending.full_name,
+            phone: pending.phone,
+            bio: payload.bio,
+            province: province?.trim() ?? "",
+            municipality: municipality?.trim() ?? "",
+          })
+          if (!profileUpdate.success) {
+            toast.error(profileUpdate.error)
+            return
+          }
+        }
+
+        if (services?.length) {
+          for (const service of services) {
+            const serviceResult = await createService(service, token)
+            if (!serviceResult.success) {
+              toast.error(serviceResult.error)
+              return
+            }
+          }
+        }
+
+        const successMessage =
+          services?.length && services.length > 0
+            ? "Perfil e serviços criados. Faça login para continuar."
+            : "Perfil profissional criado. Faça login para continuar."
+
+        finishRegistration(successMessage)
       } catch {
         toast.error("Erro de conexão. Verifique sua internet e tente novamente.")
       } finally {
@@ -182,7 +222,7 @@ export function ItemChooseRole() {
         userId={userId}
         isLoading={isLoading}
         onSubmit={handleProfessionalSubmit}
-        onBack={() => router.replace("/auth/register")}
+        onSkip={handleSkipProfessionalProfile}
       />
     )
   }

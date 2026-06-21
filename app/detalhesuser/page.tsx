@@ -257,8 +257,8 @@ function DetalhesUserContent() {
 
   return (
     <div className="">
-      <div className="mx-auto grid  grid-cols-1 gap-6 p-4 md:p-6 lg:grid-cols-12">
-        <aside className="space-y-6 lg:col-span-3">
+      <div className="mx-auto grid grid-cols-1 gap-6 p-4 md:p-6 lg:grid-cols-12">
+        <aside className="order-2 space-y-6 lg:order-1 lg:col-span-3">
           <Card>
             <h3 className="mb-4 text-sm font-bold">Actividades</h3>
             <div className="flex flex-col items-center py-6 text-muted-foreground">
@@ -281,7 +281,7 @@ function DetalhesUserContent() {
           </Card>
         </aside>
 
-        <div className="space-y-6 lg:col-span-9">
+        <div className="order-1 space-y-6 lg:order-2 lg:col-span-9">
           <div className="overflow-hidden rounded-md border border-border/45 bg-card">
             <div className="relative h-48 bg-primary/15">
               <div className="absolute inset-0 flex items-center justify-center opacity-25">

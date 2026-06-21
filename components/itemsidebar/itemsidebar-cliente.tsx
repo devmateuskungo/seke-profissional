@@ -93,7 +93,7 @@ export default function SidebarCliente({ children }: SidebarClienteProps) {
 
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <Link href="/clientes/meus-pedidos">
+                    <Link href="/solicitacoes">
                       <FileText />
                       <span>Meus Pedidos</span>
                     </Link>

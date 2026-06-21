@@ -18,6 +18,13 @@ const SERVICES_API = EXTERNAL_API_BASE
   ? `${EXTERNAL_API_BASE}/marketplace/services`
   : "/api/marketplace/services"
 
+function professionalServicesApi(professionalId: string): string {
+  const id = encodeURIComponent(professionalId.trim())
+  return EXTERNAL_API_BASE
+    ? `${EXTERNAL_API_BASE}/marketplace/professionals/${id}/services`
+    : `/api/marketplace/professionals/${id}/services`
+}
+
 export type FetchCategoriesOutcome =
   | { success: true; data: MarketplaceCategory[] }
   | { success: false; error: string; statusCode?: number }
@@ -207,46 +214,48 @@ export async function fetchMarketplaceServices(options?: {
   return { success: true, data: services }
 }
 
-/** Serviços reais de um profissional — filtra no cliente se a API devolver a lista completa. */
+/** Serviços de um profissional via GET /marketplace/professionals/:id/services */
 export async function fetchProfessionalMarketplaceServices(
   professional: { id: string; user_id?: string },
   token?: string
 ): Promise<FetchMarketplaceServicesOutcome> {
-  const attempts: string[] = [professional.id.trim()]
-  if (professional.user_id?.trim()) {
-    attempts.push(professional.user_id.trim())
-  }
-
-  let lastError: FetchMarketplaceServicesOutcome = {
-    success: false,
-    error: "Não foi possível carregar os serviços.",
-  }
-
-  for (const professionalId of attempts) {
-    const result = await fetchMarketplaceServices({
-      professional_id: professionalId,
-      token,
-    })
-    if (!result.success) {
-      lastError = result
-      continue
-    }
-    const filtered = filterServicesForProfessional(result.data, professional)
-    if (filtered.length > 0) {
-      return { success: true, data: filtered }
+  const professionalId = professional.id.trim()
+  if (!professionalId) {
+    return {
+      success: false,
+      error: "ID do profissional inválido.",
     }
   }
 
-  const all = await fetchMarketplaceServices({ token })
-  if (all.success) {
-    const filtered = filterServicesForProfessional(all.data, professional)
-    if (filtered.length > 0) {
-      return { success: true, data: filtered }
+  const headers: HeadersInit = { Accept: "application/json" }
+  if (token?.trim()) {
+    headers.Authorization = `Bearer ${token.trim()}`
+  }
+
+  const res = await fetch(professionalServicesApi(professionalId), {
+    method: "GET",
+    headers,
+    cache: "no-store",
+  })
+
+  const raw = (await res.json().catch(() => ({}))) as
+    | MarketplaceServicesListResponse
+    | ApiErrorResponse
+
+  if (!res.ok) {
+    const message =
+      "message" in raw && typeof raw.message === "string"
+        ? raw.message
+        : "Não foi possível carregar os serviços do profissional."
+    return {
+      success: false,
+      error: message,
+      statusCode: res.status,
     }
   }
 
-  if (!lastError.success) return lastError
-  return { success: true, data: [] }
+  const services = extractMarketplaceServicesList(raw)
+  return { success: true, data: services }
 }
 
 export function buildProfessionalCategoryMap(
