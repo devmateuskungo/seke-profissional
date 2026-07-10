@@ -75,7 +75,7 @@ export default function ItemlistcategoriaProfissional({
   };
 
   return (
-    <article className="flex w-full max-w-[280px] flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition-shadow hover:shadow-md">
+    <article className="flex w-full max-w-none flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition-shadow hover:shadow-md sm:max-w-[300px]">
       <div className="flex items-start gap-3 p-4 pb-3">
         <div className="relative shrink-0">
           <div className="size-14 overflow-hidden rounded-full bg-muted ring-2 ring-gray-100">

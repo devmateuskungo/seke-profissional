@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertCircle, RefreshCcw } from "lucide-react";
 import ItemlistcategoriaProfissional from "./itemlistcagoriaprofissional";
-import ProfessionalListFilters from "./professional-list-filters";
+import ProfessionalListFilters, {
+  ProfessionalListFiltersDrawer,
+  ProfessionalListFiltersTrigger,
+} from "./professional-list-filters";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { lightTheme } from "@/style/light";
@@ -66,6 +69,7 @@ export default function ProfessionalList() {
   const [clientCoords, setClientCoords] = useState<GeoCoords | null>(null);
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -197,6 +201,24 @@ export default function ProfessionalList() {
     parsedMaxPrice != null ||
     availability != null;
 
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (selectedCategoryId !== null) count += 1;
+    if (province.trim() !== "") count += 1;
+    if (sortByNearest) count += 1;
+    if (parsedMinPrice != null) count += 1;
+    if (parsedMaxPrice != null) count += 1;
+    if (availability != null) count += 1;
+    return count;
+  }, [
+    selectedCategoryId,
+    province,
+    sortByNearest,
+    parsedMinPrice,
+    parsedMaxPrice,
+    availability,
+  ]);
+
   const hasMore = page < totalPages;
 
   const handleLoadMore = useCallback(() => {
@@ -283,6 +305,31 @@ export default function ProfessionalList() {
     resetList();
   }, [resetList]);
 
+  const filterProps = {
+    categories,
+    categoriesLoading,
+    selectedCategoryId,
+    onCategoryChange: handleCategoryChange,
+    province,
+    onProvinceChange: handleProvinceChange,
+    sortByNearest,
+    onSortByNearestChange: handleSortByNearestChange,
+    maxDistanceKm,
+    onMaxDistanceKmChange: handleMaxDistanceKmChange,
+    minPrice,
+    onMinPriceChange: handleMinPriceChange,
+    maxPrice,
+    onMaxPriceChange: handleMaxPriceChange,
+    availability,
+    onAvailabilityChange: handleAvailabilityChange,
+    geoLoading,
+    geoError,
+    onRefreshLocation: () => void refreshClientLocation(),
+    onClearFilters: handleClearFilters,
+    hasActiveFilters,
+    activeFilterCount,
+  };
+
   const countLabel =
     isLoading && professionals.length === 0
       ? "A carregar profissionais…"
@@ -293,38 +340,24 @@ export default function ProfessionalList() {
   return (
     <div className="w-full max-w-7xl mx-auto px-4 pb-10">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        <aside className="lg:col-span-3">
-          <ProfessionalListFilters
-            categories={categories}
-            categoriesLoading={categoriesLoading}
-            selectedCategoryId={selectedCategoryId}
-            onCategoryChange={handleCategoryChange}
-            province={province}
-            onProvinceChange={handleProvinceChange}
-            sortByNearest={sortByNearest}
-            onSortByNearestChange={handleSortByNearestChange}
-            maxDistanceKm={maxDistanceKm}
-            onMaxDistanceKmChange={handleMaxDistanceKmChange}
-            minPrice={minPrice}
-            onMinPriceChange={handleMinPriceChange}
-            maxPrice={maxPrice}
-            onMaxPriceChange={handleMaxPriceChange}
-            availability={availability}
-            onAvailabilityChange={handleAvailabilityChange}
-            geoLoading={geoLoading}
-            geoError={geoError}
-            onRefreshLocation={() => void refreshClientLocation()}
-            onClearFilters={handleClearFilters}
-            hasActiveFilters={hasActiveFilters}
-          />
+        <aside className="hidden lg:col-span-3 lg:block">
+          <ProfessionalListFilters {...filterProps} />
         </aside>
 
         <div className="flex flex-col items-center gap-6 lg:col-span-9">
-          {isLoading && professionals.length === 0 ? (
-            <Skeleton className="h-5 w-44 self-start" />
-          ) : (
-            <p className="w-full font-bold text-gray-600">{countLabel}</p>
-          )}
+          <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="lg:hidden">
+              <ProfessionalListFiltersTrigger
+                onClick={() => setFiltersOpen(true)}
+                activeFilterCount={activeFilterCount}
+              />
+            </div>
+            {isLoading && professionals.length === 0 ? (
+              <Skeleton className="h-5 w-44" />
+            ) : (
+              <p className="text-sm font-semibold text-gray-700">{countLabel}</p>
+            )}
+          </div>
 
           {isLoading && professionals.length === 0 ? (
             <ProfessionalCardSkeletonGrid count={6} />
@@ -365,7 +398,7 @@ export default function ProfessionalList() {
             </div>
           ) : (
             <>
-              <div className="grid w-full grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 justify-items-center">
+              <div className="grid w-full grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 {professionals.map((pro) => (
                   <ItemlistcategoriaProfissional
                     key={pro.id}
@@ -406,6 +439,12 @@ export default function ProfessionalList() {
           ) : null}
         </div>
       </div>
+
+      <ProfessionalListFiltersDrawer
+        {...filterProps}
+        open={filtersOpen}
+        onOpenChange={setFiltersOpen}
+      />
     </div>
   );
 }

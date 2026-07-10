@@ -424,64 +424,112 @@ export default function ProfessionalProfileView({
         ? rawBio
         : `${rawBio.slice(0, bioPreviewLen).trim()}…`;
 
+  const contactActionsCard = !isOwnProfile ? (
+    <Card>
+      <h3 className="mb-1 text-sm font-bold">Trabalhar comigo</h3>
+      <p className="mb-4 text-xs text-muted-foreground">
+        Escolha como pretende contactar este profissional.
+      </p>
+
+      <div className="space-y-2">
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full gap-2"
+          onClick={handleMessage}
+        >
+          <MessageSquare className="size-4" />
+          Enviar mensagem
+        </Button>
+
+        <Button
+          type="button"
+          className="w-full gap-2 text-white"
+          style={{ backgroundColor: lightTheme.colors.primary }}
+          onClick={() => void handleScheduleOpen()}
+          disabled={!professional.is_available}
+        >
+          <CalendarClock className="size-4" />
+          Agendar serviço
+        </Button>
+      </div>
+
+      {!professional.is_available ? (
+        <p className="mt-3 text-xs text-muted-foreground">
+          Este profissional está indisponível no momento.
+        </p>
+      ) : null}
+    </Card>
+  ) : (
+    <Card>
+      <h3 className="mb-2 text-sm font-bold">O seu perfil</h3>
+      <p className="text-xs text-muted-foreground">
+        Esta é a vista pública do seu perfil profissional.
+      </p>
+      <Button type="button" variant="outline" className="mt-4 w-full" asChild>
+        <Link href="/perfil">Editar perfil</Link>
+      </Button>
+    </Card>
+  );
+
   return (
-    <div className=" min-h-screen pb-10">
-      <div className="mx-auto  px-4 py-4 md:px-6 md:py-6">
+    <div className="min-h-screen pb-10">
+      <div className="mx-auto px-0 py-4 md:px-6 md:py-6">
         <Link
           href="/categoria-profissional"
-          className="mb-4 inline-flex items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground"
+          className="mb-4 inline-flex items-center gap-2 px-4 text-sm text-muted-foreground transition hover:text-foreground md:px-0"
         >
           <ArrowLeft className="size-4" aria-hidden />
           Voltar aos profissionais
         </Link>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="grid grid-cols-1 gap-4 px-4 md:gap-6 md:px-0 lg:grid-cols-12">
           {/* Conteúdo principal — estilo LinkedIn */}
           <div className="space-y-6 lg:col-span-8">
-            <div className="overflow-hidden rounded-md border border-border/45 bg-card">
-              <div className="relative h-40 bg-primary/15 sm:h-48">
-                <div className="absolute inset-0 flex items-center justify-center opacity-25">
-                  <Briefcase size={48} className="text-primary" />
+            <div className="overflow-hidden rounded-xl bg-white md:rounded-2xl md:border md:border-gray-100">
+              <div className="relative h-32 bg-gradient-to-r from-[#dceffd] to-[#eef7ff] sm:h-40">
+                <div className="absolute inset-0 flex items-center justify-center opacity-20">
+                  <Briefcase size={40} className="text-[#2b81e5]" />
                 </div>
               </div>
 
-              <div className="relative px-4 pb-8 pt-0 md:px-8">
-                <div className="-translate-y-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div className="relative px-4 pb-6 pt-0 md:px-8 md:pb-8">
+                <div className="-translate-y-10 flex flex-col gap-4 sm:-translate-y-12 sm:flex-row sm:items-end sm:justify-between">
                   <div className="relative shrink-0">
-                    <div className="relative size-28 overflow-hidden rounded-3xl border-2 border-border/35 bg-card sm:size-32">
+                    <div className="relative size-24 overflow-hidden rounded-2xl bg-gray-100 ring-4 ring-white sm:size-28">
                       <Image
                         src={avatarSrc}
                         alt={professional.full_name}
                         fill
-                        sizes="128px"
+                        sizes="112px"
                         className="object-cover"
                         priority
                         unoptimized={userAvatarSrcUnoptimized(avatarSrc)}
                       />
                       {professional.is_available ? (
                         <span
-                          className="absolute bottom-1 right-1 size-4 rounded-full border-2 border-white bg-emerald-500"
+                          className="absolute bottom-1 right-1 size-3.5 rounded-full border-2 border-white bg-emerald-500"
                           title="Disponível"
                         />
                       ) : null}
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-2 sm:mb-2">
+                  <div className="flex flex-wrap gap-2 sm:mb-1">
                     <button
                       type="button"
                       onClick={handleShare}
-                      className="flex items-center gap-2 rounded-lg border border-border/45 px-4 py-2 text-sm font-semibold transition-all hover:bg-accent"
+                      className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 md:border md:border-gray-100"
                     >
                       <Share2 size={16} /> Partilhar
                     </button>
                   </div>
                 </div>
 
-                <div className="-mt-8 grid grid-cols-1 gap-6 md:grid-cols-12">
-                  <div className="md:col-span-8">
-                    <div className="mb-1 flex flex-wrap items-center gap-2">
-                      <h1 className="text-2xl font-bold">
+                <div className="-mt-6 space-y-4 sm:-mt-8">
+                  <div>
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <h1 className="text-xl font-semibold tracking-tight text-gray-900 sm:text-2xl">
                         {professional.full_name}
                       </h1>
                       {professional.is_verified ? (
@@ -491,36 +539,45 @@ export default function ProfessionalProfileView({
                         />
                       ) : null}
                       <span
-                        className={`rounded border px-2 py-0.5 text-xs ${
+                        className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${
                           professional.is_available
-                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                            : "border-border/45 bg-muted text-muted-foreground"
+                            ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+                            : "border-gray-200 bg-gray-100 text-gray-500"
                         }`}
                       >
+                        <span
+                          className={`size-1.5 rounded-full ${
+                            professional.is_available
+                              ? "bg-emerald-500"
+                              : "bg-gray-400"
+                          }`}
+                          aria-hidden
+                        />
                         {professional.is_available
                           ? "Disponível"
                           : "Indisponível"}
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Briefcase size={14} /> Profissional
+                    <div className="flex flex-col gap-1.5 text-sm text-gray-500">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Briefcase size={14} className="shrink-0 text-gray-400" />
+                        Profissional
                       </span>
-                      <span className="flex min-w-0 items-center gap-1">
-                        <MapPin size={14} className="shrink-0" />
+                      <span className="inline-flex min-w-0 items-center gap-1.5">
+                        <MapPin size={14} className="shrink-0 text-gray-400" />
                         <span className="truncate">{locationLabel}</span>
                       </span>
                       {memberSince ? (
-                        <span className="flex items-center gap-1">
-                          <Clock size={14} />
+                        <span className="inline-flex items-center gap-1.5">
+                          <Clock size={14} className="shrink-0 text-gray-400" />
                           Desde {memberSince}
                         </span>
                       ) : null}
                     </div>
                   </div>
 
-                  <div className="flex flex-nowrap items-center justify-start gap-2 sm:gap-3 md:col-span-4 md:justify-end">
+                  <div className="grid grid-cols-3 gap-2 border-t border-gray-100 pt-4 sm:gap-3">
                     {[
                       {
                         label: "Avaliação",
@@ -540,20 +597,22 @@ export default function ProfessionalProfileView({
                     ].map((stat) => (
                       <div
                         key={stat.label}
-                        className="flex shrink-0 items-baseline gap-1.5 whitespace-nowrap rounded-xl border border-border/45 bg-muted/50 px-3 py-2 sm:px-4"
+                        className="rounded-lg bg-gray-50/80 px-2 py-2.5 text-center sm:px-3"
                       >
-                        <span className="text-[10px] font-bold uppercase text-muted-foreground">
+                        <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400">
                           {stat.label}
-                        </span>
-                        <span className="font-bold tabular-nums text-primary">
+                        </p>
+                        <p className="mt-0.5 text-sm font-semibold tabular-nums text-gray-900 sm:text-base">
                           {stat.val}
-                        </span>
+                        </p>
                       </div>
                     ))}
                   </div>
                 </div>
               </div>
             </div>
+
+            <div className="lg:hidden">{contactActionsCard}</div>
 
             <Card className="grid grid-cols-1 gap-10 md:grid-cols-2">
               <div>
@@ -697,53 +756,7 @@ export default function ProfessionalProfileView({
                 </div>
               </Card>
 
-              {!isOwnProfile ? (
-                <Card>
-                  <h3 className="mb-1 text-sm font-bold">Trabalhar comigo</h3>
-                  <p className="mb-4 text-xs text-muted-foreground">
-                    Escolha como pretende contactar este profissional.
-                  </p>
-
-                  <div className="space-y-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full gap-2"
-                      onClick={handleMessage}
-                    >
-                      <MessageSquare className="size-4" />
-                      Enviar mensagem
-                    </Button>
-
-                    <Button
-                      type="button"
-                      className="w-full gap-2 text-white"
-                      style={{ backgroundColor: lightTheme.colors.primary }}
-                      onClick={() => void handleScheduleOpen()}
-                      disabled={!professional.is_available}
-                    >
-                      <CalendarClock className="size-4" />
-                      Agendar serviço
-                    </Button>
-                  </div>
-
-                  {!professional.is_available ? (
-                    <p className="mt-3 text-xs text-muted-foreground">
-                      Este profissional está indisponível no momento.
-                    </p>
-                  ) : null}
-                </Card>
-              ) : (
-                <Card>
-                  <h3 className="mb-2 text-sm font-bold">O seu perfil</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Esta é a vista pública do seu perfil profissional.
-                  </p>
-                  <Button type="button" variant="outline" className="mt-4 w-full" asChild>
-                    <Link href="/perfil">Editar perfil</Link>
-                  </Button>
-                </Card>
-              )}
+              <div className="hidden lg:block">{contactActionsCard}</div>
 
               <Card>
                 <h3 className="mb-3 text-sm font-bold">Resumo</h3>
