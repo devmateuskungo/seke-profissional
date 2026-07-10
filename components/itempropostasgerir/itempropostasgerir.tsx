@@ -1,17 +1,11 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import { createPortal } from "react-dom"
 import Image from "next/image"
 import Link from "next/link"
-import { BadgeCheck, Loader2, MapPin, Star } from "lucide-react"
+import { BadgeCheck, Loader2, MapPin, Star, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import { useToast } from "@/components/ui/toaster"
 import { acceptProposal, rejectProposal } from "@/lib/proposals-client"
 import { fetchServiceRequestById } from "@/lib/service-request-client"
@@ -92,6 +86,8 @@ export function ItemPropostasGerir({
     "accept" | "reject" | null
   >(null)
 
+  const close = useCallback(() => onOpenChange(false), [onOpenChange])
+
   const loadDetail = useCallback(async () => {
     const token = getSessionToken()
     if (!token) {
@@ -121,6 +117,24 @@ export function ItemPropostasGerir({
     if (!open) return
     void loadDetail()
   }, [open, loadDetail])
+
+  useEffect(() => {
+    if (!open) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close()
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [open, close])
 
   const handleAction = useCallback(
     async (proposalId: string, action: "accept" | "reject") => {
@@ -185,189 +199,225 @@ export function ItemPropostasGerir({
     detail?.title?.trim() || servico || detail?.category_name || "Solicitação"
   const totalProposals = Number(detail?.total_proposals) || proposals.length
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Propostas recebidas</DialogTitle>
-          <DialogDescription>
-            Profissionais interessados em «{title}».
-          </DialogDescription>
-        </DialogHeader>
+  if (!open) return null
 
-        {loading ? (
-          <div className="flex items-center justify-center py-10 text-sm text-muted-foreground">
-            <Loader2 className="size-5 animate-spin mr-2" aria-hidden />
-            A carregar propostas…
+  return createPortal(
+    <div
+      className="fixed inset-0 z-100"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="propostas-panel-title"
+    >
+      <button
+        type="button"
+        className="absolute inset-0 cursor-pointer bg-black/40"
+        aria-label="Fechar painel"
+        onClick={close}
+      />
+
+      <aside className="absolute top-0 right-0 z-10 flex h-full w-full max-w-md flex-col bg-white shadow-2xl animate-in slide-in-from-right duration-300">
+        <div className="flex items-center justify-between gap-3 border-b border-gray-200 px-4 py-4">
+          <div className="min-w-0">
+            <h2
+              id="propostas-panel-title"
+              className="text-lg font-semibold text-gray-900"
+            >
+              Propostas recebidas
+            </h2>
+            <p className="mt-0.5 text-sm text-gray-500">
+              Profissionais interessados em «{title}».
+            </p>
           </div>
-        ) : error ? (
-          <div className="py-6 text-center space-y-3">
-            <p className="text-sm text-destructive">{error}</p>
-            <Button type="button" variant="outline" onClick={() => void loadDetail()}>
-              Tentar novamente
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {detail ? (
-              <div className="rounded-lg border border-border/40 bg-muted/20 p-3 space-y-2 text-sm">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="font-medium text-foreground">{title}</p>
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    {totalProposals} proposta{totalProposals !== 1 ? "s" : ""}
-                  </span>
-                </div>
-                {detail.description ? (
-                  <p className="text-xs text-muted-foreground line-clamp-2">
-                    {detail.description}
-                  </p>
-                ) : null}
-                <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                  <span>Orçamento: {formatBudget(detail.budget_min, detail.budget_max)}</span>
-                  {detail.location_text ? (
-                    <span className="inline-flex items-center gap-1">
-                      <MapPin className="size-3" aria-hidden />
-                      {detail.location_text}
+          <button
+            type="button"
+            onClick={close}
+            className="cursor-pointer rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
+            aria-label="Fechar"
+          >
+            <X size={22} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4">
+          {loading ? (
+            <div className="flex items-center justify-center py-10 text-sm text-gray-500">
+              <Loader2 className="mr-2 size-5 animate-spin" aria-hidden />
+              A carregar propostas…
+            </div>
+          ) : error ? (
+            <div className="space-y-3 py-6 text-center">
+              <p className="text-sm text-destructive">{error}</p>
+              <Button type="button" variant="outline" onClick={() => void loadDetail()}>
+                Tentar novamente
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {detail ? (
+                <div className="rounded-lg border border-gray-100 bg-gray-50/80 p-3 text-sm">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-medium text-gray-900">{title}</p>
+                    <span className="shrink-0 text-xs text-gray-500">
+                      {totalProposals} proposta{totalProposals !== 1 ? "s" : ""}
                     </span>
+                  </div>
+                  {detail.description ? (
+                    <p className="mt-1 line-clamp-2 text-xs text-gray-500">
+                      {detail.description}
+                    </p>
                   ) : null}
+                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500">
+                    <span>Orçamento: {formatBudget(detail.budget_min, detail.budget_max)}</span>
+                    {detail.location_text ? (
+                      <span className="inline-flex items-center gap-1">
+                        <MapPin className="size-3" aria-hidden />
+                        {detail.location_text}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-            ) : null}
+              ) : null}
 
-            {proposals.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                Ainda não há propostas para esta solicitação.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {proposals.map((proposal) => {
-                  const avatarSrc = resolveUserAvatarUrl(proposal.professional_photo)
-                  const pending = isPendingProposal(proposal)
-                  const isProcessing = processingId === proposal.id
-                  const rating = Number(proposal.professional_rating)
-                  const hasRating = Number.isFinite(rating) && rating > 0
-                  const reviews = Number(proposal.professional_total_reviews) || 0
+              {proposals.length === 0 ? (
+                <p className="py-6 text-center text-sm text-gray-500">
+                  Ainda não há propostas para esta solicitação.
+                </p>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {proposals.map((proposal) => {
+                    const avatarSrc = resolveUserAvatarUrl(proposal.professional_photo)
+                    const pending = isPendingProposal(proposal)
+                    const isProcessing = processingId === proposal.id
+                    const rating = Number(proposal.professional_rating)
+                    const hasRating = Number.isFinite(rating) && rating > 0
+                    const reviews = Number(proposal.professional_total_reviews) || 0
 
-                  return (
-                    <div
-                      key={proposal.id}
-                      className="rounded-lg border border-border/40 p-4 space-y-3"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="size-11 bg-muted rounded-full overflow-hidden shrink-0">
-                          <Image
-                            src={avatarSrc}
-                            alt={proposal.professional_name ?? "Profissional"}
-                            width={44}
-                            height={44}
-                            className="object-cover size-full"
-                            unoptimized={userAvatarSrcUnoptimized(avatarSrc)}
-                          />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <p className="text-sm font-medium text-foreground truncate">
-                              {proposal.professional_name?.trim() || "Profissional"}
-                            </p>
-                            {proposal.professional_is_verified ? (
-                              <BadgeCheck
-                                className="size-3.5 text-primary shrink-0"
-                                aria-label="Profissional verificado"
-                              />
-                            ) : null}
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {formatPrice(proposal.price)} · {formatDuration(proposal.estimated_duration)}
-                          </p>
-                          {hasRating || reviews > 0 ? (
-                            <p className="text-xs text-muted-foreground mt-0.5 inline-flex items-center gap-1">
-                              <Star
-                                className="size-3 fill-amber-400 text-amber-400"
-                                aria-hidden
-                              />
-                              {hasRating ? rating.toFixed(1) : "—"}
-                              {reviews > 0 ? ` (${reviews})` : ""}
-                            </p>
-                          ) : null}
-                        </div>
-                        {!pending ? (
-                          <span
-                            className={cn(
-                              "shrink-0 text-xs font-medium px-2 py-1 rounded-full",
-                              proposal.status.toLowerCase() === "accepted"
-                                ? "bg-emerald-500/10 text-emerald-700"
-                                : proposal.status.toLowerCase() === "rejected"
-                                  ? "bg-muted text-muted-foreground"
-                                  : "bg-primary/10 text-primary"
-                            )}
-                          >
-                            {proposalStatusLabel(proposal.status)}
+                    return (
+                      <li
+                        key={proposal.id}
+                        className="rounded-lg border border-gray-100 bg-gray-50/80 p-3 transition-colors hover:border-[#2b81e5]/40 hover:bg-[#2b81e5]/5"
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-white ring-1 ring-gray-100">
+                            <Image
+                              src={avatarSrc}
+                              alt={proposal.professional_name ?? "Profissional"}
+                              width={40}
+                              height={40}
+                              className="size-full object-cover"
+                              unoptimized={userAvatarSrcUnoptimized(avatarSrc)}
+                            />
                           </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <p className="truncate text-sm font-medium text-gray-800">
+                                    {proposal.professional_name?.trim() || "Profissional"}
+                                  </p>
+                                  {proposal.professional_is_verified ? (
+                                    <BadgeCheck
+                                      className="size-3.5 shrink-0 text-[#2b81e5]"
+                                      aria-label="Profissional verificado"
+                                    />
+                                  ) : null}
+                                </div>
+                                <p className="mt-0.5 text-xs text-gray-500">
+                                  {formatPrice(proposal.price)} ·{" "}
+                                  {formatDuration(proposal.estimated_duration)}
+                                </p>
+                                {hasRating || reviews > 0 ? (
+                                  <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-gray-500">
+                                    <Star
+                                      className="size-3 fill-amber-400 text-amber-400"
+                                      aria-hidden
+                                    />
+                                    {hasRating ? rating.toFixed(1) : "—"}
+                                    {reviews > 0 ? ` (${reviews})` : ""}
+                                  </p>
+                                ) : null}
+                              </div>
+                              {!pending ? (
+                                <span
+                                  className={cn(
+                                    "shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium",
+                                    proposal.status.toLowerCase() === "accepted"
+                                      ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+                                      : proposal.status.toLowerCase() === "rejected"
+                                        ? "border-gray-200 bg-gray-100 text-gray-500"
+                                        : "border-[#cce6ff] bg-[#eef7ff] text-[#2b81e5]"
+                                  )}
+                                >
+                                  {proposalStatusLabel(proposal.status)}
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+
+                        {proposal.message ? (
+                          <p className="mt-2 text-sm text-gray-600">{proposal.message}</p>
                         ) : null}
-                      </div>
 
-                      {proposal.message ? (
-                        <p className="text-sm text-muted-foreground">{proposal.message}</p>
-                      ) : null}
+                        {proposal.professional_bio?.trim() ? (
+                          <p className="mt-1 line-clamp-2 text-xs text-gray-500">
+                            {proposal.professional_bio}
+                          </p>
+                        ) : null}
 
-                      {proposal.professional_bio?.trim() ? (
-                        <p className="text-xs text-muted-foreground line-clamp-2">
-                          {proposal.professional_bio}
-                        </p>
-                      ) : null}
-
-                      <div className="flex flex-wrap gap-2">
                         <Link
                           href={`/categoria-profissional/${encodeURIComponent(proposal.professional_id)}`}
-                          className="text-xs font-medium text-primary hover:underline"
+                          onClick={close}
+                          className="mt-2 inline-block text-xs font-medium text-[#2b81e5] no-underline hover:underline"
                         >
                           Ver perfil
                         </Link>
-                      </div>
 
-                      {pending ? (
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => void handleAction(proposal.id, "accept")}
-                            disabled={isProcessing}
-                            style={{ backgroundColor: lightTheme.colors.primary }}
-                            className="flex-1 flex items-center justify-center gap-2 text-white text-sm py-2 rounded-lg transition-colors hover:opacity-90 disabled:opacity-60"
-                          >
-                            {isProcessing && processingAction === "accept" ? (
-                              <>
-                                <Loader2 className="size-4 animate-spin" aria-hidden />
-                                A aceitar…
-                              </>
-                            ) : (
-                              "Aceitar"
-                            )}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void handleAction(proposal.id, "reject")}
-                            disabled={isProcessing}
-                            className="flex-1 flex items-center justify-center gap-2 text-muted-foreground text-sm py-2 rounded-lg border border-border/40 transition-colors hover:bg-muted/50 disabled:opacity-60"
-                          >
-                            {isProcessing && processingAction === "reject" ? (
-                              <>
-                                <Loader2 className="size-4 animate-spin" aria-hidden />
-                                A rejeitar…
-                              </>
-                            ) : (
-                              "Rejeitar"
-                            )}
-                          </button>
-                        </div>
-                      ) : null}
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+                        {pending ? (
+                          <div className="mt-3 flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => void handleAction(proposal.id, "accept")}
+                              disabled={isProcessing}
+                              style={{ backgroundColor: lightTheme.colors.primary }}
+                              className="flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm text-white transition-colors hover:opacity-90 disabled:opacity-60"
+                            >
+                              {isProcessing && processingAction === "accept" ? (
+                                <>
+                                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                                  A aceitar…
+                                </>
+                              ) : (
+                                "Aceitar"
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void handleAction(proposal.id, "reject")}
+                              disabled={isProcessing}
+                              className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white py-2 text-sm text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-60"
+                            >
+                              {isProcessing && processingAction === "reject" ? (
+                                <>
+                                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                                  A rejeitar…
+                                </>
+                              ) : (
+                                "Rejeitar"
+                              )}
+                            </button>
+                          </div>
+                        ) : null}
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+      </aside>
+    </div>,
+    document.body
   )
 }

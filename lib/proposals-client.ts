@@ -408,7 +408,7 @@ async function proposalAction(
     return { success: false, error: "ID inválido." }
   }
 
-  const base = PROPOSALS_API.replace(/\/$/, "")
+  const base = MARKETPLACE_PROPOSALS_API.replace(/\/$/, "")
   const url = `${base}/${encodeURIComponent(trimmed)}/${action}`
 
   const res = await fetch(url, {
@@ -441,7 +441,7 @@ async function proposalAction(
   return { success: true, data: extractProposal(raw, trimmed) }
 }
 
-/** PUT /proposals/:id/accept */
+/** PUT /marketplace/proposals/:id/accept */
 export async function acceptProposal(
   id: string,
   token: string
@@ -449,7 +449,7 @@ export async function acceptProposal(
   return proposalAction(id, token, "accept")
 }
 
-/** PUT /proposals/:id/reject */
+/** PUT /marketplace/proposals/:id/reject */
 export async function rejectProposal(
   id: string,
   token: string

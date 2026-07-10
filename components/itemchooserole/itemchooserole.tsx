@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card"
 import { useToast } from "@/components/ui/toaster"
 import { ItemProfessionalRegister } from "@/components/itemprofessionalregister/itemprofessionalregister"
+import { RegisterEmailExistsDialog } from "@/components/register-email-exists-dialog/register-email-exists-dialog"
 import { loginWithCredentials, registerWithCredentials } from "@/lib/auth-client"
 import { updateProfile } from "@/lib/profile-client"
 import { createProfessionalProfile } from "@/lib/professional-client"
@@ -46,6 +47,20 @@ export function ItemChooseRole() {
   const [isLoading, setIsLoading] = useState(false)
   const [userId, setUserId] = useState("")
   const [authToken, setAuthToken] = useState<string | undefined>()
+  const [emailExistsOpen, setEmailExistsOpen] = useState(false)
+  const [duplicateEmail, setDuplicateEmail] = useState("")
+
+  const handleUseAnotherEmail = useCallback(() => {
+    clearRegisterFlow()
+    setEmailExistsOpen(false)
+    router.replace("/auth/register")
+  }, [router])
+
+  const handleGoToLogin = useCallback(() => {
+    clearRegisterFlow()
+    setEmailExistsOpen(false)
+    router.replace("/auth/login")
+  }, [router])
 
   const finishRegistration = useCallback(
     (message = "Conta criada com sucesso. Faça login para continuar.") => {
@@ -92,6 +107,12 @@ export function ItemChooseRole() {
         })
 
         if (!result.success) {
+          if (result.reason === "email_exists") {
+            setDuplicateEmail(pending.email)
+            setEmailExistsOpen(true)
+            return
+          }
+
           toast.error(result.error)
           router.replace("/auth/register")
           return
@@ -197,22 +218,44 @@ export function ItemChooseRole() {
 
   if (step === "loading") {
     return (
-      <Card
-        className="border-0 shadow-none"
-        style={{
-          padding: lightTheme.spacing.md,
-          borderRadius: lightTheme.borderRadius.small,
-          fontFamily: lightTheme.typography.fontFamily,
-        }}
-      >
-        <CardContent
-          className="flex flex-col items-center justify-center gap-3 py-12 text-center text-sm"
-          style={{ color: lightTheme.colors.textSecondary }}
+      <>
+        <Card
+          className="border-0 shadow-none"
+          style={{
+            padding: lightTheme.spacing.md,
+            borderRadius: lightTheme.borderRadius.small,
+            fontFamily: lightTheme.typography.fontFamily,
+          }}
         >
-          <Loader2 className="size-6 animate-spin text-primary" aria-hidden />
-          {isLoading ? "A criar a sua conta…" : "A carregar…"}
-        </CardContent>
-      </Card>
+          <CardContent
+            className="flex flex-col items-center justify-center gap-3 py-12 text-center text-sm"
+            style={{ color: lightTheme.colors.textSecondary }}
+          >
+            {emailExistsOpen ? (
+              "Não foi possível concluir o registo com este e-mail."
+            ) : (
+              <>
+                <Loader2 className="size-6 animate-spin text-primary" aria-hidden />
+                {isLoading ? "A criar a sua conta…" : "A carregar…"}
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <RegisterEmailExistsDialog
+          open={emailExistsOpen}
+          email={duplicateEmail}
+          onOpenChange={(open) => {
+            if (open) {
+              setEmailExistsOpen(true)
+              return
+            }
+            handleUseAnotherEmail()
+          }}
+          onUseAnotherEmail={handleUseAnotherEmail}
+          onGoToLogin={handleGoToLogin}
+        />
+      </>
     )
   }
 

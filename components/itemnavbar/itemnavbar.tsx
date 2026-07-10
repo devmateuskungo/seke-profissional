@@ -3,9 +3,10 @@
 import { useState, FormEvent } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Search, Menu, X, Home, Users, Briefcase, Compass } from "lucide-react"
+import { Search, Menu, X, Home, Users, Briefcase, Compass, ClipboardList, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { useAccountRole } from "@/lib/use-account-role"
 import { useAuth } from "@/lib/use-auth"
 import { UserMenu } from "@/components/itemnavbar/user-menu"
 import { NavbarNotifications } from "@/components/navbar-notifications/navbar-notifications"
@@ -19,6 +20,7 @@ export function Navbar() {
     const pathname = usePathname()
     const router = useRouter()
     const { isAuthenticated, isLoading } = useAuth()
+    const { role } = useAccountRole()
 
     // Ocultar navbar em páginas de autenticação
     if (pathname?.startsWith('/auth') || pathname?.startsWith('/optionregister')) {
@@ -87,20 +89,40 @@ export function Navbar() {
                         </Link>
                         {isAuthenticated ? (
                             <>
-                                <Link
-                                    href="/conexoes"
-                                    className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-primary lg:gap-2 lg:px-2.5"
-                                >
-                                    <Users size={18} className="shrink-0" aria-hidden />
-                                    <span className="hidden lg:inline">Conexões</span>
-                                </Link>
-                                <Link
-                                    href="/trabalhos"
-                                    className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-primary lg:gap-2 lg:px-2.5"
-                                >
-                                    <Briefcase size={18} className="shrink-0" aria-hidden />
-                                    <span className="hidden lg:inline">Trabalhos</span>
-                                </Link>
+                                {role === "professional" ? (
+                                    <Link
+                                        href="/?filtro=solicitacoes"
+                                        className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-primary lg:gap-2 lg:px-2.5"
+                                    >
+                                        <ClipboardList size={18} className="shrink-0" aria-hidden />
+                                        <span className="hidden lg:inline">Pedidos ativos</span>
+                                    </Link>
+                                ) : (
+                                    <Link
+                                        href="/categoria-profissional"
+                                        className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-primary lg:gap-2 lg:px-2.5"
+                                    >
+                                        <Briefcase size={18} className="shrink-0" aria-hidden />
+                                        <span className="hidden lg:inline">Encontrar profissionais</span>
+                                    </Link>
+                                )}
+                                {role === "professional" ? (
+                                    <Link
+                                        href="/propostas"
+                                        className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-primary lg:gap-2 lg:px-2.5"
+                                    >
+                                        <Send size={18} className="shrink-0" aria-hidden />
+                                        <span className="hidden lg:inline">Propostas</span>
+                                    </Link>
+                                ) : role === "client" ? (
+                                    <Link
+                                        href="/solicitacoes"
+                                        className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-primary lg:gap-2 lg:px-2.5"
+                                    >
+                                        <ClipboardList size={18} className="shrink-0" aria-hidden />
+                                        <span className="hidden lg:inline">Solicitações</span>
+                                    </Link>
+                                ) : null}
                                 <button
                                     type="button"
                                     onClick={() => setExploreOpen(true)}
@@ -120,11 +142,11 @@ export function Navbar() {
                                     <span className="hidden lg:inline">Solicitações</span>
                                 </Link>
                                 <Link
-                                    href="/?filtro=profissionais"
+                                    href="/categoria-profissional"
                                     className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-primary lg:gap-2 lg:px-2.5"
                                 >
                                     <Briefcase size={18} className="shrink-0" aria-hidden />
-                                    <span className="hidden lg:inline">Profissionais</span>
+                                    <span className="hidden lg:inline">Encontrar profissionais</span>
                                 </Link>
                             </>
                         )}
@@ -187,22 +209,44 @@ export function Navbar() {
                             </Link>
                             {isAuthenticated ? (
                                 <>
-                                    <Link
-                                        href="/conexoes"
-                                        className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-primary"
-                                        onClick={() => setIsMenuOpen(false)}
-                                    >
-                                        <Users size={20} className="shrink-0 text-gray-500" aria-hidden />
-                                        Conexões
-                                    </Link>
-                                    <Link
-                                        href="/trabalhos"
-                                        className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-primary"
-                                        onClick={() => setIsMenuOpen(false)}
-                                    >
-                                        <Briefcase size={20} className="shrink-0 text-gray-500" aria-hidden />
-                                        Trabalhos
-                                    </Link>
+                                    {role === "professional" ? (
+                                        <Link
+                                            href="/?filtro=solicitacoes"
+                                            className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-primary"
+                                            onClick={() => setIsMenuOpen(false)}
+                                        >
+                                            <ClipboardList size={20} className="shrink-0 text-gray-500" aria-hidden />
+                                            Pedidos ativos
+                                        </Link>
+                                    ) : (
+                                        <Link
+                                            href="/categoria-profissional"
+                                            className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-primary"
+                                            onClick={() => setIsMenuOpen(false)}
+                                        >
+                                            <Briefcase size={20} className="shrink-0 text-gray-500" aria-hidden />
+                                            Encontrar profissionais
+                                        </Link>
+                                    )}
+                                    {role === "professional" ? (
+                                        <Link
+                                            href="/propostas"
+                                            className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-primary"
+                                            onClick={() => setIsMenuOpen(false)}
+                                        >
+                                            <Send size={20} className="shrink-0 text-gray-500" aria-hidden />
+                                            Propostas
+                                        </Link>
+                                    ) : role === "client" ? (
+                                        <Link
+                                            href="/solicitacoes"
+                                            className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-primary"
+                                            onClick={() => setIsMenuOpen(false)}
+                                        >
+                                            <ClipboardList size={20} className="shrink-0 text-gray-500" aria-hidden />
+                                            Solicitações
+                                        </Link>
+                                    ) : null}
                                     <button
                                         type="button"
                                         className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-left text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-primary"
@@ -226,12 +270,12 @@ export function Navbar() {
                                         Solicitações
                                     </Link>
                                     <Link
-                                        href="/?filtro=profissionais"
+                                        href="/categoria-profissional"
                                         className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-primary"
                                         onClick={() => setIsMenuOpen(false)}
                                     >
                                         <Briefcase size={20} className="shrink-0 text-gray-500" aria-hidden />
-                                        Profissionais
+                                        Encontrar profissionais
                                     </Link>
                                 </>
                             )}

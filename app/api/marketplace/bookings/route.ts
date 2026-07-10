@@ -4,6 +4,58 @@ import type { CreateBookingPayload } from "@/types/booking"
 import { getApiBaseUrl, getAuthorizationHeader } from "@/lib/api-profile-proxy"
 
 /** POST /api/marketplace/bookings — proxy para API externa */
+export async function GET(request: NextRequest) {
+  try {
+    const auth = getAuthorizationHeader(request)
+    if (!auth.ok) return auth.response
+
+    const { searchParams } = new URL(request.url)
+    const page = searchParams.get("page")?.trim() || "1"
+    const limit = searchParams.get("limit")?.trim() || "20"
+
+    const endpoint = `${getApiBaseUrl()}/marketplace/bookings?page=${encodeURIComponent(
+      page
+    )}&limit=${encodeURIComponent(limit)}`
+
+    const res = await fetch(endpoint, {
+      method: "GET",
+      headers: {
+        Authorization: auth.value,
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    })
+
+    const data = await res.json().catch(() => ({}))
+
+    if (!res.ok) {
+      const message =
+        (data && typeof (data as { message?: unknown }).message === "string" &&
+          (data as { message: string }).message) ||
+        "Não foi possível carregar os agendamentos."
+
+      return NextResponse.json(
+        { message } satisfies ApiErrorResponse,
+        { status: res.status }
+      )
+    }
+
+    return NextResponse.json(data, { status: res.status })
+  } catch (err) {
+    if (err instanceof Error && err.message.includes("NEXT_PUBLIC_URL_API")) {
+      return NextResponse.json(
+        { message: "Configuração do servidor incompleta." } satisfies ApiErrorResponse,
+        { status: 503 }
+      )
+    }
+
+    return NextResponse.json(
+      { message: "Erro interno. Tente novamente mais tarde." } satisfies ApiErrorResponse,
+      { status: 500 }
+    )
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const auth = getAuthorizationHeader(request)

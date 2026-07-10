@@ -42,6 +42,8 @@ export function formatDistanceKm(km: number): string {
   return `${Math.round(km)} km`
 }
 
+export type AvailabilityFilter = "today" | "week" | null
+
 export interface ApplyProfessionalFiltersInput {
   items: ProfessionalListItem[]
   categoryId?: string | null
@@ -50,6 +52,9 @@ export interface ApplyProfessionalFiltersInput {
   sortByNearest?: boolean
   maxDistanceKm?: number
   professionalCategoryIds?: Map<string, Set<string>>
+  minPrice?: number | null
+  maxPrice?: number | null
+  availability?: AvailabilityFilter
 }
 
 export function applyProfessionalFilters({
@@ -60,6 +65,9 @@ export function applyProfessionalFilters({
   sortByNearest = false,
   maxDistanceKm = 100,
   professionalCategoryIds,
+  minPrice = null,
+  maxPrice = null,
+  availability = null,
 }: ApplyProfessionalFiltersInput): ProfessionalListItem[] {
   let result = items.map((item) => ({ ...item }))
 
@@ -80,6 +88,22 @@ export function applyProfessionalFilters({
       if (!proProvince) return false
       return normalizeProvinceSearch(proProvince).includes(normalized)
     })
+  }
+
+  const hasMinPrice = typeof minPrice === "number" && Number.isFinite(minPrice)
+  const hasMaxPrice = typeof maxPrice === "number" && Number.isFinite(maxPrice)
+  if (hasMinPrice || hasMaxPrice) {
+    result = result.filter((pro) => {
+      const rate = toNumber(pro.hourly_rate)
+      if (rate == null) return false
+      if (hasMinPrice && rate < (minPrice as number)) return false
+      if (hasMaxPrice && rate > (maxPrice as number)) return false
+      return true
+    })
+  }
+
+  if (availability === "today" || availability === "week") {
+    result = result.filter((pro) => pro.is_available === true)
   }
 
   if (clientCoords) {

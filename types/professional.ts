@@ -44,6 +44,9 @@ export interface ProfessionalListItem {
   category_ids?: string[]
   /** Distância calculada no cliente (km). */
   distance_km?: number | null
+  /** Presença em tempo real, se a API enviar. */
+  is_online?: boolean
+  last_seen_at?: string | null
 }
 
 export interface ProfessionalsListResponse {

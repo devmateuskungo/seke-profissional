@@ -25,6 +25,8 @@ export interface MarketplaceServiceRequest {
   has_my_proposal?: boolean
   my_proposal_id?: string | null
   total_proposals?: string | number
+  total_proposals_count?: number
+  budget_range_formatted?: string
 }
 
 export interface ServiceRequestPagination {
@@ -38,10 +40,44 @@ export interface MarketplaceServiceRequestsResponse {
   success: boolean
   data: MarketplaceServiceRequest[]
   pagination?: ServiceRequestPagination
+  count?: number
   visibility_info?: {
     user_role?: string
     filter_applied?: string
   }
+}
+
+/** Item GET /marketplace/service-requests/public (visitantes sem sessão) */
+export interface PublicMarketplaceServiceRequest {
+  id: string
+  title: string
+  description: string
+  status: string
+  readable_status?: string
+  urgency_level?: string
+  budget_range_formatted?: string
+  budget_min: string | number
+  budget_max: string | number
+  days_since_created?: number
+  days_remaining?: number | null
+  total_proposals_count?: number
+  has_active_proposals?: boolean
+  is_urgent: boolean
+  location_text: string
+  preferred_date: string
+  created_at: string
+  expires_at: string
+  category_id: string
+  category_name?: string
+  category_slug?: string
+  category_icon?: string | null
+}
+
+export interface PublicMarketplaceServiceRequestsResponse {
+  success: boolean
+  count?: number
+  data: PublicMarketplaceServiceRequest[]
+  pagination?: ServiceRequestPagination
 }
 
 export interface CreateServiceRequestPayload {

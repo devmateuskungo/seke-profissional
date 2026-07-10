@@ -77,31 +77,33 @@ export function MarketplacePage({ mode }: MarketplacePageProps) {
   const wrongRole = role != null && role !== expectedRole
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-1">
+    <div className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
+      <div className="rounded-xl border border-gray-100 bg-white p-5 sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-1">
+            <Link
+              href="/"
+              className="mb-2 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ArrowLeft className="size-4" aria-hidden />
+              Voltar ao feed
+            </Link>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">{meta.title}</h1>
+            <p className="max-w-2xl text-sm text-muted-foreground">{meta.subtitle}</p>
+          </div>
           <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-2"
+            href="/perfil"
+            className="shrink-0 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-primary transition-colors hover:bg-gray-50"
           >
-            <ArrowLeft className="size-4" aria-hidden />
-            Voltar ao feed
+            Ver perfil
           </Link>
-          <h1 className="text-2xl font-semibold text-foreground">{meta.title}</h1>
-          <p className="text-sm text-muted-foreground max-w-2xl">{meta.subtitle}</p>
         </div>
-        <Link
-          href="/perfil"
-          className="text-sm font-medium text-primary hover:underline shrink-0"
-        >
-          Ver perfil
-        </Link>
       </div>
 
       {wrongRole ? (
-        <div className="rounded-xl border border-border/45 bg-card p-8 text-center space-y-3">
+        <div className="space-y-3 rounded-xl border border-gray-100 bg-white p-8 text-center">
           <h2 className="text-base font-semibold text-foreground">{meta.wrongRoleTitle}</h2>
-          <p className="text-sm text-muted-foreground max-w-md mx-auto">
+          <p className="mx-auto max-w-md text-sm text-muted-foreground">
             {meta.wrongRoleMessage}
           </p>
           <Button type="button" variant="outline" asChild>
@@ -109,7 +111,7 @@ export function MarketplacePage({ mode }: MarketplacePageProps) {
           </Button>
         </div>
       ) : (
-        <div className="rounded-xl border border-border/45 bg-card p-4 sm:p-6">
+        <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-6">
           <ProfileMarketplacePanels
             isProfessional={isProfessional}
             userId={userId}

@@ -1,20 +1,17 @@
 "use client"
 
-import { useEffect, useMemo } from "react"
+import { useEffect } from "react"
 import { createPortal } from "react-dom"
 import Link from "next/link"
 import {
   X,
   UserCog,
-  ClipboardList,
-  Send,
   Users,
   LayoutGrid,
   Settings,
 } from "lucide-react"
-import { useAccountRole } from "@/lib/use-account-role"
 
-const baseItems = [
+const items = [
   { label: "Gerir conta", href: "/perfil", icon: UserCog },
   { label: "Seguidores", href: "/conexoes", icon: Users },
   { label: "Categorias", href: "/categoria-profissional", icon: LayoutGrid },
@@ -27,20 +24,6 @@ export interface ExploreRightPanelProps {
 }
 
 export function ExploreRightPanel({ open, onClose }: ExploreRightPanelProps) {
-  const { role } = useAccountRole()
-
-  const items = useMemo(() => {
-    const marketplace =
-      role === "professional"
-        ? [{ label: "Propostas", href: "/propostas", icon: Send }]
-        : [{ label: "Solicitações", href: "/solicitacoes", icon: ClipboardList }]
-
-    return [
-      baseItems[0],
-      ...marketplace,
-      ...baseItems.slice(1),
-    ]
-  }, [role])
   useEffect(() => {
     if (!open) return
     const prev = document.body.style.overflow

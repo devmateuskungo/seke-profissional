@@ -75,12 +75,12 @@ function getProposalStatCount(
 function getClientRequestStatus(status?: string) {
   const normalized = status?.toLowerCase() ?? "open"
   if (normalized === "matched") {
-    return { label: "Profissional escolhido", className: "bg-emerald-500/10 text-emerald-700" }
+    return { label: "Profissional escolhido", className: "border-emerald-100 bg-emerald-500/10 text-emerald-700" }
   }
   if (normalized === "open") {
-    return { label: "Aberta", className: "bg-amber-500/10 text-amber-700" }
+    return { label: "Aberta", className: "border-amber-100 bg-amber-500/10 text-amber-700" }
   }
-  return { label: "Encerrada", className: "bg-muted text-muted-foreground" }
+  return { label: "Encerrada", className: "border-gray-200 bg-muted text-muted-foreground" }
 }
 
 function formatProposalPrice(value: string | number): string {
@@ -100,12 +100,12 @@ function formatDuration(minutes: number): string {
 function getMyProposalStatus(status?: string) {
   const normalized = status?.toLowerCase() ?? "pending"
   if (normalized === "accepted") {
-    return { label: "Aceite", className: "bg-emerald-500/10 text-emerald-700" }
+    return { label: "Aceite", className: "border-emerald-100 bg-emerald-500/10 text-emerald-700" }
   }
   if (normalized === "rejected") {
-    return { label: "Rejeitada", className: "bg-destructive/10 text-destructive" }
+    return { label: "Rejeitada", className: "border-red-100 bg-destructive/10 text-destructive" }
   }
-  return { label: "Pendente", className: "bg-amber-500/10 text-amber-700" }
+  return { label: "Pendente", className: "border-amber-100 bg-amber-500/10 text-amber-700" }
 }
 
 function MetricTile({
@@ -126,12 +126,12 @@ function MetricTile({
   return (
     <div
       className={cn(
-        "rounded-xl border border-border/40 bg-muted/20 p-4 sm:p-5",
+        "rounded-lg border border-gray-100 bg-white p-4 sm:p-5",
         className
       )}
     >
       <div className="flex items-center gap-2 mb-2">
-        <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10">
+        <div className="flex size-8 items-center justify-center rounded-md bg-primary/10">
           <Icon className={cn("size-4", accent ?? "text-primary")} aria-hidden />
         </div>
         <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -341,7 +341,7 @@ export function ProfileMarketplacePanels({
 
   if (error) {
     return (
-      <div className="rounded-xl border border-border/45 bg-card p-8 text-center space-y-3">
+      <div className="space-y-3 rounded-xl border border-gray-100 bg-white p-8 text-center">
         <p className="text-sm text-destructive">{error}</p>
         <Button type="button" variant="outline" size="sm" onClick={() => void loadData()}>
           <RefreshCw className="size-3.5 mr-1.5" aria-hidden />
@@ -457,7 +457,7 @@ export function ProfileMarketplacePanels({
         ) : null}
 
         {listItems.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border/60 bg-muted/15 flex flex-col items-center py-14 text-center text-muted-foreground">
+          <div className="flex flex-col items-center rounded-xl border border-dashed border-gray-200 bg-gray-50/50 py-14 text-center text-muted-foreground">
             <Send size={40} strokeWidth={1} className="mb-3 opacity-25" />
             <p className="text-sm max-w-sm">
               {isProfessional
@@ -472,7 +472,7 @@ export function ProfileMarketplacePanels({
             </Link>
           </div>
         ) : (
-          <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {isProfessional
               ? professionalProposals.map((item) => {
                   const proposal = item.myProposal
@@ -487,7 +487,7 @@ export function ProfileMarketplacePanels({
                   return (
                     <li
                       key={item.id}
-                      className="rounded-xl border border-border/40 bg-card p-4 space-y-3 shadow-sm"
+                      className="space-y-3 rounded-xl border border-gray-100 bg-white p-4"
                     >
                       <div className="flex items-start gap-3">
                         <Image
@@ -508,7 +508,7 @@ export function ProfileMarketplacePanels({
                             </div>
                             <span
                               className={cn(
-                                "shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-medium",
+                                "shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-medium",
                                 status.className
                               )}
                             >
@@ -523,7 +523,7 @@ export function ProfileMarketplacePanels({
                       ) : null}
 
                       <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div className="rounded-lg bg-muted/30 px-3 py-2">
+                        <div className="rounded-lg border border-gray-100 bg-gray-50/60 px-3 py-2">
                           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
                             Valor proposto
                           </p>
@@ -531,7 +531,7 @@ export function ProfileMarketplacePanels({
                             {formatProposalPrice(proposal.price)}
                           </p>
                         </div>
-                        <div className="rounded-lg bg-muted/30 px-3 py-2">
+                        <div className="rounded-lg border border-gray-100 bg-gray-50/60 px-3 py-2">
                           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
                             Duração
                           </p>
@@ -601,13 +601,13 @@ export function ProfileMarketplacePanels({
                   return (
                     <li
                       key={item.id}
-                      className="rounded-xl border border-border/40 bg-card p-4 space-y-3 shadow-sm"
+                      className="space-y-3 rounded-xl border border-gray-100 bg-white p-4"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <p className="text-sm font-semibold leading-snug">{title}</p>
                         <span
                           className={cn(
-                            "shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-medium",
+                            "shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-medium",
                             status.className
                           )}
                         >

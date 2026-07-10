@@ -4,20 +4,33 @@ import { Skeleton } from "@/components/ui/skeleton"
 export function ProfessionalCardSkeleton() {
   return (
     <article
-      className="w-full max-w-[280px] rounded-md border border-gray-200 bg-white p-4"
+      className="flex w-full max-w-[280px] flex-col overflow-hidden rounded-xl border border-gray-200 bg-white"
       aria-hidden
     >
-      <div className="flex flex-col items-center text-center">
-        <Skeleton className="size-20 rounded-full" />
-        <Skeleton className="mt-3 h-4 w-32" />
-        <Skeleton className="mt-2 h-3 w-28" />
-        <div className="mt-2 w-full space-y-1.5">
-          <Skeleton className="mx-auto h-3 w-full max-w-[200px]" />
-          <Skeleton className="mx-auto h-3 w-4/5 max-w-[160px]" />
+      <div className="flex items-start gap-3 p-4 pb-3">
+        <Skeleton className="size-14 shrink-0 rounded-full" />
+        <div className="min-w-0 flex-1 space-y-2 pt-0.5">
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-3 w-24" />
         </div>
-        <Skeleton className="mt-2 h-3 w-24" />
-        <Skeleton className="mt-3 h-4 w-20" />
-        <Skeleton className="mt-3 h-7 w-full rounded-md" />
+      </div>
+      <div className="flex gap-1.5 px-4">
+        <Skeleton className="h-5 w-16 rounded-full" />
+        <Skeleton className="h-5 w-14 rounded-full" />
+      </div>
+      <div className="space-y-2 px-4 py-3">
+        <Skeleton className="h-3 w-full" />
+        <Skeleton className="h-3 w-4/5" />
+        <Skeleton className="h-3 w-20" />
+      </div>
+      <div className="mt-auto border-t border-gray-100 bg-gray-50/70 px-4 py-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="space-y-1">
+            <Skeleton className="h-2.5 w-8" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+          <Skeleton className="h-8 w-20 rounded-md" />
+        </div>
       </div>
     </article>
   )

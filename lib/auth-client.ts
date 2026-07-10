@@ -140,9 +140,35 @@ export async function loginWithCredentials(
   }
 }
 
+export type RegisterFailureReason = "email_exists" | "generic"
+
 export type RegisterOutcome =
   | { success: true; data: RegisterResponse }
-  | { success: false; error: string; statusCode?: number }
+  | {
+      success: false
+      error: string
+      statusCode?: number
+      reason?: RegisterFailureReason
+    }
+
+const EMAIL_ALREADY_REGISTERED_PATTERNS = [
+  /e-?mail.*(j[aá]|already|exist|cadastr|regist|utilizad|em uso|duplic)/i,
+  /(j[aá]|already).*(e-?mail|cadastr|regist)/i,
+  /usu[aá]rio.*(j[aá]|exist)/i,
+  /duplicate.*e-?mail/i,
+  /e-?mail.*unique/i,
+  /unique.*e-?mail/i,
+]
+
+export function isEmailAlreadyRegisteredError(
+  message: string,
+  statusCode?: number
+): boolean {
+  if (statusCode === 409) return true
+  const normalized = message.trim()
+  if (!normalized) return false
+  return EMAIL_ALREADY_REGISTERED_PATTERNS.some((pattern) => pattern.test(normalized))
+}
 
 export function normalizeRegisterResponse(raw: unknown): RegisterResponse {
   const root = toRecord(raw)
@@ -208,10 +234,17 @@ export async function registerWithCredentials(
       "message" in rawData && typeof rawData.message === "string"
         ? rawData.message
         : "Não foi possível criar a conta. Tente novamente."
+    const reason: RegisterFailureReason = isEmailAlreadyRegisteredError(
+      message,
+      res.status
+    )
+      ? "email_exists"
+      : "generic"
     return {
       success: false,
       error: message,
       statusCode: res.status,
+      reason,
     }
   }
 

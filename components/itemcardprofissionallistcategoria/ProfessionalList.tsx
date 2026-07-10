@@ -13,7 +13,10 @@ import {
   fetchMarketplaceCategories,
   fetchMarketplaceServices,
 } from "@/lib/marketplace-client";
-import { applyProfessionalFilters } from "@/lib/professional-distance";
+import {
+  applyProfessionalFilters,
+  type AvailabilityFilter,
+} from "@/lib/professional-distance";
 import { fetchProfessionals } from "@/lib/professionals-client";
 import type { ProfessionalListItem } from "@/types/professional";
 import type { MarketplaceCategory } from "@/types/marketplace";
@@ -21,6 +24,13 @@ import { ProfessionalCardSkeletonGrid } from "./professional-card-skeleton";
 
 const ITEMS_PER_PAGE = 30;
 const DEFAULT_MAX_DISTANCE_KM = 50;
+
+function parseOptionalPrice(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const n = Number(trimmed);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
 
 function getSessionToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -50,6 +60,9 @@ export default function ProfessionalList() {
   const [province, setProvince] = useState("");
   const [sortByNearest, setSortByNearest] = useState(false);
   const [maxDistanceKm, setMaxDistanceKm] = useState(DEFAULT_MAX_DISTANCE_KM);
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [availability, setAvailability] = useState<AvailabilityFilter>(null);
   const [clientCoords, setClientCoords] = useState<GeoCoords | null>(null);
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
@@ -145,6 +158,9 @@ export default function ProfessionalList() {
     maxDistanceKm,
   ]);
 
+  const parsedMinPrice = useMemo(() => parseOptionalPrice(minPrice), [minPrice]);
+  const parsedMaxPrice = useMemo(() => parseOptionalPrice(maxPrice), [maxPrice]);
+
   const professionals = useMemo(
     () =>
       applyProfessionalFilters({
@@ -155,6 +171,9 @@ export default function ProfessionalList() {
         sortByNearest,
         maxDistanceKm,
         professionalCategoryIds,
+        minPrice: parsedMinPrice,
+        maxPrice: parsedMaxPrice,
+        availability,
       }),
     [
       rawProfessionals,
@@ -164,13 +183,19 @@ export default function ProfessionalList() {
       clientCoords,
       maxDistanceKm,
       professionalCategoryIds,
+      parsedMinPrice,
+      parsedMaxPrice,
+      availability,
     ]
   );
 
   const hasActiveFilters =
     selectedCategoryId !== null ||
     province.trim() !== "" ||
-    sortByNearest;
+    sortByNearest ||
+    parsedMinPrice != null ||
+    parsedMaxPrice != null ||
+    availability != null;
 
   const hasMore = page < totalPages;
 
@@ -230,11 +255,29 @@ export default function ProfessionalList() {
     setMaxDistanceKm(value);
   }, []);
 
+  const handleMinPriceChange = useCallback((value: string) => {
+    setMinPrice(value);
+  }, []);
+
+  const handleMaxPriceChange = useCallback((value: string) => {
+    setMaxPrice(value);
+  }, []);
+
+  const handleAvailabilityChange = useCallback(
+    (value: AvailabilityFilter) => {
+      setAvailability(value);
+    },
+    []
+  );
+
   const handleClearFilters = useCallback(() => {
     setSelectedCategoryId(null);
     setProvince("");
     setSortByNearest(false);
     setMaxDistanceKm(DEFAULT_MAX_DISTANCE_KM);
+    setMinPrice("");
+    setMaxPrice("");
+    setAvailability(null);
     setClientCoords(null);
     setGeoError(null);
     resetList();
@@ -262,6 +305,12 @@ export default function ProfessionalList() {
             onSortByNearestChange={handleSortByNearestChange}
             maxDistanceKm={maxDistanceKm}
             onMaxDistanceKmChange={handleMaxDistanceKmChange}
+            minPrice={minPrice}
+            onMinPriceChange={handleMinPriceChange}
+            maxPrice={maxPrice}
+            onMaxPriceChange={handleMaxPriceChange}
+            availability={availability}
+            onAvailabilityChange={handleAvailabilityChange}
             geoLoading={geoLoading}
             geoError={geoError}
             onRefreshLocation={() => void refreshClientLocation()}
@@ -330,6 +379,7 @@ export default function ProfessionalList() {
                     province={pro.province}
                     municipality={pro.municipality}
                     isAvailable={pro.is_available}
+                    updatedAt={pro.updated_at}
                     totalReviews={pro.total_reviews}
                     distanceKm={pro.distance_km}
                   />

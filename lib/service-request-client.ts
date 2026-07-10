@@ -7,17 +7,24 @@ import type {
   MarketplaceServiceRequestsResponse,
   ProfessionalProposalStat,
   ProfessionalServiceRequestStats,
+  PublicMarketplaceServiceRequest,
+  PublicMarketplaceServiceRequestsResponse,
   ServiceRequestProposalDetail,
   ServiceRequestDetail,
   ServiceRequestDetailResponse,
+  ServiceRequestPagination,
   ServiceRequestStatsResponse,
   ServiceRequestStatusStat,
 } from "@/types/service-request"
+import { publicServiceRequestToMarketplace } from "@/lib/service-request-map"
 
 const EXTERNAL_API_BASE = process.env.NEXT_PUBLIC_URL_API?.trim()
 const SERVICE_REQUESTS_API = EXTERNAL_API_BASE
   ? `${EXTERNAL_API_BASE}/marketplace/service-requests`
   : "/api/marketplace/service-requests"
+const PUBLIC_SERVICE_REQUESTS_API = EXTERNAL_API_BASE
+  ? `${EXTERNAL_API_BASE}/marketplace/service-requests/public`
+  : "/api/marketplace/service-requests/public"
 const CLIENT_STATS_API = EXTERNAL_API_BASE
   ? `${EXTERNAL_API_BASE}/marketplace/service-requests/stats/client`
   : "/api/marketplace/service-requests/stats/client"
@@ -133,6 +140,98 @@ export type FetchServiceRequestsOutcome = Outcome<{
   requests: MarketplaceServiceRequest[]
   pagination: MarketplaceServiceRequestsResponse["pagination"]
 }>
+
+function isPublicServiceRequest(item: unknown): item is PublicMarketplaceServiceRequest {
+  if (typeof item !== "object" || item === null) return false
+  const o = item as Record<string, unknown>
+  const id = o.id
+  const title = o.title
+  const hasId =
+    (typeof id === "string" && id.trim() !== "") ||
+    (typeof id === "number" && !Number.isNaN(id))
+  return hasId && typeof title === "string"
+}
+
+function buildPaginationFromCount(
+  count: number | undefined,
+  page: number,
+  limit: number,
+  itemsLength: number
+): ServiceRequestPagination | undefined {
+  if (typeof count !== "number" || Number.isNaN(count)) {
+    if (itemsLength === 0) return undefined
+    return { page, limit, total: itemsLength, pages: 1 }
+  }
+  const pages = Math.max(1, Math.ceil(count / limit))
+  return { page, limit, total: count, pages }
+}
+
+export async function fetchPublicServiceRequests(options?: {
+  page?: number
+  limit?: number
+  token?: string
+}): Promise<FetchServiceRequestsOutcome> {
+  const page = options?.page ?? 1
+  const limit = options?.limit ?? 20
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  })
+
+  const headers: HeadersInit = { Accept: "application/json" }
+  if (options?.token?.trim()) {
+    headers.Authorization = `Bearer ${options.token.trim()}`
+  }
+
+  const res = await fetch(`${PUBLIC_SERVICE_REQUESTS_API}?${params}`, {
+    method: "GET",
+    headers,
+    cache: "no-store",
+  })
+
+  const raw = (await res.json().catch(() => ({}))) as
+    | PublicMarketplaceServiceRequestsResponse
+    | ApiErrorResponse
+
+  if (!res.ok) {
+    const message =
+      "message" in raw && typeof raw.message === "string"
+        ? raw.message
+        : "Não foi possível carregar as solicitações."
+    return { success: false, error: message, statusCode: res.status }
+  }
+
+  const data = raw as PublicMarketplaceServiceRequestsResponse
+  const publicRequests = Array.isArray(data.data)
+    ? data.data.filter(isPublicServiceRequest)
+    : []
+
+  const requests = publicRequests.map(publicServiceRequestToMarketplace)
+  const pagination =
+    data.pagination ??
+    buildPaginationFromCount(data.count, page, limit, requests.length)
+
+  return {
+    success: true,
+    data: { requests, pagination },
+  }
+}
+
+/**
+ * Solicitações na home: com sessão usa `/marketplace/service-requests`;
+ * sem sessão usa `/marketplace/service-requests/public`.
+ */
+export async function fetchHomeServiceRequests(options?: {
+  page?: number
+  limit?: number
+  token?: string
+}): Promise<FetchServiceRequestsOutcome> {
+  const token = options?.token?.trim() ?? ""
+  if (token) {
+    return fetchServiceRequests(options)
+  }
+  return fetchPublicServiceRequests(options)
+}
 
 export async function fetchServiceRequests(options?: {
   page?: number

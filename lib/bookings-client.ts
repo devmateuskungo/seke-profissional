@@ -3,6 +3,9 @@ import type {
   CreateBookingPayload,
   CreateBookingResponse,
   MarketplaceBooking,
+  MarketplaceBookingListItem,
+  MarketplaceBookingsListResponse,
+  MarketplaceBookingsPagination,
 } from "@/types/booking"
 
 const EXTERNAL_API_BASE = process.env.NEXT_PUBLIC_URL_API?.trim()
@@ -85,4 +88,82 @@ export async function createBooking(
   }
 
   return { success: true, data: booking }
+}
+
+export type FetchBookingsOutcome = Outcome<{
+  bookings: MarketplaceBookingListItem[]
+  pagination?: MarketplaceBookingsPagination
+}>
+
+function isMarketplaceBookingListItem(
+  item: unknown
+): item is MarketplaceBookingListItem {
+  if (typeof item !== "object" || item === null) return false
+  const o = item as Record<string, unknown>
+  const id = o.id
+  const status = o.status
+  const start = o.scheduled_start
+  const hasId =
+    (typeof id === "string" && id.trim()) ||
+    (typeof id === "number" && !Number.isNaN(id))
+  const hasStatus = typeof status === "string" || status === undefined
+  const hasStart = typeof start === "string" && start.trim()
+  return Boolean(hasId && hasStart && hasStatus)
+}
+
+/** GET /marketplace/bookings (token obrigatório no proxy) */
+export async function fetchBookings(options?: {
+  page?: number
+  limit?: number
+  token: string
+}): Promise<FetchBookingsOutcome> {
+  const token = options?.token?.trim()
+  if (!token) {
+    return {
+      success: false,
+      error: "Inicie sessão para ver os agendamentos.",
+      statusCode: 401,
+    }
+  }
+
+  const page = options?.page ?? 1
+  const limit = options?.limit ?? 20
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  })
+
+  const res = await fetch(`${BOOKINGS_API}?${params}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    },
+    cache: "no-store",
+  })
+
+  const raw = (await res.json().catch(() => ({}))) as
+    | MarketplaceBookingsListResponse
+    | ApiErrorResponse
+
+  if (!res.ok) {
+    const message =
+      "message" in raw && typeof raw.message === "string"
+        ? raw.message
+        : "Não foi possível carregar os agendamentos."
+    return { success: false, error: message, statusCode: res.status }
+  }
+
+  const data = raw as MarketplaceBookingsListResponse
+  const bookings = Array.isArray(data.data)
+    ? data.data.filter(isMarketplaceBookingListItem)
+    : []
+
+  return {
+    success: true,
+    data: {
+      bookings,
+      pagination: data.pagination,
+    },
+  }
 }

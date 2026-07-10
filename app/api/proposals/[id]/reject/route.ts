@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import type { ApiErrorResponse } from "@/types/auth"
 import { getApiBaseUrl, getAuthorizationHeader } from "@/lib/api-profile-proxy"
 
-/** PUT /api/proposals/:id/reject — proxy para API externa PUT /proposals/:id/reject */
+/** PUT /api/proposals/:id/reject — proxy para API externa PUT /marketplace/proposals/:id/reject */
 export async function PUT(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -20,7 +20,7 @@ export async function PUT(
       )
     }
 
-    const endpoint = `${getApiBaseUrl()}/proposals/${encodeURIComponent(trimmed)}/reject`
+    const endpoint = `${getApiBaseUrl()}/marketplace/proposals/${encodeURIComponent(trimmed)}/reject`
     const res = await fetch(endpoint, {
       method: "PUT",
       headers: {

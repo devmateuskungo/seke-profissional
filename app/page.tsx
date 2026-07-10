@@ -30,7 +30,7 @@ import {
   toProfissionalFeedItem,
   toSolicitacaoFeedItem,
 } from '@/types/home-feed';
-import { fetchServiceRequests } from '@/lib/service-request-client';
+import { fetchHomeServiceRequests } from '@/lib/service-request-client';
 import { serviceRequestToSolicitacaoRow } from '@/lib/service-request-map';
 import type { MarketplaceServiceRequest, ServiceRequestPagination } from '@/types/service-request';
 import { useAccountRole } from '@/lib/use-account-role';
@@ -39,6 +39,9 @@ import {
   HomeFeedPostSkeleton,
   HomeFeedSkeleton,
 } from '@/components/home/home-feed-skeleton';
+import { HomeSidebarMetrics } from '@/components/home/home-sidebar-metrics';
+import { HomeProfessionalAvailability } from '@/components/home/home-professional-availability';
+import { useAuth } from '@/lib/use-auth';
 
 function getSessionToken(): string | null {
   if (typeof window === 'undefined') return null;
@@ -106,6 +109,7 @@ function HomeInner() {
 
   const filtro = filtroFromUrl ?? filtroLocal;
   const { role: accountRole, isLoading: accountRoleLoading } = useAccountRole();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const viewerUserId = useViewerUserId();
 
   const [feedPosts, setFeedPosts] = useState<PostDetail[]>([]);
@@ -179,7 +183,7 @@ function HomeInner() {
 
     async function run() {
       const token = getSessionToken();
-      const result = await fetchServiceRequests({
+      const result = await fetchHomeServiceRequests({
         page: serviceRequestsPage,
         limit: 20,
         token: token ?? undefined,
@@ -270,12 +274,16 @@ function HomeInner() {
     (serviceRequestId: string, servico: string) => {
       const token = getSessionToken();
       if (!token) {
-        toast.error("Inicie sessão para enviar uma proposta.");
+        router.push(`/auth/login?callbackUrl=${encodeURIComponent('/')}`);
+        return;
+      }
+      if (accountRole === 'client') {
+        toast.error('Apenas profissionais podem enviar propostas.');
         return;
       }
       setProposalDialogRequest({ id: serviceRequestId, servico });
     },
-    [toast]
+    [accountRole, router, toast]
   );
 
   const handleProposalSuccess = useCallback((serviceRequestId: string) => {
@@ -372,6 +380,43 @@ function HomeInner() {
     []
   );
 
+  const handleContactClient = useCallback(
+    (sol: SolicitacaoFeedRow) => {
+      if (!isAuthenticated) {
+        toast.error('Inicie sessão para contactar o cliente.');
+        router.push('/auth/login');
+        return;
+      }
+
+      const clientId = sol.clientId?.trim();
+      if (!clientId) {
+        toast.error('Não foi possível identificar o cliente.');
+        return;
+      }
+
+      if (sameUserId(viewerUserId, clientId)) {
+        toast.error('Não pode contactar a sua própria solicitação.');
+        return;
+      }
+
+      const params = new URLSearchParams({
+        userId: clientId,
+        name: sol.nome?.trim() || 'Cliente',
+      });
+      if (sol.servico?.trim()) {
+        params.set('servico', sol.servico.trim());
+      }
+      if (sol.serviceRequestId?.trim()) {
+        params.set('requestId', sol.serviceRequestId.trim());
+      }
+
+      const messagesPath =
+        accountRole === 'professional' ? '/profissional/mensagens' : '/chat';
+      router.push(`${messagesPath}?${params.toString()}`);
+    },
+    [accountRole, isAuthenticated, router, toast, viewerUserId]
+  );
+
   const solicitacoesRows: SolicitacaoFeedRow[] = useMemo(
     () => serviceRequests.map(serviceRequestToSolicitacaoRow),
     [serviceRequests]
@@ -444,7 +489,7 @@ function HomeInner() {
     <div className="mt-4 justify-center items-center">
       <div className="flex gap-6">
         <aside
-          className="hidden lg:block space-y-6"
+          className="hidden lg:block space-y-4"
           style={{ width: '342px' }}
         >
           <div className="bg-white p-6 rounded-md border border-gray-200">
@@ -462,6 +507,20 @@ function HomeInner() {
               ver por categoria
             </button>
           </div>
+
+          {!authLoading &&
+          isAuthenticated &&
+          !accountRoleLoading &&
+          accountRole === 'professional' ? (
+            <HomeProfessionalAvailability userId={viewerUserId} />
+          ) : null}
+
+          {!authLoading &&
+          isAuthenticated &&
+          !accountRoleLoading &&
+          accountRole ? (
+            <HomeSidebarMetrics role={accountRole} userId={viewerUserId} />
+          ) : null}
         </aside>
 
         <main className="flex-1">
@@ -547,7 +606,9 @@ function HomeInner() {
                       {item.tipo === 'solicitacao' ? (
                         <SolicitacaoCliente
                           {...item.data}
-                          showProposalAction={accountRole === 'professional'}
+                          showProposalAction={
+                            !isAuthenticated || accountRole === 'professional'
+                          }
                           showManageProposalsAction={
                             accountRole === 'client' &&
                             sameUserId(viewerUserId, item.data.clientId)
@@ -687,7 +748,7 @@ function HomeInner() {
         </main>
 
         <aside
-          className="hidden lg:block space-y-6"
+          className="hidden lg:block space-y-4"
           style={{ width: '342px' }}
         >
           <div className="bg-white rounded-md border border-gray-200">
@@ -731,19 +792,48 @@ function HomeInner() {
                   As solicitações de clientes aparecem aqui quando existirem.
                 </p>
               ) : (
-                sidebarSolicitacaoRows.map((sol) => (
-                  <div key={sol.id} className="text-sm">
-                    <p className="font-medium text-xs">{sol.nome}</p>
-                    <p className="text-xs text-gray-500">{sol.servico} • {sol.bairro}</p>
-                    <span className={`text-xs px-2 py-0.5 rounded-full inline-block mt-1 ${sol.prioridade === 'alta' ? 'bg-red-50 text-red-600' :
-                      sol.prioridade === 'media' ? 'bg-amber-50 text-amber-600' :
-                        'bg-gray-100 text-gray-700'
-                      }`}>
-                      {sol.prioridade === 'alta' ? 'Urgente' :
-                        sol.prioridade === 'media' ? 'Normal' : 'Baixa prioridade'}
-                    </span>
-                  </div>
-                ))
+                sidebarSolicitacaoRows.map((sol) => {
+                  const isOwnRequest = sameUserId(viewerUserId, sol.clientId);
+                  const canContact = !!sol.clientId?.trim() && !isOwnRequest;
+
+                  return (
+                    <div
+                      key={sol.id}
+                      className="flex items-start justify-between gap-3"
+                    >
+                      <div className="min-w-0 flex-1 text-sm">
+                        <p className="font-medium text-xs truncate">{sol.nome}</p>
+                        <p className="text-xs text-gray-500 truncate">
+                          {sol.servico} • {sol.bairro}
+                        </p>
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full inline-block mt-1 ${
+                            sol.prioridade === 'alta'
+                              ? 'bg-red-50 text-red-600'
+                              : sol.prioridade === 'media'
+                                ? 'bg-amber-50 text-amber-600'
+                                : 'bg-gray-100 text-gray-700'
+                          }`}
+                        >
+                          {sol.prioridade === 'alta'
+                            ? 'Urgente'
+                            : sol.prioridade === 'media'
+                              ? 'Normal'
+                              : 'Baixa prioridade'}
+                        </span>
+                      </div>
+                      {canContact ? (
+                        <button
+                          type="button"
+                          onClick={() => handleContactClient(sol)}
+                          className="shrink-0 text-xs text-[#2b81e5] font-medium hover:text-[#2b81e5]/80 transition-colors cursor-pointer"
+                        >
+                          Contactar
+                        </button>
+                      ) : null}
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>

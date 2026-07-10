@@ -1,10 +1,12 @@
 "use client";
 
-import { Loader2, MapPin, RefreshCw, SlidersHorizontal, X } from "lucide-react";
+import { CalendarDays, Loader2, MapPin, RefreshCw, SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ProvinceSelect } from "@/components/province-select/province-select";
 import { cn } from "@/lib/utils";
+import type { AvailabilityFilter } from "@/lib/professional-distance";
 import type { MarketplaceCategory } from "@/types/marketplace";
 
 interface ProfessionalListFiltersProps {
@@ -18,6 +20,12 @@ interface ProfessionalListFiltersProps {
   onSortByNearestChange: (value: boolean) => void;
   maxDistanceKm: number;
   onMaxDistanceKmChange: (value: number) => void;
+  minPrice: string;
+  onMinPriceChange: (value: string) => void;
+  maxPrice: string;
+  onMaxPriceChange: (value: string) => void;
+  availability: AvailabilityFilter;
+  onAvailabilityChange: (value: AvailabilityFilter) => void;
   geoLoading: boolean;
   geoError: string | null;
   onRefreshLocation: () => void;
@@ -58,6 +66,12 @@ export default function ProfessionalListFilters({
   onSortByNearestChange,
   maxDistanceKm,
   onMaxDistanceKmChange,
+  minPrice,
+  onMinPriceChange,
+  maxPrice,
+  onMaxPriceChange,
+  availability,
+  onAvailabilityChange,
   geoLoading,
   geoError,
   onRefreshLocation,
@@ -226,6 +240,84 @@ export default function ProfessionalListFilters({
         </div>
       </FilterCard>
 
+      <FilterCard title="Preço (Kz / hora)" className="shadow-none">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-1.5">
+            <Label htmlFor="filter-min-price" className="text-xs text-gray-600">
+              Mínimo
+            </Label>
+            <Input
+              id="filter-min-price"
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step={100}
+              placeholder="0"
+              value={minPrice}
+              onChange={(e) => onMinPriceChange(e.target.value)}
+              className="h-9 text-sm"
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="filter-max-price" className="text-xs text-gray-600">
+              Máximo
+            </Label>
+            <Input
+              id="filter-max-price"
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step={100}
+              placeholder="Sem limite"
+              value={maxPrice}
+              onChange={(e) => onMaxPriceChange(e.target.value)}
+              className="h-9 text-sm"
+            />
+          </div>
+        </div>
+        <p className="mt-2 text-xs text-gray-500">
+          Filtra pela tarifa horária do profissional.
+        </p>
+      </FilterCard>
+
+      <FilterCard title="Disponibilidade" className="shadow-none">
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() =>
+              onAvailabilityChange(availability === "today" ? null : "today")
+            }
+            className={cn(
+              "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-2.5 text-sm font-medium transition-colors",
+              availability === "today"
+                ? "border-[#2b81e5] bg-[#dceffd] text-[#2b81e5]"
+                : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+            )}
+          >
+            <CalendarDays className="size-3.5 shrink-0" aria-hidden />
+            Hoje
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              onAvailabilityChange(availability === "week" ? null : "week")
+            }
+            className={cn(
+              "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-2.5 text-sm font-medium transition-colors",
+              availability === "week"
+                ? "border-[#2b81e5] bg-[#dceffd] text-[#2b81e5]"
+                : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+            )}
+          >
+            <CalendarDays className="size-3.5 shrink-0" aria-hidden />
+            Semana
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-gray-500">
+          Mostra apenas profissionais marcados como disponíveis.
+        </p>
+      </FilterCard>
+
       {hasActiveFilters ? (
         <Button
           type="button"
@@ -237,8 +329,8 @@ export default function ProfessionalListFilters({
         </Button>
       ) : (
         <p className="text-xs text-gray-500 leading-relaxed">
-          Combine categoria e localização para encontrar o profissional ideal
-          perto de si.
+          Combine categoria, preço, disponibilidade e localização para
+          encontrar o profissional ideal.
         </p>
       )}
     </div>

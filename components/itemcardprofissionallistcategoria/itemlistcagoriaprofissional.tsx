@@ -10,6 +10,8 @@ import {
   userAvatarSrcUnoptimized,
 } from "@/lib/user-avatar";
 import { formatDistanceKm } from "@/lib/professional-distance";
+import { isProfessionallyOnline } from "@/lib/professional-online";
+import { cn } from "@/lib/utils";
 
 interface ItemlistcategoriaProfissionalProps {
   professionalId: string;
@@ -22,6 +24,9 @@ interface ItemlistcategoriaProfissionalProps {
   province?: string | null;
   municipality?: string | null;
   isAvailable?: boolean;
+  isOnline?: boolean;
+  lastSeenAt?: string | null;
+  updatedAt?: string | null;
   totalReviews?: number;
   distanceKm?: number | null;
 }
@@ -45,6 +50,9 @@ export default function ItemlistcategoriaProfissional({
   province,
   municipality,
   isAvailable = true,
+  isOnline,
+  lastSeenAt,
+  updatedAt,
   totalReviews = 0,
   distanceKm,
 }: ItemlistcategoriaProfissionalProps) {
@@ -52,6 +60,13 @@ export default function ItemlistcategoriaProfissional({
   const avatarSrc = resolveUserAvatarUrl(image);
   const location = formatLocation(province, municipality);
   const bioText = bio?.trim();
+  const online = isProfessionallyOnline({
+    is_online: isOnline,
+    last_seen_at: lastSeenAt,
+    updated_at: updatedAt,
+  });
+  const priceLabel =
+    price > 0 ? `${price.toLocaleString("pt-PT")} Kz/h` : "A combinar";
 
   const goToProfile = () => {
     router.push(
@@ -60,88 +75,133 @@ export default function ItemlistcategoriaProfissional({
   };
 
   return (
-    <article
-      className="w-full max-w-[280px] rounded-md border border-gray-200 bg-white p-4  transition-shadow hover:shadow-md"
-    >
-      <div className="flex flex-col items-center text-center">
-        <div className="relative">
-          <div className="size-20 overflow-hidden rounded-full ring-2 ring-gray-100 bg-muted">
+    <article className="flex w-full max-w-[280px] flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition-shadow hover:shadow-md">
+      <div className="flex items-start gap-3 p-4 pb-3">
+        <div className="relative shrink-0">
+          <div className="size-14 overflow-hidden rounded-full bg-muted ring-2 ring-gray-100">
             <Image
               src={avatarSrc}
               alt={name}
-              width={80}
-              height={80}
+              width={56}
+              height={56}
               className="size-full object-cover"
               unoptimized={userAvatarSrcUnoptimized(avatarSrc)}
             />
           </div>
-          {isAvailable ? (
-            <span
-              className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-white bg-emerald-500"
-              title="Disponível"
-            />
-          ) : null}
+          <span
+            className={cn(
+              "absolute bottom-0 right-0 size-3.5 rounded-full border-2 border-white",
+              online ? "bg-emerald-500" : "bg-gray-300"
+            )}
+            title={online ? "Online" : "Offline"}
+          />
         </div>
 
-        <div className="mt-3 flex items-center justify-center gap-1.5 max-w-full">
-          <h3 className="font-semibold text-gray-900 text-sm truncate">
-            {name}
-          </h3>
-          {verified ? (
-            <BadgeCheck
-              className="size-4 shrink-0 text-[#2b81e5]"
-              aria-label="Verificado"
-            />
-          ) : null}
-        </div>
+        <div className="min-w-0 flex-1 pt-0.5">
+          <div className="flex items-start gap-1">
+            <h3 className="truncate text-sm font-semibold leading-snug text-gray-900">
+              {name}
+            </h3>
+            {verified ? (
+              <BadgeCheck
+                className="mt-0.5 size-4 shrink-0 text-[#2b81e5]"
+                aria-label="Verificado"
+              />
+            ) : null}
+          </div>
 
-        <div className="mt-1 flex items-center gap-1 text-xs text-gray-500">
-          <Star className="size-3.5 text-amber-400 fill-amber-400 shrink-0" />
-          <span className="font-medium text-gray-700">{rating.toFixed(1)}</span>
-          {totalReviews > 0 ? (
-            <span className="text-gray-400">
-              ({totalReviews} {totalReviews === 1 ? "avaliação" : "avaliações"})
+          <div className="mt-1 flex items-center gap-1 text-xs text-gray-500">
+            <Star className="size-3.5 shrink-0 fill-amber-400 text-amber-400" />
+            <span className="font-medium text-gray-800">
+              {rating.toFixed(1)}
             </span>
-          ) : (
-            <span className="text-gray-400">Sem avaliações</span>
-          )}
+            <span className="text-gray-300">·</span>
+            <span>
+              {totalReviews > 0
+                ? `${totalReviews} ${totalReviews === 1 ? "avaliação" : "avaliações"}`
+                : "Sem avaliações"}
+            </span>
+          </div>
         </div>
+      </div>
 
+      <div className="flex flex-wrap gap-1.5 px-4">
+        <span
+          className={cn(
+            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
+            isAvailable
+              ? "bg-emerald-50 text-emerald-700"
+              : "bg-gray-100 text-gray-500"
+          )}
+        >
+          <span
+            className={cn(
+              "size-1.5 rounded-full",
+              isAvailable ? "bg-emerald-500" : "bg-gray-400"
+            )}
+            aria-hidden
+          />
+          {isAvailable ? "Disponível" : "Indisponível"}
+        </span>
+        <span
+          className={cn(
+            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
+            online ? "bg-sky-50 text-sky-700" : "bg-gray-100 text-gray-500"
+          )}
+        >
+          <span
+            className={cn(
+              "size-1.5 rounded-full",
+              online ? "bg-sky-500" : "bg-gray-400"
+            )}
+            aria-hidden
+          />
+          {online ? "Online" : "Offline"}
+        </span>
+      </div>
+
+      <div className="flex flex-1 flex-col gap-2 px-4 py-3">
         {bioText ? (
-          <p className="mt-2 text-xs text-gray-500 line-clamp-2 leading-relaxed">
+          <p className="line-clamp-2 text-xs leading-relaxed text-gray-500">
             {bioText}
           </p>
         ) : null}
 
         {location ? (
-          <p className="mt-2 flex items-center justify-center gap-1 text-xs text-gray-500 max-w-full">
-            <MapPin className="size-3 shrink-0" aria-hidden />
+          <p className="flex items-center gap-1.5 text-xs text-gray-500">
+            <MapPin className="size-3.5 shrink-0 text-gray-400" aria-hidden />
             <span className="truncate">{location}</span>
           </p>
         ) : null}
 
         {typeof distanceKm === "number" && !Number.isNaN(distanceKm) ? (
-          <p className="mt-1.5 flex items-center justify-center gap-1 text-xs font-medium text-[#2b81e5]">
-            <Navigation className="size-3 shrink-0" aria-hidden />
-            {formatDistanceKm(distanceKm)} de distância
+          <p className="flex items-center gap-1.5 text-xs font-medium text-[#2b81e5]">
+            <Navigation className="size-3.5 shrink-0" aria-hidden />
+            {formatDistanceKm(distanceKm)}
           </p>
         ) : null}
+      </div>
 
-        <p className="mt-3 text-sm font-semibold text-gray-900">
-          {price > 0
-            ? `${price.toLocaleString("pt-PT")} Kz/h`
-            : "Preço a combinar"}
-        </p>
-
-        <Button
-          type="button"
-          size="xs"
-          onClick={goToProfile}
-          className="mt-3 h-8 w-full min-h-7 px-4 text-xs text-white hover:opacity-90"
-          style={{ backgroundColor: lightTheme.colors.primary }}
-        >
-          Ver perfil
-        </Button>
+      <div className="mt-auto border-t border-gray-100 bg-gray-50/70 px-4 py-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-wide text-gray-400">
+              Preço
+            </p>
+            <p className="truncate text-sm font-semibold text-gray-900">
+              {priceLabel}
+            </p>
+          </div>
+          <Button
+            type="button"
+            size="xs"
+            onClick={goToProfile}
+            className="h-8 shrink-0 px-3 text-xs text-white hover:opacity-90"
+            style={{ backgroundColor: lightTheme.colors.primary }}
+          >
+            Ver perfil
+          </Button>
+        </div>
       </div>
     </article>
   );
