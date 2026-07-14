@@ -66,6 +66,32 @@ export function extractProfileUserId(
   return null
 }
 
+/** ID do registo profissional (distinto de `user_id`) em GET /profile. */
+export function extractProfessionalId(
+  data: ProfileApiData | Record<string, unknown> | null | undefined
+): string | null {
+  if (!data || typeof data !== "object") return null
+
+  const root = data as Record<string, unknown>
+  for (const key of ["professional_id", "professionalId"]) {
+    const value = root[key]
+    if (typeof value === "string" && value.trim()) return value.trim()
+    if (typeof value === "number" && !Number.isNaN(value)) return String(value)
+  }
+
+  const professional = (data as ProfileApiData).professional
+  if (!professional || typeof professional !== "object") return null
+
+  const p = professional as Record<string, unknown>
+  for (const key of ["id", "professional_id", "professionalId"]) {
+    const value = p[key]
+    if (typeof value === "string" && value.trim()) return value.trim()
+    if (typeof value === "number" && !Number.isNaN(value)) return String(value)
+  }
+
+  return null
+}
+
 export function mapProfileApiToPerfilUser(data: ProfileApiData): {
   id: string
   name?: string
@@ -111,7 +137,10 @@ export function mapProfileApiToPerfilInfo(
     city: data.municipality ?? null,
     latitude: data.latitude ?? null,
     longitude: data.longitude ?? null,
-    profile_type: roles[0] ?? undefined,
+    profile_type:
+      roles.find((r) => r.toLowerCase().includes("professional")) ??
+      (data.professional ? "professional" : roles[0]) ??
+      undefined,
     member_since:
       typeof data.created_at === "string" ? data.created_at : undefined,
   }

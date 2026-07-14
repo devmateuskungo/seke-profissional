@@ -5,6 +5,12 @@ import type {
   ProfessionalListItem,
   ProfessionalsListResponse,
 } from "@/types/professional"
+import {
+  extractProfessionalId,
+  unwrapProfilePayload,
+} from "@/lib/profile-map"
+import { fetchProfile } from "@/lib/profile-client"
+import { fetchMyMarketplaceServices } from "@/lib/marketplace-client"
 
 const EXTERNAL_API_BASE = process.env.NEXT_PUBLIC_URL_API?.trim()
 const PROFESSIONALS_API = EXTERNAL_API_BASE
@@ -182,4 +188,152 @@ export async function fetchProfessionals(
         typeof data.total_pages === "number" ? data.total_pages : 1,
     },
   }
+}
+
+export type UploadProfessionalAvatarOutcome =
+  | { success: true; data: { url: string | null } }
+  | { success: false; error: string; statusCode?: number }
+
+/** Sempre via BFF — evita CORS no browser. */
+function professionalAvatarApi(professionalId: string): string {
+  return `/api/professionals/${encodeURIComponent(professionalId.trim())}/avatar`
+}
+
+function pickProfessionalAvatarUrl(raw: unknown): string | null {
+  if (!raw || typeof raw !== "object") return null
+  const queue: Record<string, unknown>[] = []
+  const seen = new Set<Record<string, unknown>>()
+
+  const visit = (node: unknown) => {
+    if (!node || typeof node !== "object" || Array.isArray(node)) return
+    const record = node as Record<string, unknown>
+    if (seen.has(record)) return
+    seen.add(record)
+    queue.push(record)
+  }
+
+  visit(raw)
+
+  while (queue.length > 0) {
+    const nested = queue.shift()!
+    for (const key of [
+      "profile_photo_url",
+      "avatar_url",
+      "avatarUrl",
+      "photo_url",
+      "url",
+    ]) {
+      const value = nested[key]
+      if (typeof value === "string" && value.trim()) return value.trim()
+    }
+
+    for (const key of ["data", "professional", "profile", "user"]) {
+      visit(nested[key])
+    }
+  }
+
+  return null
+}
+
+/** Resolve o ID profissional a partir do perfil ou dos serviços do utilizador. */
+export async function resolveProfessionalIdForUser(
+  token: string,
+  userId: string,
+  profileRaw?: unknown
+): Promise<string | null> {
+  let raw = profileRaw
+  if (!raw) {
+    const profile = await fetchProfile(token, userId)
+    if (profile.success) raw = profile.data
+  }
+
+  const fromProfile = extractProfessionalId(unwrapProfilePayload(raw))
+  if (fromProfile) return fromProfile
+
+  const services = await fetchMyMarketplaceServices(token)
+  if (services.success) {
+    for (const service of services.data) {
+      const pid = service.professional_id?.trim()
+      if (pid) return pid
+    }
+  }
+
+  return null
+}
+
+/** POST /professionals/:professionalId/avatar — envia ficheiro (multipart) via BFF. */
+export async function uploadProfessionalAvatarFile(
+  professionalId: string,
+  file: File,
+  token: string
+): Promise<UploadProfessionalAvatarOutcome> {
+  const trimmed = professionalId?.trim()
+  if (!trimmed) {
+    return { success: false, error: "ID do profissional inválido.", statusCode: 400 }
+  }
+
+  const attemptForm = new FormData()
+  attemptForm.append("avatar", file, file.name)
+
+  const res = await fetch(professionalAvatarApi(trimmed), {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token.trim()}`,
+    },
+    body: attemptForm,
+  })
+
+  const raw = await res.json().catch(() => ({}))
+  if (res.ok) {
+    const url = pickProfessionalAvatarUrl(raw)
+    return { success: true, data: { url } }
+  }
+
+  const lastError =
+    "message" in raw && typeof raw.message === "string"
+      ? raw.message
+      : "error" in raw && typeof raw.error === "string"
+        ? raw.error
+        : "Não foi possível atualizar a foto do profissional."
+
+  return { success: false, error: lastError, statusCode: res.status }
+}
+
+/** POST /professionals/:professionalId/avatar — URL já hospedada (ex.: Cloudinary). */
+export async function updateProfessionalAvatarUrl(
+  professionalId: string,
+  token: string,
+  avatarUrl: string
+): Promise<UploadProfessionalAvatarOutcome> {
+  const trimmed = professionalId?.trim()
+  const url = avatarUrl.trim()
+  if (!trimmed) {
+    return { success: false, error: "ID do profissional inválido.", statusCode: 400 }
+  }
+  if (!url) {
+    return { success: false, error: "URL da foto inválida.", statusCode: 400 }
+  }
+
+  const payload = JSON.stringify({ avatarUrl: url })
+  const res = await fetch(professionalAvatarApi(trimmed), {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token.trim()}`,
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: payload,
+  })
+
+  const raw = await res.json().catch(() => ({}))
+  if (res.ok) {
+    const resolvedUrl = pickProfessionalAvatarUrl(raw) ?? url
+    return { success: true, data: { url: resolvedUrl } }
+  }
+
+  const message =
+    "message" in raw && typeof raw.message === "string"
+      ? raw.message
+      : "Não foi possível atualizar a foto do profissional."
+  return { success: false, error: message, statusCode: res.status }
 }

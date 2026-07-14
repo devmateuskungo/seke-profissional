@@ -248,9 +248,9 @@ export function ItemPostCriar({ onSuccess, className }: ItemPostCriarProps) {
         className
       )}
     >
-      <div className="p-4">
-        <div className="flex items-center gap-3">
-          <div className="size-11 shrink-0 overflow-hidden rounded-full bg-muted ring-1 ring-border/60">
+      <div className="p-3 sm:p-4">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="size-10 shrink-0 overflow-hidden rounded-full bg-muted ring-1 ring-border/60 sm:size-11">
             <Image
               src={avatarSrc}
               alt=""
@@ -263,7 +263,7 @@ export function ItemPostCriar({ onSuccess, className }: ItemPostCriarProps) {
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="h-11 w-full cursor-pointer rounded-full border border-border/70 bg-muted/30 px-4 text-left text-sm text-muted-foreground transition-colors hover:bg-muted/50"
+            className="h-10 w-full cursor-pointer rounded-full border border-border/70 bg-muted/30 px-3 text-left text-sm text-muted-foreground transition-colors hover:bg-muted/50 sm:h-11 sm:px-4"
           >
             Em que está a trabalhar?
           </button>
@@ -271,29 +271,48 @@ export function ItemPostCriar({ onSuccess, className }: ItemPostCriarProps) {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-2xl p-0 gap-0 overflow-hidden">
-          <form onSubmit={handleSubmit}>
-            <DialogHeader className="border-b border-border/60 px-4 py-3">
-              <DialogTitle>Criar publicação</DialogTitle>
-              <DialogDescription>
-                Partilhe texto e anexe imagem ou vídeo do seu computador.
-              </DialogDescription>
+        <DialogContent
+          className={cn(
+            "fixed inset-0 top-0 left-0 flex h-[100dvh] max-h-[100dvh] w-full max-w-full translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-0 p-0",
+            "sm:inset-auto sm:top-[50%] sm:left-[50%] sm:h-auto sm:max-h-[min(90dvh,720px)] sm:max-w-2xl sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg sm:border"
+          )}
+        >
+          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+            <DialogHeader className="flex shrink-0 flex-row items-start gap-3 border-b border-border/60 px-4 py-3 pr-12 text-left sm:pr-4">
+              <div className="size-10 shrink-0 overflow-hidden rounded-full bg-muted ring-1 ring-border/60 sm:size-11">
+                <Image
+                  src={avatarSrc}
+                  alt=""
+                  width={44}
+                  height={44}
+                  className="size-full object-cover"
+                  unoptimized={userAvatarSrcUnoptimized(avatarSrc)}
+                />
+              </div>
+              <div className="min-w-0 flex-1 space-y-1">
+                <DialogTitle className="text-base sm:text-lg">
+                  Criar publicação
+                </DialogTitle>
+                <DialogDescription className="text-xs leading-snug sm:text-sm">
+                  Partilhe texto e anexe imagem ou vídeo do seu computador.
+                </DialogDescription>
+              </div>
             </DialogHeader>
 
-            <div className="p-4 space-y-4">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
               <Textarea
                 id="post-content-modal"
                 placeholder="Escreva a sua publicação..."
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                rows={6}
+                rows={5}
                 disabled={isLoading || isCompressingImage || isLoadingVideo}
-                className="min-h-[140px] resize-none"
+                className="min-h-[120px] resize-none text-base sm:min-h-[140px] sm:text-sm"
               />
 
               {mediaType === "video" && videoPreviewUrl ? (
                 <div className="relative overflow-hidden rounded-xl bg-black ring-1 ring-border/50">
-                  <div className="relative aspect-16/10 max-h-80 w-full">
+                  <div className="relative aspect-video max-h-52 w-full sm:max-h-80">
                     <video
                       src={videoPreviewUrl}
                       controls
@@ -305,7 +324,7 @@ export function ItemPostCriar({ onSuccess, className }: ItemPostCriarProps) {
                     type="button"
                     variant="secondary"
                     size="icon"
-                    className="absolute right-2 top-2 size-9 cursor-pointer rounded-full bg-white text-gray-500 shadow-md hover:bg-white/90 hover:text-gray-600"
+                    className="absolute right-2 top-2 size-8 cursor-pointer rounded-full bg-white text-gray-500 shadow-md hover:bg-white/90 hover:text-gray-600 sm:size-9"
                     onClick={clearMedia}
                     disabled={isLoading || isCompressingImage || isLoadingVideo}
                     aria-label="Remover vídeo"
@@ -315,7 +334,7 @@ export function ItemPostCriar({ onSuccess, className }: ItemPostCriarProps) {
                 </div>
               ) : mediaType === "image" && imagePreviewUrl ? (
                 <div className="relative overflow-hidden rounded-xl bg-muted ring-1 ring-border/50">
-                  <div className="relative aspect-16/10 max-h-80 w-full">
+                  <div className="relative aspect-video max-h-52 w-full sm:max-h-80">
                     <Image
                       src={imagePreviewUrl}
                       alt="Pré-visualização da publicação"
@@ -328,7 +347,7 @@ export function ItemPostCriar({ onSuccess, className }: ItemPostCriarProps) {
                     type="button"
                     variant="secondary"
                     size="icon"
-                    className="absolute right-2 top-2 size-9 cursor-pointer rounded-full bg-white text-gray-500 shadow-md hover:bg-white/90 hover:text-gray-600"
+                    className="absolute right-2 top-2 size-8 cursor-pointer rounded-full bg-white text-gray-500 shadow-md hover:bg-white/90 hover:text-gray-600 sm:size-9"
                     onClick={clearMedia}
                     disabled={isLoading || isCompressingImage || isLoadingVideo}
                     aria-label="Remover imagem"
@@ -339,63 +358,65 @@ export function ItemPostCriar({ onSuccess, className }: ItemPostCriarProps) {
               ) : null}
             </div>
 
-            <div className="flex items-center justify-between gap-3 border-t border-border/60 bg-muted/20 px-4 py-3">
-              <div className="flex items-center gap-2">
-                <label className="inline-flex cursor-pointer items-center gap-2 rounded-full px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground">
-                  <span className="flex size-9 items-center justify-center rounded-full bg-background text-primary shadow-sm ring-1 ring-border/60">
-                    {isCompressingImage ? (
-                      <Loader2 className="size-4 animate-spin" aria-hidden />
-                    ) : (
-                      <ImagePlus className="size-4" aria-hidden />
-                    )}
-                  </span>
-                  <span>Imagem</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="sr-only"
-                    onChange={onImageFileChange}
-                    disabled={isLoading || isCompressingImage || isLoadingVideo}
-                  />
-                </label>
+            <div className="shrink-0 border-t border-border/60 bg-muted/20 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-2">
+                  <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-border/60 bg-background px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground sm:rounded-full sm:border-0 sm:bg-transparent sm:px-2 sm:py-1.5">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-background text-primary shadow-sm ring-1 ring-border/60 sm:size-9">
+                      {isCompressingImage ? (
+                        <Loader2 className="size-4 animate-spin" aria-hidden />
+                      ) : (
+                        <ImagePlus className="size-4" aria-hidden />
+                      )}
+                    </span>
+                    <span className="text-xs sm:text-sm">Imagem</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="sr-only"
+                      onChange={onImageFileChange}
+                      disabled={isLoading || isCompressingImage || isLoadingVideo}
+                    />
+                  </label>
 
-                <label className="inline-flex cursor-pointer items-center gap-2 rounded-full px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground">
-                  <span className="flex size-9 items-center justify-center rounded-full bg-background text-primary shadow-sm ring-1 ring-border/60">
-                    {isLoadingVideo ? (
-                      <Loader2 className="size-4 animate-spin" aria-hidden />
-                    ) : (
-                      <Video className="size-4" aria-hidden />
-                    )}
-                  </span>
-                  <span>Vídeo</span>
-                  <input
-                    type="file"
-                    accept="video/*"
-                    className="sr-only"
-                    onChange={onVideoFileChange}
-                    disabled={isLoading || isCompressingImage || isLoadingVideo}
-                  />
-                </label>
+                  <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-border/60 bg-background px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground sm:rounded-full sm:border-0 sm:bg-transparent sm:px-2 sm:py-1.5">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-background text-primary shadow-sm ring-1 ring-border/60 sm:size-9">
+                      {isLoadingVideo ? (
+                        <Loader2 className="size-4 animate-spin" aria-hidden />
+                      ) : (
+                        <Video className="size-4" aria-hidden />
+                      )}
+                    </span>
+                    <span className="text-xs sm:text-sm">Vídeo</span>
+                    <input
+                      type="file"
+                      accept="video/*"
+                      className="sr-only"
+                      onChange={onVideoFileChange}
+                      disabled={isLoading || isCompressingImage || isLoadingVideo}
+                    />
+                  </label>
+                </div>
+
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={isLoading || isCompressingImage || isLoadingVideo}
+                  className="h-11 w-full cursor-pointer gap-2 rounded-full px-5 shadow-none sm:h-9 sm:w-auto"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      A publicar...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="size-4" />
+                      Publicar
+                    </>
+                  )}
+                </Button>
               </div>
-
-              <Button
-                type="submit"
-                size="sm"
-                disabled={isLoading || isCompressingImage || isLoadingVideo}
-                className="cursor-pointer gap-2 rounded-full px-5 shadow-none"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin" />
-                    A publicar...
-                  </>
-                ) : (
-                  <>
-                    <Send className="size-4" />
-                    Publicar
-                  </>
-                )}
-              </Button>
             </div>
           </form>
         </DialogContent>

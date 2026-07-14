@@ -117,7 +117,7 @@ function StepIndicator({
             >
               <div
                 className={cn(
-                  "flex size-8 items-center justify-center rounded-full border transition-colors",
+                  "flex size-7 items-center justify-center rounded-full border transition-colors sm:size-8",
                   isCompleted
                     ? "border-primary bg-primary text-primary-foreground"
                     : isActive
@@ -294,29 +294,28 @@ export function ItemProfessionalRegister({
   return (
     <>
       <Card
-        className="border-0 shadow-none w-full"
+        className="w-full border-0 p-0 shadow-none sm:p-0"
         style={{
-          padding: lightTheme.spacing.md,
           borderRadius: lightTheme.borderRadius.small,
           fontFamily: lightTheme.typography.fontFamily,
         }}
       >
-        <CardHeader className="space-y-4 pb-2">
-          <div className="flex items-start justify-between gap-3">
-            <div className="space-y-1 min-w-0">
+        <CardHeader className="space-y-4 px-0 pb-2 pt-0 sm:px-0">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 space-y-1">
               <div className="flex items-center gap-2">
                 <Sparkles
                   className="size-4 shrink-0 text-primary"
                   aria-hidden
                 />
-                <CardTitle className="text-lg sm:text-xl leading-snug">
+                <CardTitle className="text-lg leading-snug sm:text-xl">
                   Perfil profissional
                 </CardTitle>
               </div>
               <CardDescription
+                className="text-sm leading-relaxed"
                 style={{
                   color: lightTheme.colors.textSecondary,
-                  fontSize: lightTheme.typography.fontSize.small,
                 }}
               >
                 Conta criada com sucesso. Complete em {totalSteps} passos
@@ -327,18 +326,18 @@ export function ItemProfessionalRegister({
               type="button"
               variant="ghost"
               size="sm"
-              className="shrink-0 text-xs text-muted-foreground hover:text-foreground h-auto py-1 px-2"
+              className="h-9 w-full shrink-0 self-start px-3 text-xs text-muted-foreground hover:text-foreground sm:h-auto sm:w-auto sm:py-1"
               disabled={isLoading}
               onClick={onSkip}
             >
-              Saltar
+              Saltar por agora
             </Button>
           </div>
 
           <StepIndicator currentStep={currentStep} totalSteps={totalSteps} />
         </CardHeader>
 
-        <CardContent className="pt-4">
+        <CardContent className="px-0 pt-4 sm:px-0">
           <div
             key={currentStep}
             className="animate-in fade-in slide-in-from-right-2 duration-200"
@@ -575,40 +574,42 @@ export function ItemProfessionalRegister({
             )}
           </div>
 
-          <div className="mt-8 flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
-            <Button
-              type="button"
-              variant="ghost"
-              className="w-full sm:w-auto cursor-pointer h-10 bg-muted/50 hover:bg-muted"
-              disabled={isLoading || currentStep === 1}
-              onClick={goBack}
-            >
-              <ChevronLeft className="size-4 mr-1" aria-hidden />
-              Voltar
-            </Button>
+          <div className="sticky bottom-0 z-10 -mx-4 mt-8 border-t border-gray-100 bg-white/95 px-4 py-3 backdrop-blur-sm supports-[backdrop-filter]:bg-white/80 sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-11 w-full cursor-pointer bg-muted/50 hover:bg-muted sm:h-10 sm:w-auto"
+                disabled={isLoading || currentStep === 1}
+                onClick={goBack}
+              >
+                <ChevronLeft className="mr-1 size-4" aria-hidden />
+                Voltar
+              </Button>
 
-            {currentStep < totalSteps ? (
-              <Button
-                type="button"
-                className="w-full sm:w-auto cursor-pointer text-white h-10 min-w-[140px]"
-                style={{ backgroundColor: lightTheme.colors.primary }}
-                disabled={isLoading}
-                onClick={goNext}
-              >
-                Continuar
-                <ChevronRight className="size-4 ml-1" aria-hidden />
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                className="w-full sm:w-auto cursor-pointer text-white h-10 min-w-[180px]"
-                style={{ backgroundColor: lightTheme.colors.primary }}
-                disabled={isLoading}
-                onClick={handleFinish}
-              >
-                {isLoading ? "A guardar…" : "Concluir cadastro"}
-              </Button>
-            )}
+              {currentStep < totalSteps ? (
+                <Button
+                  type="button"
+                  className="h-11 w-full min-w-0 cursor-pointer text-white sm:h-10 sm:w-auto sm:min-w-[140px]"
+                  style={{ backgroundColor: lightTheme.colors.primary }}
+                  disabled={isLoading}
+                  onClick={goNext}
+                >
+                  Continuar
+                  <ChevronRight className="ml-1 size-4" aria-hidden />
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  className="h-11 w-full min-w-0 cursor-pointer text-white sm:h-10 sm:w-auto sm:min-w-[180px]"
+                  style={{ backgroundColor: lightTheme.colors.primary }}
+                  disabled={isLoading}
+                  onClick={handleFinish}
+                >
+                  {isLoading ? "A guardar…" : "Concluir cadastro"}
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>

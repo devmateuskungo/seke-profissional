@@ -42,24 +42,27 @@ export function Navbar() {
         setIsMenuOpen(false)
     }
 
+    const navLinkClass =
+        "flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-primary md:px-2.5 lg:gap-2 lg:px-2.5"
+
     return (
         <>
         <nav className="fixed top-0 left-0 right-0 z-50 border-b border-gray-200 bg-white/95 shadow-sm backdrop-blur supports-backdrop-filter:bg-white/80 [&_a]:no-underline [&_a:hover]:no-underline [&_a:focus]:no-underline">
-            <div className="mx-auto max-w-[1600px] px-3 sm:px-4 lg:px-8">
-                <div className="flex min-h-14 items-center gap-2 py-2 sm:min-h-16 sm:gap-3">
+            <div className="mx-auto max-w-[1600px] px-3 sm:px-4 md:px-6 lg:px-8">
+                <div className="flex min-h-14 items-center gap-2 py-2 md:gap-2.5 sm:min-h-16 lg:gap-3">
                     {/* Logo */}
                     <div className="shrink-0">
                         <Link href="/" className="flex items-center py-1">
-                            <span className="text-xl font-bold text-primary sm:text-2xl">Logo</span>
+                            <span className="text-xl font-bold text-primary md:text-[1.35rem] lg:text-2xl">Logo</span>
                         </Link>
                     </div>
 
-                    {/* Pesquisa — logo à direita da marca */}
+                    {/* Pesquisa */}
                     <form
                         role="search"
                         aria-label="Pesquisar na plataforma"
                         onSubmit={handleSearch}
-                        className="flex min-w-0 flex-1 items-center sm:max-w-md md:min-w-[min(100%,20rem)] md:max-w-lg md:flex-none lg:max-w-xl"
+                        className="flex min-w-0 flex-1 items-center sm:max-w-md md:max-w-[min(100%,12rem)] md:flex-none lg:max-w-md xl:max-w-xl lg:flex-1"
                     >
                         <div className="relative w-full">
                             <Search
@@ -72,44 +75,51 @@ export function Navbar() {
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Pesquisar pessoas, trabalhos…"
-                                className="h-10 w-full border-gray-200 bg-gray-50/80 pl-9 pr-3 text-sm shadow-none placeholder:text-gray-400 focus-visible:bg-white sm:h-11 sm:pl-10 sm:text-[15px]"
+                                className="h-10 w-full border-gray-200 bg-gray-50/80 pl-9 pr-3 text-sm shadow-none placeholder:text-gray-400 focus-visible:bg-white md:h-10 md:pl-9 md:text-sm lg:h-11 lg:pl-10 lg:text-[15px]"
                                 autoComplete="off"
                             />
                         </div>
                     </form>
 
-                    {/* Menu central — tablet/desktop (à direita da pesquisa) */}
-                    <div className="hidden min-w-0 flex-1 items-center justify-center gap-0.5 md:flex lg:gap-1">
+                    {/* Menu central — tablet (ícones) e desktop (ícones + texto) */}
+                    <div className="hidden min-w-0 flex-1 items-center justify-center gap-0.5 overflow-x-auto md:flex lg:gap-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                         <Link
                             href="/"
-                            className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-primary lg:gap-2 lg:px-2.5"
+                            className={navLinkClass}
+                            title="Home"
+                            aria-label="Home"
                         >
                             <Home size={18} className="shrink-0" aria-hidden />
                             <span className="hidden lg:inline">Home</span>
                         </Link>
                         {isAuthenticated ? (
                             <>
+                                <Link
+                                    href="/categoria-profissional"
+                                    className={navLinkClass}
+                                    title="Encontrar profissionais"
+                                    aria-label="Encontrar profissionais"
+                                >
+                                    <Briefcase size={18} className="shrink-0" aria-hidden />
+                                    <span className="hidden lg:inline">Encontrar profissionais</span>
+                                </Link>
                                 {role === "professional" ? (
                                     <Link
                                         href="/?filtro=solicitacoes"
-                                        className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-primary lg:gap-2 lg:px-2.5"
+                                        className={navLinkClass}
+                                        title="Pedidos ativos"
+                                        aria-label="Pedidos ativos"
                                     >
                                         <ClipboardList size={18} className="shrink-0" aria-hidden />
                                         <span className="hidden lg:inline">Pedidos ativos</span>
                                     </Link>
-                                ) : (
-                                    <Link
-                                        href="/categoria-profissional"
-                                        className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-primary lg:gap-2 lg:px-2.5"
-                                    >
-                                        <Briefcase size={18} className="shrink-0" aria-hidden />
-                                        <span className="hidden lg:inline">Encontrar profissionais</span>
-                                    </Link>
-                                )}
+                                ) : null}
                                 {role === "professional" ? (
                                     <Link
                                         href="/propostas"
-                                        className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-primary lg:gap-2 lg:px-2.5"
+                                        className={navLinkClass}
+                                        title="Propostas"
+                                        aria-label="Propostas"
                                     >
                                         <Send size={18} className="shrink-0" aria-hidden />
                                         <span className="hidden lg:inline">Propostas</span>
@@ -117,7 +127,9 @@ export function Navbar() {
                                 ) : role === "client" ? (
                                     <Link
                                         href="/solicitacoes"
-                                        className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-primary lg:gap-2 lg:px-2.5"
+                                        className={navLinkClass}
+                                        title="Solicitações"
+                                        aria-label="Solicitações"
                                     >
                                         <ClipboardList size={18} className="shrink-0" aria-hidden />
                                         <span className="hidden lg:inline">Solicitações</span>
@@ -126,7 +138,9 @@ export function Navbar() {
                                 <button
                                     type="button"
                                     onClick={() => setExploreOpen(true)}
-                                    className="flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-primary lg:gap-2 lg:px-2.5"
+                                    className={`${navLinkClass} cursor-pointer`}
+                                    title="Explorar"
+                                    aria-label="Explorar"
                                 >
                                     <Compass size={18} className="shrink-0" aria-hidden />
                                     <span className="hidden lg:inline">Explorar</span>
@@ -136,14 +150,18 @@ export function Navbar() {
                             <>
                                 <Link
                                     href="/?filtro=solicitacoes"
-                                    className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-primary lg:gap-2 lg:px-2.5"
+                                    className={navLinkClass}
+                                    title="Solicitações"
+                                    aria-label="Solicitações"
                                 >
                                     <Users size={18} className="shrink-0" aria-hidden />
                                     <span className="hidden lg:inline">Solicitações</span>
                                 </Link>
                                 <Link
                                     href="/categoria-profissional"
-                                    className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-primary lg:gap-2 lg:px-2.5"
+                                    className={navLinkClass}
+                                    title="Encontrar profissionais"
+                                    aria-label="Encontrar profissionais"
                                 >
                                     <Briefcase size={18} className="shrink-0" aria-hidden />
                                     <span className="hidden lg:inline">Encontrar profissionais</span>
@@ -153,10 +171,10 @@ export function Navbar() {
                     </div>
 
                     {/* Ações à direita */}
-                    <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+                    <div className="flex shrink-0 items-center gap-1 sm:gap-2 md:gap-1.5 lg:gap-2">
                         <NavbarNotifications />
 
-                        <div className="hidden items-center gap-2 md:flex">
+                        <div className="hidden items-center gap-1.5 md:flex lg:gap-2">
                             {!isLoading && (
                                 isAuthenticated ? (
                                     <UserMenu />
@@ -166,7 +184,7 @@ export function Navbar() {
                                             type="button"
                                             onClick={() => router.push('/auth/login')}
                                             variant="outline"
-                                            className="h-10 cursor-pointer border-gray-200 px-4"
+                                            className="h-9 cursor-pointer border-gray-200 px-3 text-sm md:h-10 md:px-4"
                                         >
                                             Entrar
                                         </Button>
@@ -174,7 +192,7 @@ export function Navbar() {
                                             type="button"
                                             onClick={() => router.push('/auth/register')}
                                             style={{ backgroundColor: lightTheme.colors.primary }}
-                                            className="h-10 cursor-pointer px-4"
+                                            className="h-9 cursor-pointer px-3 text-sm md:h-10 md:px-4"
                                         >
                                             Criar Conta
                                         </Button>
@@ -195,7 +213,7 @@ export function Navbar() {
                     </div>
                 </div>
 
-                {/* Menu mobile / tablet: links (lg+ usa barra acima) */}
+                {/* Menu mobile (< md) */}
                 {isMenuOpen && (
                     <div className="border-t border-gray-100 bg-white md:hidden">
                         <div className="max-h-[min(70vh,calc(100dvh-4rem))] space-y-1 overflow-y-auto px-2 py-3 pb-4">
@@ -209,6 +227,14 @@ export function Navbar() {
                             </Link>
                             {isAuthenticated ? (
                                 <>
+                                    <Link
+                                        href="/categoria-profissional"
+                                        className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-primary"
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        <Briefcase size={20} className="shrink-0 text-gray-500" aria-hidden />
+                                        Encontrar profissionais
+                                    </Link>
                                     {role === "professional" ? (
                                         <Link
                                             href="/?filtro=solicitacoes"
@@ -218,16 +244,7 @@ export function Navbar() {
                                             <ClipboardList size={20} className="shrink-0 text-gray-500" aria-hidden />
                                             Pedidos ativos
                                         </Link>
-                                    ) : (
-                                        <Link
-                                            href="/categoria-profissional"
-                                            className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-primary"
-                                            onClick={() => setIsMenuOpen(false)}
-                                        >
-                                            <Briefcase size={20} className="shrink-0 text-gray-500" aria-hidden />
-                                            Encontrar profissionais
-                                        </Link>
-                                    )}
+                                    ) : null}
                                     {role === "professional" ? (
                                         <Link
                                             href="/propostas"

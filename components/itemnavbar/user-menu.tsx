@@ -61,11 +61,11 @@ export function UserMenu() {
     <div className="flex items-center gap-2">
       <button
         type="button"
-        className="p-2 text-gray-600 hover:text-primary hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+        className="p-2 text-gray-600 hover:text-primary hover:bg-gray-100 rounded-full transition-colors cursor-pointer md:p-1.5"
         aria-label="Mensagens"
         onClick={handleOpenMessages}
       >
-        <MessageCircle size={20} />
+        <MessageCircle className="size-5 md:size-[18px]" aria-hidden />
       </button>
 
       <DropdownMenu.Root>
@@ -88,10 +88,10 @@ export function UserMenu() {
                 {getInitials(user.name)}
               </Avatar.Fallback>
             </Avatar.Root>
-            <span className="hidden sm:inline text-sm font-medium text-gray-700 max-w-[120px] truncate">
+            <span className="hidden lg:inline text-sm font-medium text-gray-700 max-w-[120px] truncate">
               {getDisplayHandle(user.name, user.email)}
             </span>
-            <ChevronDown className="h-4 w-4 shrink-0 text-gray-500" aria-hidden />
+            <ChevronDown className="hidden h-4 w-4 shrink-0 text-gray-500 lg:block" aria-hidden />
           </button>
         </DropdownMenu.Trigger>
         <DropdownMenu.Portal>

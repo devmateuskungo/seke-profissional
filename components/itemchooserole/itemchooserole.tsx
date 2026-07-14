@@ -220,7 +220,7 @@ export function ItemChooseRole() {
     return (
       <>
         <Card
-          className="border-0 shadow-none"
+          className="w-full border-0 shadow-none"
           style={{
             padding: lightTheme.spacing.md,
             borderRadius: lightTheme.borderRadius.small,
@@ -228,7 +228,7 @@ export function ItemChooseRole() {
           }}
         >
           <CardContent
-            className="flex flex-col items-center justify-center gap-3 py-12 text-center text-sm"
+            className="flex min-h-[40vh] flex-col items-center justify-center gap-3 px-2 py-12 text-center text-sm sm:min-h-0 sm:px-6"
             style={{ color: lightTheme.colors.textSecondary }}
           >
             {emailExistsOpen ? (

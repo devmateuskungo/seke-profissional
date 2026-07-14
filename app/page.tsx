@@ -41,6 +41,7 @@ import {
 } from '@/components/home/home-feed-skeleton';
 import { HomeSidebarMetrics } from '@/components/home/home-sidebar-metrics';
 import { HomeProfessionalAvailability } from '@/components/home/home-professional-availability';
+import { HomeFindProfessionalCard } from '@/components/home/home-find-professional-card';
 import { useAuth } from '@/lib/use-auth';
 
 function getSessionToken(): string | null {
@@ -492,21 +493,7 @@ function HomeInner() {
           className="hidden lg:block space-y-4"
           style={{ width: '342px' }}
         >
-          <div className="bg-white p-6 rounded-md border border-gray-200">
-            <div className="flex items-center gap-3 mb-4">
-              <div>
-                <h3 className="text-base font-semibold">Preciso de um Profissional</h3>
-                <p className="text-sm text-gray-500">Encontra especialista agora</p>
-              </div>
-            </div>
-            <button
-              onClick={() => router.push('/categoria-profissional')}
-              style={{ backgroundColor: lightTheme.colors.primary }}
-              className="w-full text-white py-2 rounded-lg text-sm cursor-pointer hover:opacity-90 transition-opacity"
-            >
-              ver por categoria
-            </button>
-          </div>
+          <HomeFindProfessionalCard variant="sidebar" />
 
           {!authLoading &&
           isAuthenticated &&
@@ -528,6 +515,12 @@ function HomeInner() {
             <div>
               <HeroSection />
             </div>
+
+            {!accountRoleLoading && accountRole !== 'professional' ? (
+              <div className="mt-4 hidden md:block lg:hidden">
+                <HomeFindProfessionalCard variant="banner" />
+              </div>
+            ) : null}
 
             {!accountRoleLoading && accountRole === 'client' ? (
               <div className="mt-4 mb-6">
