@@ -6,25 +6,15 @@ const getBaseUrl = (): string => {
   if (!url) {
     throw new Error("NEXT_PUBLIC_URL_API não configurada no .env")
   }
-  return url
+  return url.replace(/\/+$/, "")
 }
 
 /**
  * GET /api/feed — proxy para GET /feed?page=&limit=
- * Feed principal: posts de quem segues + teus (Authorization obrigatório).
+ * Rota pública: Authorization opcional (personaliza o feed quando há sessão).
  */
 export async function GET(request: NextRequest) {
   try {
-    const authorization = request.headers.get("authorization")
-    if (!authorization || !authorization.toLowerCase().startsWith("bearer ")) {
-      return NextResponse.json(
-        {
-          message: "Token de autorização ausente ou inválido.",
-        } satisfies ApiErrorResponse,
-        { status: 401 }
-      )
-    }
-
     const baseUrl = getBaseUrl()
     const { searchParams } = new URL(request.url)
     const page = searchParams.get("page")?.trim() || "1"
@@ -36,12 +26,15 @@ export async function GET(request: NextRequest) {
     })
     const url = `${baseUrl}/feed?${qs.toString()}`
 
+    const authorization = request.headers.get("authorization")
+    const headers: HeadersInit = { Accept: "application/json" }
+    if (authorization?.toLowerCase().startsWith("bearer ")) {
+      headers.Authorization = authorization
+    }
+
     const res = await fetch(url, {
       method: "GET",
-      headers: {
-        Accept: "application/json",
-        Authorization: authorization,
-      },
+      headers,
       cache: "no-store",
     })
 

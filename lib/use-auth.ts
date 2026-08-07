@@ -11,6 +11,7 @@ export interface AuthUser {
 
 const USER_DATA_KEY = "user_data"
 const AUTH_TOKEN_KEY = "auth_token"
+const REFRESH_TOKEN_KEY = "refresh_token"
 
 function getStoredUser(): AuthUser | null {
   if (typeof window === "undefined") return null
@@ -68,6 +69,7 @@ export function useAuth(): {
   const logout = useCallback(() => {
     if (typeof window !== "undefined") {
       sessionStorage.removeItem(AUTH_TOKEN_KEY)
+      sessionStorage.removeItem(REFRESH_TOKEN_KEY)
       sessionStorage.removeItem(USER_DATA_KEY)
     }
   }, [])

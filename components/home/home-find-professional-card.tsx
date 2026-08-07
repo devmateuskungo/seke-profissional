@@ -75,6 +75,7 @@ export function HomeFindProfessionalCard({
       </div>
       <Link
         href="/categoria-profissional"
+        onClick={onNavigate}
         style={{ backgroundColor: lightTheme.colors.primary }}
         className="inline-flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
       >

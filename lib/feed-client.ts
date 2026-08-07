@@ -32,13 +32,51 @@ function pickString(v: unknown): string | null {
 }
 
 function pickContent(o: Record<string, unknown>): string {
-  const keys = ["content", "text", "body", "description", "message"] as const
+  const keys = [
+    "content",
+    "content_text",
+    "contentText",
+    "text",
+    "body",
+    "description",
+    "message",
+  ] as const
   for (const k of keys) {
     const v = o[k]
     if (typeof v === "string") return v
   }
   if (typeof o.title === "string") return o.title
   return ""
+}
+
+function pickMediaUrls(o: Record<string, unknown>): string[] {
+  const candidates = [o.media_urls, o.mediaUrls, o.images, o.photos]
+  for (const raw of candidates) {
+    if (!Array.isArray(raw)) continue
+    const urls = raw
+      .filter((u): u is string => typeof u === "string" && u.trim() !== "")
+      .map((u) => u.trim())
+    if (urls.length > 0) return urls
+  }
+  return []
+}
+
+function normalizeMediaTypeLabel(
+  value: unknown
+): PostDetail["media_type"] {
+  if (typeof value !== "string") return null
+  const t = value.trim().toLowerCase()
+  if (
+    t === "image" ||
+    t === "imagem" ||
+    t === "photo" ||
+    t === "picture" ||
+    t === "mixed"
+  ) {
+    return "image"
+  }
+  if (t === "video" || t === "vídeo") return "video"
+  return null
 }
 
 function pickCreatedAt(o: Record<string, unknown>): string {
@@ -199,6 +237,16 @@ function parseFeedPostItem(raw: unknown): PostDetail | null {
     likes = parseNumberField(s.likes) ?? 0
     comments = parseNumberField(s.comments) ?? 0
   }
+  likes =
+    parseNumberField(o.likes_count) ??
+    parseNumberField(o.likesCount) ??
+    parseNumberField(o.likes) ??
+    likes
+  comments =
+    parseNumberField(o.comments_count) ??
+    parseNumberField(o.commentsCount) ??
+    parseNumberField(o.comments) ??
+    comments
 
   const image =
     o.image === null || o.image === undefined
@@ -207,33 +255,53 @@ function parseFeedPostItem(raw: unknown): PostDetail | null {
         ? o.image
         : null
 
-  let mediaType: PostDetail["media_type"] = null
+  let mediaType: PostDetail["media_type"] =
+    normalizeMediaTypeLabel(o.media_type) ??
+    normalizeMediaTypeLabel(o.mediaType)
+
   let mediaUrl: PostDetail["media_url"] = null
+  let mediaUrls = pickMediaUrls(o)
+
   if (Array.isArray(o.midia) && o.midia.length >= 2) {
     const parsed = parseMediaFromTuple(o.midia)
-    mediaType = parsed.type
-    mediaUrl = parsed.url
+    if (parsed.url) {
+      mediaType = mediaType ?? parsed.type
+      mediaUrl = parsed.url
+      if (mediaUrls.length === 0) mediaUrls = [parsed.url]
+    }
   }
+
+  if (mediaUrls.length > 0) {
+    mediaUrl = mediaUrls[0]
+    if (!mediaType) {
+      mediaType = inferMediaKindFromUrl(mediaUrls[0]) ?? "image"
+    }
+  }
+
   // Alguns itens chegam como `midia: "ofline"` mas trazem URL dentro de `content`.
   if (!mediaUrl) {
-    const contentUrl = pickUrlFromText(o.content)
+    const contentUrl =
+      pickUrlFromText(o.content) ?? pickUrlFromText(o.content_text)
     if (contentUrl) {
-      mediaType = "image"
+      mediaType = mediaType ?? "image"
       mediaUrl = contentUrl
+      mediaUrls = [contentUrl]
     }
   }
   if (!mediaUrl && image) {
-    mediaType = "image"
+    mediaType = mediaType ?? "image"
     mediaUrl = image
+    mediaUrls = [image]
   }
 
   const detail: PostDetail = {
     id,
     content,
     created_at,
-    image,
+    image: image ?? (mediaType === "image" ? mediaUrl : null),
     media_type: mediaType,
     media_url: mediaUrl,
+    ...(mediaUrls.length > 0 ? { media_urls: mediaUrls } : {}),
     user,
     stats: { likes, comments },
   }
@@ -477,16 +545,16 @@ export async function fetchGlobalFeed(
 }
 
 /**
- * GET /api/feed — feed principal (quem segues + teus; Authorization obrigatório no proxy).
+ * GET /api/feed — feed público (token opcional; com sessão o backend pode personalizar).
  */
 export async function fetchMainFeed(
   options: FetchGlobalFeedOptions = {}
 ): Promise<FetchGlobalFeedOutcome> {
-  return fetchFeedFromUrl(FEED_MAIN_API, options, true)
+  return fetchFeedFromUrl(FEED_MAIN_API, options, false)
 }
 
 /**
- * GET /api/feed/explore — feed público para visitantes (token opcional no proxy).
+ * GET /api/feed/explore — feed alternativo / explore (token opcional no proxy).
  */
 export async function fetchExploreFeed(
   options: FetchGlobalFeedOptions = {}
@@ -495,29 +563,22 @@ export async function fetchExploreFeed(
 }
 
 /**
- * Feed da home: com sessão usa `/api/feed`; sem sessão tenta explore e, se falhar,
- * lista global de posts (`/api/posts/posts`).
+ * Feed da home: usa `/api/feed` (público). Em falha recuperável tenta explore
+ * e depois a lista global (`/api/posts/posts`).
  */
 export async function fetchHomeFeed(
   options: FetchGlobalFeedOptions = {}
 ): Promise<FetchGlobalFeedOutcome> {
-  const token = options.token?.trim() ?? ""
+  const main = await fetchMainFeed(options)
+  if (main.success) return main
 
-  if (token) {
-    const main = await fetchMainFeed(options)
-    if (main.success) return main
-    if (shouldTryFeedFallback(main)) {
-      const global = await fetchGlobalFeed(options)
-      if (global.success) return global
-    }
-    return main
-  }
+  if (shouldTryFeedFallback(main)) {
+    const explore = await fetchExploreFeed(options)
+    if (explore.success) return explore
 
-  const explore = await fetchExploreFeed(options)
-  if (explore.success) return explore
-  if (shouldTryFeedFallback(explore)) {
     const global = await fetchGlobalFeed(options)
     if (global.success) return global
   }
-  return explore
+
+  return main
 }

@@ -24,6 +24,7 @@ import { DeletePostConfirmDialog } from "@/components/delete-post-confirm-dialog
 import { PostEditModal } from "@/components/post-edit-modal/post-edit-modal"
 import { PostMeatballMenu } from "@/components/post-meatball-menu/post-meatball-menu"
 import { PostLikesTooltip } from "@/components/post-likes-tooltip/post-likes-tooltip"
+import { PostMediaGallery } from "@/components/post-media-gallery/post-media-gallery"
 import { likePost, unlikePost } from "@/lib/likes-client"
 import { deletePost, fetchPostById } from "@/lib/posts-client"
 import { resolveUserAvatarUrl, userAvatarSrcUnoptimized } from "@/lib/user-avatar"
@@ -48,15 +49,6 @@ function formatPostDate(iso: string): string {
   } catch {
     return iso
   }
-}
-
-function imageNeedsUnoptimized(src: string): boolean {
-  return (
-    src.startsWith("http://") ||
-    src.startsWith("https://") ||
-    src.startsWith("data:") ||
-    src.startsWith("//")
-  )
 }
 
 export interface ItemPostPublicacaoContentProps {
@@ -146,7 +138,17 @@ export function ItemPostPublicacaoContent({
   const avatarSrc = resolveUserAvatarUrl(post.user.avatar)
   const mediaType = post.media_type ?? (post.image ? "image" : null)
   const mediaUrl = post.media_url?.trim() || post.image?.trim() || ""
-  const imageSrc = mediaType === "image" ? mediaUrl : ""
+  const galleryUrls = (post.media_urls ?? [])
+    .map((u) => u.trim())
+    .filter(Boolean)
+  const imageGalleryUrls =
+    mediaType === "image" || galleryUrls.length > 0
+      ? galleryUrls.length > 0
+        ? galleryUrls
+        : mediaUrl
+          ? [mediaUrl]
+          : []
+      : []
   const imageAlt =
     post.content.trim().slice(0, 100) || "Imagem da publicação"
 
@@ -202,17 +204,8 @@ export function ItemPostPublicacaoContent({
             preload="metadata"
           />
         </div>
-      ) : imageSrc ? (
-        <div className="relative w-full aspect-video max-h-80 bg-muted">
-          <Image
-            src={imageSrc}
-            alt={imageAlt}
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, 42rem"
-            unoptimized={imageNeedsUnoptimized(imageSrc)}
-          />
-        </div>
+      ) : imageGalleryUrls.length > 0 ? (
+        <PostMediaGallery urls={imageGalleryUrls} alt={imageAlt} />
       ) : null}
 
       <CardContent className="p-4 space-y-3">

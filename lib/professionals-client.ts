@@ -32,18 +32,109 @@ export type FetchProfessionalsOutcome =
     }
   | { success: false; error: string; statusCode?: number }
 
-function isProfessionalDetail(item: unknown): item is ProfessionalDetail {
-  return isProfessionalListItem(item)
+function toRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null
 }
 
-function isProfessionalListItem(item: unknown): item is ProfessionalListItem {
-  return (
-    typeof item === "object" &&
-    item !== null &&
-    typeof (item as ProfessionalListItem).id === "string" &&
-    typeof (item as ProfessionalListItem).user_id === "string" &&
-    typeof (item as ProfessionalListItem).full_name === "string"
-  )
+function readString(source: Record<string, unknown>, keys: string[]): string {
+  for (const key of keys) {
+    const value = source[key]
+    if (typeof value === "string" && value.trim()) return value.trim()
+  }
+  return ""
+}
+
+/**
+ * A API devolve `profile_id` (não `id`) e datas `profile_*`.
+ * Normaliza para o contrato usado na UI.
+ */
+export function normalizeProfessionalListItem(
+  raw: unknown
+): ProfessionalListItem | null {
+  const item = toRecord(raw)
+  if (!item) return null
+
+  const id = readString(item, ["id", "profile_id", "professional_id"])
+  const userId = readString(item, ["user_id", "userId"])
+  const fullName = readString(item, ["full_name", "fullName", "name"])
+
+  if (!id || !userId || !fullName) return null
+
+  const hourly = item.hourly_rate
+  const rating = item.rating_avg
+  const reviews = item.total_reviews
+
+  return {
+    id,
+    user_id: userId,
+    full_name: fullName,
+    is_verified: item.is_verified === true,
+    is_available: item.is_available === true,
+    hourly_rate:
+      typeof hourly === "string" || typeof hourly === "number" || hourly === null
+        ? (hourly as string | number | null)
+        : null,
+    rating_avg:
+      typeof rating === "string" || typeof rating === "number"
+        ? rating
+        : "0.0",
+    total_reviews:
+      typeof reviews === "number" && Number.isFinite(reviews)
+        ? reviews
+        : typeof reviews === "string" && Number.isFinite(Number(reviews))
+          ? Number(reviews)
+          : 0,
+    created_at: readString(item, [
+      "created_at",
+      "profile_created_at",
+      "user_created_at",
+    ]),
+    updated_at: readString(item, [
+      "updated_at",
+      "profile_updated_at",
+    ]),
+    email: readString(item, ["email"]) || undefined,
+    phone:
+      typeof item.phone === "string" || item.phone === null
+        ? item.phone
+        : undefined,
+    profile_photo_url:
+      typeof item.profile_photo_url === "string" ||
+      item.profile_photo_url === null
+        ? item.profile_photo_url
+        : undefined,
+    province:
+      typeof item.province === "string" || item.province === null
+        ? item.province
+        : undefined,
+    municipality:
+      typeof item.municipality === "string" || item.municipality === null
+        ? item.municipality
+        : undefined,
+    bio:
+      typeof item.bio === "string" || item.bio === null ? item.bio : undefined,
+    latitude:
+      typeof item.latitude === "string" ||
+      typeof item.latitude === "number" ||
+      item.latitude === null
+        ? item.latitude
+        : undefined,
+    longitude:
+      typeof item.longitude === "string" ||
+      typeof item.longitude === "number" ||
+      item.longitude === null
+        ? item.longitude
+        : undefined,
+    category_ids: Array.isArray(item.category_ids)
+      ? item.category_ids.filter((v): v is string => typeof v === "string")
+      : undefined,
+    is_online:
+      typeof item.is_online === "boolean" ? item.is_online : undefined,
+    last_seen_at:
+      typeof item.last_seen_at === "string" ? item.last_seen_at : undefined,
+  }
 }
 
 export async function fetchProfessionalById(
@@ -82,8 +173,11 @@ export async function fetchProfessionalById(
     return { success: false, error: message, statusCode: res.status }
   }
 
-  const data =
-    "data" in raw && isProfessionalDetail(raw.data) ? raw.data : null
+  const nested =
+    "data" in raw && raw.data != null
+      ? normalizeProfessionalListItem(raw.data)
+      : null
+  const data = nested ?? normalizeProfessionalListItem(raw)
 
   if (!data) {
     return {
@@ -93,7 +187,7 @@ export async function fetchProfessionalById(
     }
   }
 
-  return { success: true, data }
+  return { success: true, data: data as ProfessionalDetail }
 }
 
 export type FetchProfessionalsFilters = {
@@ -175,7 +269,9 @@ export async function fetchProfessionals(
 
   const data = raw as ProfessionalsListResponse
   const professionals = Array.isArray(data.professionals)
-    ? data.professionals.filter(isProfessionalListItem)
+    ? data.professionals
+        .map((item) => normalizeProfessionalListItem(item))
+        .filter((item): item is ProfessionalListItem => item != null)
     : []
 
   return {

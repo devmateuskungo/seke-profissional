@@ -62,11 +62,11 @@ export function Navbar() {
                         role="search"
                         aria-label="Pesquisar na plataforma"
                         onSubmit={handleSearch}
-                        className="flex min-w-0 flex-1 items-center sm:max-w-md md:max-w-[min(100%,12rem)] md:flex-none lg:max-w-md xl:max-w-xl lg:flex-1"
+                        className="flex min-w-0 flex-1 items-center sm:max-w-[11rem] md:max-w-[9.5rem] md:flex-none lg:max-w-[11rem] xl:max-w-xs"
                     >
                         <div className="relative w-full">
                             <Search
-                                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 sm:left-3.5 sm:h-[18px] sm:w-[18px]"
+                                className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
                                 aria-hidden
                             />
                             <Input
@@ -74,8 +74,8 @@ export function Navbar() {
                                 name="q"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Pesquisar pessoas, trabalhos…"
-                                className="h-10 w-full border-gray-200 bg-gray-50/80 pl-9 pr-3 text-sm shadow-none placeholder:text-gray-400 focus-visible:bg-white md:h-10 md:pl-9 md:text-sm lg:h-11 lg:pl-10 lg:text-[15px]"
+                                placeholder="Pesquisar…"
+                                className="h-9 w-full border-gray-200 bg-gray-50/80 pl-8 pr-2.5 text-xs shadow-none placeholder:text-gray-400 focus-visible:bg-white sm:text-sm"
                                 autoComplete="off"
                             />
                         </div>
@@ -94,15 +94,17 @@ export function Navbar() {
                         </Link>
                         {isAuthenticated ? (
                             <>
-                                <Link
-                                    href="/categoria-profissional"
-                                    className={navLinkClass}
-                                    title="Encontrar profissionais"
-                                    aria-label="Encontrar profissionais"
-                                >
-                                    <Briefcase size={18} className="shrink-0" aria-hidden />
-                                    <span className="hidden lg:inline">Encontrar profissionais</span>
-                                </Link>
+                                {role !== "professional" ? (
+                                    <Link
+                                        href="/categoria-profissional"
+                                        className={navLinkClass}
+                                        title="Encontrar profissionais"
+                                        aria-label="Encontrar profissionais"
+                                    >
+                                        <Briefcase size={18} className="shrink-0" aria-hidden />
+                                        <span className="hidden lg:inline">Encontrar profissionais</span>
+                                    </Link>
+                                ) : null}
                                 {role === "professional" ? (
                                     <Link
                                         href="/?filtro=solicitacoes"
@@ -174,17 +176,20 @@ export function Navbar() {
                     <div className="flex shrink-0 items-center gap-1 sm:gap-2 md:gap-1.5 lg:gap-2">
                         <NavbarNotifications />
 
-                        <div className="hidden items-center gap-1.5 md:flex lg:gap-2">
+                        {/* Auth / perfil — sempre visível; em mobile os CTAs não ficam só no menu */}
+                        <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-2">
                             {!isLoading && (
                                 isAuthenticated ? (
-                                    <UserMenu />
+                                    <div className="hidden md:block">
+                                        <UserMenu />
+                                    </div>
                                 ) : (
                                     <>
                                         <Button
                                             type="button"
                                             onClick={() => router.push('/auth/login')}
                                             variant="outline"
-                                            className="h-9 cursor-pointer border-gray-200 px-3 text-sm md:h-10 md:px-4"
+                                            className="h-8 cursor-pointer border-gray-200 px-2.5 text-xs sm:h-9 sm:px-3 sm:text-sm md:h-10 md:px-4"
                                         >
                                             Entrar
                                         </Button>
@@ -192,7 +197,7 @@ export function Navbar() {
                                             type="button"
                                             onClick={() => router.push('/auth/register')}
                                             style={{ backgroundColor: lightTheme.colors.primary }}
-                                            className="h-9 cursor-pointer px-3 text-sm md:h-10 md:px-4"
+                                            className="h-8 cursor-pointer px-2.5 text-xs sm:h-9 sm:px-3 sm:text-sm md:h-10 md:px-4"
                                         >
                                             Criar Conta
                                         </Button>
@@ -227,14 +232,16 @@ export function Navbar() {
                             </Link>
                             {isAuthenticated ? (
                                 <>
-                                    <Link
-                                        href="/categoria-profissional"
-                                        className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-primary"
-                                        onClick={() => setIsMenuOpen(false)}
-                                    >
-                                        <Briefcase size={20} className="shrink-0 text-gray-500" aria-hidden />
-                                        Encontrar profissionais
-                                    </Link>
+                                    {role !== "professional" ? (
+                                        <Link
+                                            href="/categoria-profissional"
+                                            className="flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-primary"
+                                            onClick={() => setIsMenuOpen(false)}
+                                        >
+                                            <Briefcase size={20} className="shrink-0 text-gray-500" aria-hidden />
+                                            Encontrar profissionais
+                                        </Link>
+                                    ) : null}
                                     {role === "professional" ? (
                                         <Link
                                             href="/?filtro=solicitacoes"
@@ -297,40 +304,14 @@ export function Navbar() {
                                 </>
                             )}
 
-                            <div className="border-t border-gray-100 pt-3 md:hidden">
-                                {!isLoading && (
-                                    isAuthenticated ? (
-                                        <div className="flex justify-end px-1" onClick={() => setIsMenuOpen(false)}>
-                                            <UserMenu />
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col gap-2">
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                className="w-full"
-                                                onClick={() => {
-                                                    setIsMenuOpen(false)
-                                                    router.push('/auth/login')
-                                                }}
-                                            >
-                                                Entrar
-                                            </Button>
-                                            <Button
-                                                type="button"
-                                                style={{ backgroundColor: lightTheme.colors.primary }}
-                                                className="w-full"
-                                                onClick={() => {
-                                                    setIsMenuOpen(false)
-                                                    router.push('/auth/register')
-                                                }}
-                                            >
-                                                Criar Conta
-                                            </Button>
-                                        </div>
-                                    )
-                                )}
-                            </div>
+                            {/* Perfil no menu mobile (CTAs de auth já estão na barra) */}
+                            {!isLoading && isAuthenticated ? (
+                                <div className="border-t border-gray-100 pt-3">
+                                    <div className="flex justify-end px-1" onClick={() => setIsMenuOpen(false)}>
+                                        <UserMenu />
+                                    </div>
+                                </div>
+                            ) : null}
                         </div>
                     </div>
                 )}

@@ -1,5 +1,7 @@
 import type {
   ApiErrorResponse,
+  ProfileRatingSummary,
+  ProfileStats,
   UpdateProfileAvatarRequest,
   UpdateProfileLocationRequest,
   UpdateProfilePasswordRequest,
@@ -216,17 +218,91 @@ export async function changeProfilePassword(
   return parseJsonResponse(res)
 }
 
+function toRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null
+}
+
+function readNumber(
+  source: Record<string, unknown> | null,
+  keys: string[]
+): number | undefined {
+  if (!source) return undefined
+  for (const key of keys) {
+    const value = source[key]
+    if (typeof value === "number" && Number.isFinite(value)) return value
+    if (typeof value === "string" && value.trim()) {
+      const n = Number(value)
+      if (Number.isFinite(n)) return n
+    }
+  }
+  return undefined
+}
+
+/** Normaliza GET /profile/stats → { member_since, total_roles, is_verified, profile_completion } */
+export function normalizeProfileStats(raw: unknown): ProfileStats {
+  const root = toRecord(raw)
+  const data = toRecord(root?.data) ?? root
+
+  return {
+    member_since:
+      typeof data?.member_since === "string" ? data.member_since : null,
+    total_roles: Math.max(0, Math.floor(readNumber(data, ["total_roles"]) ?? 0)),
+    is_verified: data?.is_verified === true,
+    profile_completion: Math.max(
+      0,
+      Math.min(100, Math.round(readNumber(data, ["profile_completion"]) ?? 0))
+    ),
+  }
+}
+
+/** Extrai rating do bloco `professional` em GET /profile. */
+export function extractRatingFromProfile(
+  raw: unknown
+): ProfileRatingSummary | null {
+  const data = unwrapProfilePayload(raw) ?? toRecord(raw)
+  if (!data) return null
+  const professional = toRecord(
+    (data as { professional?: unknown }).professional
+  )
+  if (!professional) return null
+
+  const ratingAvg =
+    readNumber(professional, ["rating_avg", "average_rating", "rating"]) ?? 0
+  const totalReviews =
+    readNumber(professional, ["total_reviews", "reviews_count"]) ?? 0
+
+  return {
+    rating_avg: Math.max(0, Math.min(5, ratingAvg)),
+    total_reviews: Math.max(0, Math.floor(totalReviews)),
+  }
+}
+
+/** GET /api/profile/stats?user_id= — estatísticas do perfil */
 export async function fetchProfileStats(
   token: string,
   userId: string
-): Promise<JsonResult<unknown>> {
+): Promise<JsonResult<ProfileStats>> {
+  const trimmed = userId.trim()
+  if (!trimmed) {
+    return {
+      success: false,
+      error: "O campo user_id é obrigatório.",
+      statusCode: 400,
+    }
+  }
+
   const res = await fetch(
-    `/api/profile/stats?user_id=${encodeURIComponent(userId)}`,
+    `/api/profile/stats?user_id=${encodeURIComponent(trimmed)}`,
     {
       method: "GET",
       headers: authHeaders(token),
       cache: "no-store",
     }
   )
-  return parseJsonResponse(res)
+  const parsed = await parseJsonResponse<unknown>(res)
+  if (!parsed.success) return parsed
+
+  return { success: true, data: normalizeProfileStats(parsed.data) }
 }

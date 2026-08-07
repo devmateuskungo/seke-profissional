@@ -41,15 +41,28 @@ export function postDetailToProfissionalFeedRow(post: PostDetail): ProfissionalF
     typeof post.title === "string" && post.title.trim()
       ? post.title.trim()
       : deriveTitulo(post.content)
+  const imageUrls =
+    post.media_urls?.filter((u) => typeof u === "string" && u.trim()) ?? []
+  const primaryImage =
+    (post.media_type === "image" ? post.media_url : post.image)?.trim() ||
+    imageUrls[0] ||
+    undefined
+
   const props: ItemPostProfissonalProps = {
     nome: author.name ?? "Utilizador",
     data: formatFeedDate(post.created_at),
     descricao: post.content,
     titulo,
     imagemPerfil: resolveUserAvatarUrl(author.avatar),
-    imagemPost: (post.media_type === "image" ? post.media_url : post.image)?.trim() || undefined,
+    imagemPost: primaryImage,
     mediaType: post.media_type ?? null,
     mediaUrl: post.media_url ?? null,
+    mediaUrls:
+      imageUrls.length > 0
+        ? imageUrls
+        : primaryImage
+          ? [primaryImage]
+          : undefined,
     curtidas: post.stats?.likes ?? 0,
     authorUserId: author.id,
     likedByMe: post.liked_by_me === true,
@@ -69,14 +82,16 @@ export function postRecordToPostDetail(post: PostRecord): PostDetail | null {
       : null
   if (!id) return null
 
+  const raw = post as Record<string, unknown>
   const content =
     typeof post.content === "string"
       ? post.content
-      : typeof (post as Record<string, unknown>).text === "string"
-        ? ((post as Record<string, unknown>).text as string)
-        : ""
+      : typeof raw.content_text === "string"
+        ? raw.content_text
+        : typeof raw.text === "string"
+          ? raw.text
+          : ""
 
-  const raw = post as Record<string, unknown>
   const created_at =
     (typeof post.createdAt === "string" ? post.createdAt : null) ??
     (typeof raw.created_at === "string" ? raw.created_at : null) ??
@@ -90,6 +105,21 @@ export function postRecordToPostDetail(post: PostRecord): PostDetail | null {
         : null
   let mediaType: PostDetail["media_type"] = null
   let mediaUrl: PostDetail["media_url"] = null
+  let mediaUrls: string[] = []
+
+  if (Array.isArray(raw.media_urls)) {
+    mediaUrls = raw.media_urls
+      .filter((u): u is string => typeof u === "string" && u.trim() !== "")
+      .map((u) => u.trim())
+  }
+
+  const apiMediaType =
+    typeof raw.media_type === "string"
+      ? raw.media_type.trim().toLowerCase()
+      : ""
+  if (apiMediaType === "image" || apiMediaType === "imagem") mediaType = "image"
+  if (apiMediaType === "video" || apiMediaType === "vídeo") mediaType = "video"
+
   if (Array.isArray(raw.midia) && raw.midia.length >= 2) {
     const first = String(raw.midia[0]).trim().toLowerCase()
     const second = typeof raw.midia[1] === "string" ? raw.midia[1].trim() : ""
@@ -107,11 +137,21 @@ export function postRecordToPostDetail(post: PostRecord): PostDetail | null {
           mediaUrl = second
         }
       }
+      if (mediaUrl && mediaUrls.length === 0) mediaUrls = [mediaUrl]
     }
   }
+
+  if (mediaUrls.length > 0) {
+    mediaUrl = mediaUrls[0]
+    if (!mediaType) {
+      mediaType = inferMediaKindFromUrl(mediaUrls[0]) ?? "image"
+    }
+  }
+
   if (!mediaUrl && image) {
-    mediaType = "image"
+    mediaType = mediaType ?? "image"
     mediaUrl = image
+    if (mediaUrls.length === 0) mediaUrls = [image]
   }
 
   let user: PostDetail["user"] = {
@@ -170,9 +210,10 @@ export function postRecordToPostDetail(post: PostRecord): PostDetail | null {
     content,
     ...(title ? { title } : {}),
     created_at,
-    image,
+    image: image ?? (mediaType === "image" ? mediaUrl : null),
     media_type: mediaType,
     media_url: mediaUrl,
+    ...(mediaUrls.length > 0 ? { media_urls: mediaUrls } : {}),
     user,
     stats: { likes: 0, comments: 0 },
   }

@@ -83,6 +83,7 @@ export function clearRegisterFlow(): void {
   clearRegisteredSession()
   if (typeof window !== "undefined") {
     sessionStorage.removeItem("auth_token")
+    sessionStorage.removeItem("refresh_token")
   }
 }
 

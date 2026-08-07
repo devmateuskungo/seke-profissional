@@ -71,6 +71,12 @@ export function ItemLogin() {
           if (typeof window !== "undefined") {
             const token = result.data.token ?? result.data.accessToken
             if (token) window.sessionStorage.setItem("auth_token", token)
+            if (result.data.refreshToken) {
+              window.sessionStorage.setItem(
+                "refresh_token",
+                result.data.refreshToken
+              )
+            }
             const u = result.data.user
             const apiUser = u as { user_id?: string; avatar?: string } | undefined
             const resolvedId =

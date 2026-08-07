@@ -7,7 +7,7 @@ import ItemPostProfissonal from "@/components/itempostprofissional/itempostprofi
 import { ItemPostCriar } from "@/components/itempostcriar/itempostcriar";
 import { ItemSolicitacaoCriar } from "@/components/itemsolicitacaocriar/itemsolicitacaocriar";
 
-import { Users, Briefcase, AlertCircle, RefreshCcw } from 'lucide-react';
+import { Users, Briefcase, AlertCircle, RefreshCcw, PanelLeft } from 'lucide-react';
 import SolicitacaoCliente from '@/components/itempostclients/itempostclient';
 import { ItemPropostaEnviar } from '@/components/itempropostaenviar/itempropostaenviar';
 import { ItemPropostasGerir } from '@/components/itempropostasgerir/itempropostasgerir';
@@ -42,6 +42,7 @@ import {
 import { HomeSidebarMetrics } from '@/components/home/home-sidebar-metrics';
 import { HomeProfessionalAvailability } from '@/components/home/home-professional-availability';
 import { HomeFindProfessionalCard } from '@/components/home/home-find-professional-card';
+import { HomeSidebarPanel } from '@/components/home/home-sidebar-panel';
 import { useAuth } from '@/lib/use-auth';
 
 function getSessionToken(): string | null {
@@ -143,6 +144,7 @@ function HomeInner() {
     id: string;
     servico: string;
   } | null>(null);
+  const [sidebarPanelOpen, setSidebarPanelOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -488,6 +490,27 @@ function HomeInner() {
 
   return (
     <div className="mt-4 justify-center items-center">
+      {/* Acesso ao resumo da sidebar em mobile/tablet (< lg) */}
+      <button
+        type="button"
+        onClick={() => setSidebarPanelOpen(true)}
+        className="fixed right-4 bottom-5 z-40 inline-flex size-12 items-center justify-center rounded-full text-white shadow-lg transition-opacity hover:opacity-90 lg:hidden"
+        style={{ backgroundColor: lightTheme.colors.primary }}
+        aria-label="Abrir resumo: profissionais, disponibilidade e métricas"
+      >
+        <PanelLeft className="size-5" aria-hidden />
+      </button>
+
+      <HomeSidebarPanel
+        open={sidebarPanelOpen}
+        onClose={() => setSidebarPanelOpen(false)}
+        isAuthenticated={isAuthenticated}
+        authLoading={authLoading}
+        accountRole={accountRole}
+        accountRoleLoading={accountRoleLoading}
+        userId={viewerUserId}
+      />
+
       <div className="flex gap-6">
         <aside
           className="hidden lg:block space-y-4"

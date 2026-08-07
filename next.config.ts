@@ -10,6 +10,11 @@ const nextConfig = {
         protocol: "https",
         hostname: "default-avatar.com",
       },
+      {
+        protocol: "https",
+        hostname: "yxgziedppgpgcelpbesf.supabase.co",
+        pathname: "/storage/v1/object/public/**",
+      },
     ],
   },
   experimental: {

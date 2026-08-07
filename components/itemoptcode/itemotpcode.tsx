@@ -29,7 +29,7 @@ export function ItemOtpCode() {
                     color: lightTheme.colors.textSecondary,
                     fontSize: lightTheme.typography.fontSize.body
                 }}>
-                    Enviamos um código para seu telefone. Digite-o abaixo para continuar.
+                    Enviamos um código para o seu e-mail. Digite-o abaixo para continuar.
                 </CardDescription>
             </CardHeader>
             <CardContent>

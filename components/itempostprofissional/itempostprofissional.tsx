@@ -10,6 +10,7 @@ import { DeletePostConfirmDialog } from "@/components/delete-post-confirm-dialog
 import { PostLikesTooltip } from "@/components/post-likes-tooltip/post-likes-tooltip"
 import { PostMeatballMenu } from "@/components/post-meatball-menu/post-meatball-menu"
 import { PostEditModal } from "@/components/post-edit-modal/post-edit-modal"
+import { PostMediaGallery } from "@/components/post-media-gallery/post-media-gallery"
 import { useToast } from "@/components/ui/toaster"
 import { followUser, unfollowUser } from "@/lib/follow-client"
 import { likePost, unlikePost } from "@/lib/likes-client"
@@ -160,6 +161,8 @@ export interface ItemPostProfissonalProps {
   imagemPost?: string
   mediaType?: "image" | "video" | null
   mediaUrl?: string | null
+  /** Várias imagens (estilo Facebook). Se omitido, usa `mediaUrl` / `imagemPost`. */
+  mediaUrls?: string[] | null
   curtidas?: number
   /** ID da publicação (obrigatório para editar/eliminar no feed) */
   postId?: string
@@ -186,6 +189,7 @@ export default function ItemPostProfissonal({
   imagemPost,
   mediaType = null,
   mediaUrl = null,
+  mediaUrls = null,
   curtidas = 0,
   postId,
   authorUserId,
@@ -231,10 +235,19 @@ export default function ItemPostProfissonal({
   const normalizedImagemPost = imagemPost
     ? normalizeMediaSrc(imagemPost)
     : null
+  const galleryUrls = (mediaUrls ?? [])
+    .map((u) => normalizeMediaSrc(u))
+    .filter((u): u is string => Boolean(u))
   const resolvedImageSrc =
-    mediaType === "image"
-      ? normalizedMediaUrl ?? normalizedImagemPost
-      : normalizedImagemPost
+    mediaType === "image" || galleryUrls.length > 0 || (!mediaType && normalizedImagemPost)
+      ? normalizedMediaUrl ?? normalizedImagemPost ?? galleryUrls[0] ?? null
+      : null
+  const imageGalleryUrls =
+    galleryUrls.length > 0
+      ? galleryUrls
+      : resolvedImageSrc
+        ? [resolvedImageSrc]
+        : []
   const resolvedVideoSrc = mediaType === "video" ? normalizedMediaUrl : null
   const videoPoster =
     mediaType === "video" ? normalizedImagemPost ?? null : null
@@ -430,17 +443,8 @@ export default function ItemPostProfissonal({
 
       {resolvedVideoSrc ? (
         <FeedInlineVideo src={resolvedVideoSrc} posterUrl={videoPoster} />
-      ) : resolvedImageSrc ? (
-        <div className={MEDIA_FRAME_CLASS}>
-          <Image
-            src={resolvedImageSrc}
-            alt=""
-            fill
-            sizes="(max-width: 768px) 100vw, 680px"
-            className="object-contain"
-            unoptimized={imageNeedsUnoptimized(resolvedImageSrc)}
-          />
-        </div>
+      ) : imageGalleryUrls.length > 0 ? (
+        <PostMediaGallery urls={imageGalleryUrls} alt={titulo || descricao} />
       ) : null}
 
       {postId && token && isOwnPost ? (

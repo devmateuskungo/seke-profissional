@@ -19,13 +19,13 @@ export default function HeroSection({
   }
 
   return (
-    <div className="relative w-full h-150.5 md:h-83 overflow-hidden rounded-md ">
+    <div className="relative h-44 w-full overflow-hidden rounded-md sm:h-52 md:h-56 lg:h-64">
       {/* Imagem de fundo */}
       <Image
         src={imagemUrl}
         alt="Background"
         fill
-        className="object-cover  "
+        className="object-cover"
         priority
       />
       
@@ -34,7 +34,7 @@ export default function HeroSection({
       
       {/* Texto centralizado */}
       <div className="absolute inset-0 flex items-center justify-center">
-        <h1 className="text-white text-4xl md:text-2xl lg:text-4xl font-bold text-center max-w-4xl px-4">
+        <h1 className="max-w-4xl px-4 text-center text-xl font-bold text-white sm:text-2xl md:text-2xl lg:text-3xl">
           {texto}
         </h1>
       </div>

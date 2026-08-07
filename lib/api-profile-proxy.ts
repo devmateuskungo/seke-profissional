@@ -49,7 +49,7 @@ export function getAuthorizationHeader(
 type ProxyMethod = "GET" | "PUT" | "POST" | "PATCH"
 
 /** Node `fetch` não permite GET com body; a API externa exige esse formato. */
-function httpGetWithJsonBody(
+export function httpGetWithJsonBody(
   url: string,
   headers: Record<string, string>,
   jsonBody: string

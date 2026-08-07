@@ -3,6 +3,8 @@ import type {
   LoginResponse,
   RegisterRequest,
   RegisterResponse,
+  RefreshTokenRequest,
+  RefreshTokenResponse,
   ApiErrorResponse,
 } from "@/types/auth"
 import { extractUserIdFromJwt } from "@/lib/jwt-user-id"
@@ -252,4 +254,151 @@ export async function registerWithCredentials(
     success: true,
     data: normalizeRegisterResponse(rawData),
   }
+}
+
+export type ForgotPasswordOutcome =
+  | { success: true; message?: string }
+  | { success: false; error: string; statusCode?: number }
+
+/** POST /auth/forgot-password — envia código para o e-mail (recuperação de senha). */
+export async function requestForgotPassword(
+  email: string
+): Promise<ForgotPasswordOutcome> {
+  const trimmed = email.trim()
+  if (!trimmed) {
+    return { success: false, error: "Informe o e-mail.", statusCode: 400 }
+  }
+
+  const res = await fetch("/api/auth/forgot-password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: trimmed }),
+  })
+
+  const raw = await res.json().catch(() => ({}))
+
+  if (!res.ok) {
+    const message =
+      "message" in raw && typeof raw.message === "string"
+        ? raw.message
+        : "Não foi possível enviar o código. Tente novamente."
+    return { success: false, error: message, statusCode: res.status }
+  }
+
+  const message =
+    raw &&
+    typeof raw === "object" &&
+    "message" in raw &&
+    typeof (raw as { message?: string }).message === "string"
+      ? (raw as { message: string }).message
+      : undefined
+
+  return { success: true, message }
+}
+
+export type RefreshTokenOutcome =
+  | { success: true; data: RefreshTokenResponse }
+  | { success: false; error: string; statusCode?: number }
+
+function normalizeRefreshTokenResponse(raw: unknown): RefreshTokenResponse {
+  const root = toRecord(raw)
+  const data = toRecord(root?.data)
+
+  const token =
+    readString(root, "token") ??
+    readString(root, "accessToken") ??
+    readString(root, "access_token") ??
+    readString(data, "token") ??
+    readString(data, "accessToken") ??
+    readString(data, "access_token")
+
+  const refreshToken =
+    readString(root, "refreshToken") ??
+    readString(root, "refresh_token") ??
+    readString(data, "refreshToken") ??
+    readString(data, "refresh_token")
+
+  return {
+    token,
+    accessToken:
+      readString(root, "accessToken") ??
+      readString(data, "accessToken") ??
+      token,
+    refreshToken,
+    message: readString(root, "message") ?? readString(data, "message"),
+  }
+}
+
+/** POST /auth/refresh-token — renova o access token com o refresh token. */
+export async function requestRefreshToken(
+  refreshToken: string
+): Promise<RefreshTokenOutcome> {
+  const trimmed = refreshToken.trim()
+  if (!trimmed) {
+    return {
+      success: false,
+      error: "O refresh token é obrigatório.",
+      statusCode: 400,
+    }
+  }
+
+  const payload: RefreshTokenRequest = { refreshToken: trimmed }
+
+  const res = await fetch("/api/auth/refresh-token", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  })
+
+  const rawData = await res.json().catch(() => ({}))
+
+  if (!res.ok) {
+    const message =
+      rawData &&
+      typeof rawData === "object" &&
+      "message" in rawData &&
+      typeof (rawData as ApiErrorResponse).message === "string"
+        ? (rawData as ApiErrorResponse).message
+        : "Não foi possível renovar a sessão. Tente novamente."
+    return { success: false, error: message, statusCode: res.status }
+  }
+
+  return {
+    success: true,
+    data: normalizeRefreshTokenResponse(rawData),
+  }
+}
+
+/** Guarda access/refresh tokens no sessionStorage após refresh bem-sucedido. */
+export function persistAuthTokens(data: RefreshTokenResponse): void {
+  if (typeof window === "undefined") return
+  const access = data.token ?? data.accessToken
+  if (access) {
+    window.sessionStorage.setItem("auth_token", access)
+  }
+  if (data.refreshToken) {
+    window.sessionStorage.setItem("refresh_token", data.refreshToken)
+  }
+}
+
+/** Renova o access token usando o refresh_token guardado e atualiza o sessionStorage. */
+export async function refreshStoredSession(): Promise<RefreshTokenOutcome> {
+  if (typeof window === "undefined") {
+    return { success: false, error: "Indisponível no servidor.", statusCode: 500 }
+  }
+
+  const refreshToken = window.sessionStorage.getItem("refresh_token")
+  if (!refreshToken) {
+    return {
+      success: false,
+      error: "Refresh token não encontrado. Inicie sessão novamente.",
+      statusCode: 401,
+    }
+  }
+
+  const result = await requestRefreshToken(refreshToken)
+  if (result.success) {
+    persistAuthTokens(result.data)
+  }
+  return result
 }

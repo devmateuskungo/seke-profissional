@@ -100,7 +100,10 @@ export interface PostDetail {
   title?: string | null
   image?: string | null
   media_type?: "image" | "video" | null
+  /** Primeira URL de média (compatível com layouts de uma só imagem/vídeo) */
   media_url?: string | null
+  /** Todas as URLs de imagem/vídeo (ex. GET /api/feed → `media_urls`) */
+  media_urls?: string[]
   created_at: string
   user: PostDetailUser
   stats: PostDetailStats

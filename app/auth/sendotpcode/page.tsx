@@ -1,12 +1,9 @@
+import { ItemOtpCode } from "@/components/itemoptcode/itemotpcode";
 
-import { ItemSendPhone } from "@/components/itemsendphone/itemsendphone";
-
-export default function SendPhone() {
+export default function SendOtpCodePage() {
   return (
-   
-        <div className="w-full max-w-125">
-            <ItemSendPhone/>
-        </div>
-    
+    <div className="w-full max-w-125">
+      <ItemOtpCode />
+    </div>
   );
 }

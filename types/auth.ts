@@ -88,8 +88,8 @@ export interface UpdateProfileAvatarRequest {
 /** Payload para atualização da localização (PUT /profile/location) */
 export interface UpdateProfileLocationRequest {
   user_id: string
-  latitude?: number
-  longitude?: number
+  latitude: number
+  longitude: number
   province: string
   municipality: string
 }
@@ -104,6 +104,39 @@ export interface UpdateProfilePasswordRequest {
 /** Parâmetros para estatísticas do perfil (GET /profile/stats) */
 export interface ProfileStatsRequest {
   user_id: string
+}
+
+/** Resposta de GET /profile/stats */
+export interface ProfileStats {
+  member_since: string | null
+  total_roles: number
+  is_verified: boolean
+  profile_completion: number
+}
+
+/** Avaliações do professional (GET /profile → professional) */
+export interface ProfileRatingSummary {
+  rating_avg: number
+  total_reviews: number
+}
+
+/** Payload para pedido de código de recuperação de senha (POST /auth/forgot-password) */
+export interface ForgotPasswordRequest {
+  email: string
+}
+
+/** Payload para renovar o access token (POST /auth/refresh-token) */
+export interface RefreshTokenRequest {
+  /** Refresh token — obrigatório */
+  refreshToken: string
+}
+
+/** Resposta esperada de POST /auth/refresh-token */
+export interface RefreshTokenResponse {
+  token?: string
+  accessToken?: string
+  refreshToken?: string
+  message?: string
 }
 
 /** Erro padrão retornado pela API */

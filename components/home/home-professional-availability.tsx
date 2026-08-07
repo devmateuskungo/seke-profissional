@@ -4,10 +4,9 @@ import { useCallback, useEffect, useState } from "react"
 import { Loader2, UserCheck } from "lucide-react"
 import { useToast } from "@/components/ui/toaster"
 import {
-  extractProfessionalProfileFields,
-  updateProfessionalProfile,
+  fetchProfessionalProfile,
+  updateProfessionalAvailability,
 } from "@/lib/professional-client"
-import { fetchProfile } from "@/lib/profile-client"
 import { cn } from "@/lib/utils"
 import { lightTheme } from "@/style/light"
 
@@ -60,34 +59,27 @@ export function HomeProfessionalAvailability({
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [isAvailable, setIsAvailable] = useState(true)
-  const [profileFields, setProfileFields] = useState<{
-    hourly_rate: number
-    bio: string
-  } | null>(null)
+  const [loaded, setLoaded] = useState(false)
 
   const loadAvailability = useCallback(async () => {
     const token = getSessionToken()
     if (!token || !userId) {
       setLoading(false)
+      setLoaded(false)
       return
     }
 
     setLoading(true)
     try {
-      const result = await fetchProfile(token, userId)
+      const result = await fetchProfessionalProfile(token, userId)
       if (!result.success) {
+        setLoaded(false)
         toast.error(result.error)
         return
       }
 
-      const fields = extractProfessionalProfileFields(result.data)
-      if (fields) {
-        setIsAvailable(fields.is_available)
-        setProfileFields({
-          hourly_rate: fields.hourly_rate,
-          bio: fields.bio,
-        })
-      }
+      setIsAvailable(result.fields.is_available)
+      setLoaded(true)
     } finally {
       setLoading(false)
     }
@@ -104,21 +96,14 @@ export function HomeProfessionalAvailability({
       return
     }
 
-    if (!profileFields?.bio.trim()) {
-      toast.error("Complete o seu perfil profissional antes de alterar a disponibilidade.")
-      return
-    }
-
     const previous = isAvailable
     setIsAvailable(nextAvailable)
     setSaving(true)
 
     try {
-      const result = await updateProfessionalProfile(
+      const result = await updateProfessionalAvailability(
         {
           user_id: userId,
-          hourly_rate: profileFields.hourly_rate,
-          bio: profileFields.bio.trim(),
           is_available: nextAvailable,
         },
         token
@@ -183,13 +168,13 @@ export function HomeProfessionalAvailability({
             </div>
             <AvailabilitySwitch
               checked={isAvailable}
-              disabled={saving || !profileFields}
+              disabled={saving || !loaded}
               onChange={(value) => void handleToggle(value)}
             />
           </label>
-          {!profileFields ? (
+          {!loaded ? (
             <p className="mt-2 text-xs text-amber-600 leading-tight">
-              Complete a biografia e tarifa no perfil para alterar.
+              Não foi possível carregar a disponibilidade.
             </p>
           ) : null}
         </>

@@ -34,7 +34,7 @@ function mapGeolocationError(error: GeolocationPositionError): GeolocationFailur
         success: false,
         code: "denied",
         message:
-          "Permita o acesso à localização no navegador para publicar a solicitação.",
+          "Permita o acesso à localização no navegador para continuar.",
       }
     case error.POSITION_UNAVAILABLE:
       return {

@@ -485,6 +485,8 @@ function parsePostDetail(
   let content = ""
   if (typeof o.content === "string") {
     content = o.content
+  } else if (typeof o.content_text === "string") {
+    content = o.content_text
   } else if (contentFallback !== undefined) {
     content = contentFallback
   }
@@ -529,6 +531,14 @@ function parsePostDetail(
     likes = parseNumberField(s.likes) ?? 0
     comments = parseNumberField(s.comments) ?? 0
   }
+  likes =
+    parseNumberField(o.likes_count) ??
+    parseNumberField(o.likesCount) ??
+    likes
+  comments =
+    parseNumberField(o.comments_count) ??
+    parseNumberField(o.commentsCount) ??
+    comments
 
   const image =
     o.image === null || o.image === undefined
@@ -539,26 +549,48 @@ function parsePostDetail(
 
   let mediaType: PostDetail["media_type"] = null
   let mediaUrl: PostDetail["media_url"] = null
+  let mediaUrls: string[] = []
+
+  if (Array.isArray(o.media_urls)) {
+    mediaUrls = o.media_urls
+      .filter((u): u is string => typeof u === "string" && u.trim() !== "")
+      .map((u) => u.trim())
+  }
+
+  const apiMediaType =
+    typeof o.media_type === "string" ? o.media_type.trim().toLowerCase() : ""
+  if (apiMediaType === "image" || apiMediaType === "imagem") mediaType = "image"
+  if (apiMediaType === "video" || apiMediaType === "vídeo") mediaType = "video"
+
   if (Array.isArray(o.midia) && o.midia.length >= 2) {
     const first = o.midia[0]
     const second = o.midia[1]
     if ((first === "image" || first === "video") && typeof second === "string" && second.trim()) {
       mediaType = first
       mediaUrl = second.trim()
+      if (mediaUrls.length === 0) mediaUrls = [mediaUrl]
     }
   }
+
+  if (mediaUrls.length > 0) {
+    mediaUrl = mediaUrls[0]
+    if (!mediaType) mediaType = "image"
+  }
+
   if (!mediaUrl && image) {
-    mediaType = "image"
+    mediaType = mediaType ?? "image"
     mediaUrl = image
+    if (mediaUrls.length === 0) mediaUrls = [image]
   }
 
   const detail: PostDetail = {
     id,
     content,
     created_at,
-    image,
+    image: image ?? (mediaType === "image" ? mediaUrl : null),
     media_type: mediaType,
     media_url: mediaUrl,
+    ...(mediaUrls.length > 0 ? { media_urls: mediaUrls } : {}),
     user,
     stats: { likes, comments },
   }
