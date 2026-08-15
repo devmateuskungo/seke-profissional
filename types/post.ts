@@ -1,11 +1,15 @@
-/** Corpo enviado em POST /api/posts */
+/** Corpo enviado em POST /api/posts (proxy → POST …/posts na API externa) */
 export interface CreatePostRequest {
-  title?: string
+  /** Texto da publicação (mapeado para `content_text`) */
   content: string
-  /** Formato novo da API: ex. ["video", "https://..."] */
+  visibility?: "public" | "private" | "followers"
+  hashtags?: string[]
+  /** Campos legados — ignorados em POST /posts; usados em rascunhos / publishPost */
+  title?: string
   midia?: string[]
-  /** Opcional: URL, base64 ou data URL, conforme a API */
   image?: string
+  media_urls?: string[]
+  media_type?: "image" | "video"
 }
 
 /** Resposta de sucesso { post } */
@@ -16,7 +20,16 @@ export interface CreatePostResponse {
 /** Corpo enviado em PUT /api/posts/:id */
 export interface UpdatePostRequest {
   content: string
-  /** Nova imagem (data URL, etc.); omitir para manter; `null` para remover */
+  visibility?: "public" | "private" | "followers"
+  hashtags?: string[]
+  /**
+   * URLs de média já existentes a manter (quando se misturam com ficheiros novos).
+   * O proxy PUT descarrega e reenvia como `media`.
+   */
+  keepMediaUrls?: string[]
+  /** Remover toda a média da publicação */
+  removeMedia?: boolean
+  /** @deprecated Preferir FormData `media` / keepMediaUrls */
   image?: string | null
 }
 
@@ -137,4 +150,24 @@ export interface MyPostsPagination {
   total: number
   page: number
   totalPages: number
+}
+
+/** Item em GET /api/posts/user/:id → GET …/posts/user/:id */
+export interface UserPostListItem {
+  id: string
+  content: string
+  media_urls: string[]
+  media_type: "image" | "video" | null
+  likes_count: number
+  comments_count: number
+  shares_count: number
+  views_count: number
+  created_at: string
+  author_id: string | null
+}
+
+export interface UserPostsPagination {
+  page: number
+  limit: number
+  total: number
 }

@@ -1,5 +1,14 @@
 import type { ProfileApiData, ProfileApiResponse } from "@/types/auth"
 
+function toCoordNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value
+  if (typeof value === "string" && value.trim()) {
+    const n = Number(value)
+    if (Number.isFinite(n)) return n
+  }
+  return null
+}
+
 /** Extrai o objeto `data` de `{ success, data }` ou devolve o próprio objeto. */
 export function unwrapProfilePayload(raw: unknown): ProfileApiData | null {
   if (!raw || typeof raw !== "object") return null
@@ -135,8 +144,8 @@ export function mapProfileApiToPerfilInfo(
     municipality: data.municipality ?? null,
     location: data.province ?? undefined,
     city: data.municipality ?? null,
-    latitude: data.latitude ?? null,
-    longitude: data.longitude ?? null,
+    latitude: toCoordNumber(data.latitude),
+    longitude: toCoordNumber(data.longitude),
     profile_type:
       roles.find((r) => r.toLowerCase().includes("professional")) ??
       (data.professional ? "professional" : roles[0]) ??

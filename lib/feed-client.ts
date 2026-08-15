@@ -1,5 +1,6 @@
 import type { ApiErrorResponse } from "@/types/auth"
 import { parseLikedByMeFromPostLike } from "@/lib/parse-liked-by-me"
+import { parseMidiaTupleUrls, dedupeMediaUrls } from "@/lib/posts-client"
 import type { PostDetail } from "@/types/post"
 import type { GlobalFeedPagination, GlobalFeedResponse } from "@/types/feed"
 
@@ -56,7 +57,8 @@ function pickMediaUrls(o: Record<string, unknown>): string[] {
     const urls = raw
       .filter((u): u is string => typeof u === "string" && u.trim() !== "")
       .map((u) => u.trim())
-    if (urls.length > 0) return urls
+    const deduped = dedupeMediaUrls(urls)
+    if (deduped.length > 0) return deduped
   }
   return []
 }
@@ -263,11 +265,18 @@ function parseFeedPostItem(raw: unknown): PostDetail | null {
   let mediaUrls = pickMediaUrls(o)
 
   if (Array.isArray(o.midia) && o.midia.length >= 2) {
-    const parsed = parseMediaFromTuple(o.midia)
-    if (parsed.url) {
-      mediaType = mediaType ?? parsed.type
-      mediaUrl = parsed.url
-      if (mediaUrls.length === 0) mediaUrls = [parsed.url]
+    const parsed = parseMidiaTupleUrls(o.midia)
+    if (parsed.urls.length > 0) {
+      mediaType = mediaType ?? parsed.mediaType
+      mediaUrl = parsed.urls[0]
+      if (mediaUrls.length === 0) mediaUrls = parsed.urls
+    } else {
+      const legacy = parseMediaFromTuple(o.midia)
+      if (legacy.url) {
+        mediaType = mediaType ?? legacy.type
+        mediaUrl = legacy.url
+        if (mediaUrls.length === 0) mediaUrls = [legacy.url]
+      }
     }
   }
 

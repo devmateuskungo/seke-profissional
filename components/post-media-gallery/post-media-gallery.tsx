@@ -10,6 +10,7 @@ import {
 import { ChevronLeft, ChevronRight, X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { dedupeMediaUrls } from "@/lib/posts-client"
 
 /** Placeholder em `public/` quando a URL do storage falha (404 / NoSuchKey). */
 export const POST_IMAGE_NOT_FOUND = "/seke_imagem_not_found.png"
@@ -79,7 +80,9 @@ function FeedSafeImage({
       sizes={sizes}
       priority={priority}
       className={cn(
-        objectFit === "contain" ? "object-contain" : "object-cover",
+        objectFit === "contain"
+          ? "object-contain object-center"
+          : "object-cover object-center",
         className
       )}
       unoptimized={imageNeedsUnoptimized(currentSrc)}
@@ -91,6 +94,60 @@ function FeedSafeImage({
     />
   )
 }
+
+/** Imagem única no feed — proporção natural, sem distorção. */
+function FeedSingleImage({
+  src,
+  alt,
+  onOpen,
+}: {
+  src: string
+  alt: string
+  onOpen: () => void
+}) {
+  const [loaded, setLoaded] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const currentSrc = failed ? POST_IMAGE_NOT_FOUND : src
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="relative flex w-full min-h-[160px] items-center justify-center overflow-hidden bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:bg-neutral-900/40 sm:min-h-[200px]"
+      aria-label={`Ver imagem: ${alt}`}
+    >
+      {!loaded ? (
+        <div className="absolute inset-0 animate-pulse bg-muted" aria-hidden />
+      ) : null}
+      <Image
+        src={currentSrc}
+        alt={alt}
+        width={0}
+        height={0}
+        sizes="(max-width: 768px) 100vw, 680px"
+        priority
+        className={cn(
+          "mx-auto block h-auto max-h-[min(560px,70vh)] w-auto max-w-full object-contain object-center transition-opacity duration-200",
+          loaded ? "opacity-100" : "opacity-0"
+        )}
+        style={{ width: "auto", height: "auto", maxWidth: "100%" }}
+        unoptimized={imageNeedsUnoptimized(currentSrc)}
+        onLoad={() => setLoaded(true)}
+        onError={() => {
+          if (!failed) setFailed(true)
+        }}
+      />
+    </button>
+  )
+}
+
+/** Alturas responsivas das grelhas multi-imagem. */
+const GRID_HEIGHT_TWO =
+  "h-[min(260px,42vh)] min-h-[160px] sm:h-[min(420px,55vh)] sm:min-h-[200px]"
+const GRID_HEIGHT_THREE =
+  "h-[min(280px,45vh)] min-h-[180px] sm:h-[min(420px,55vh)] sm:min-h-[220px]"
+const GRID_HEIGHT_FOUR =
+  "h-[min(300px,48vh)] min-h-[200px] sm:h-[min(460px,60vh)] sm:min-h-[240px]"
 
 export interface PostMediaGalleryProps {
   urls: string[]
@@ -108,9 +165,11 @@ export function PostMediaGallery({
   alt = "Imagem da publicação",
   className,
 }: PostMediaGalleryProps) {
-  const images = urls
-    .map(normalizeMediaSrc)
-    .filter((u): u is string => Boolean(u))
+  const images = dedupeMediaUrls(
+    urls
+      .map(normalizeMediaSrc)
+      .filter((u): u is string => Boolean(u))
+  )
 
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
@@ -166,7 +225,7 @@ export function PostMediaGallery({
       type="button"
       onClick={() => openAt(index)}
       className={cn(
-        "relative overflow-hidden bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "relative overflow-hidden bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring min-w-0",
         cellClass
       )}
       aria-label={
@@ -192,30 +251,22 @@ export function PostMediaGallery({
 
   if (count === 1) {
     grid = (
-      <div className="relative w-full aspect-video max-h-[min(560px,80vh)] min-h-[220px] bg-muted">
-        {cell(images[0], 0, "absolute inset-0")}
-      </div>
+      <FeedSingleImage
+        src={images[0]}
+        alt={alt}
+        onOpen={() => openAt(0)}
+      />
     )
   } else if (count === 2) {
     grid = (
-      <div
-        className={cn(
-          "grid grid-cols-2 h-[min(420px,55vh)] min-h-[200px]",
-          GRID_GAP
-        )}
-      >
+      <div className={cn("grid grid-cols-2", GRID_HEIGHT_TWO, GRID_GAP)}>
         {cell(images[0], 0, "h-full w-full")}
         {cell(images[1], 1, "h-full w-full")}
       </div>
     )
   } else if (count === 3) {
     grid = (
-      <div
-        className={cn(
-          "grid grid-cols-2 h-[min(420px,55vh)] min-h-[220px]",
-          GRID_GAP
-        )}
-      >
+      <div className={cn("grid grid-cols-2", GRID_HEIGHT_THREE, GRID_GAP)}>
         {cell(images[0], 0, "row-span-2 h-full w-full")}
         <div className={cn("grid grid-rows-2 h-full min-h-0", GRID_GAP)}>
           {cell(images[1], 1, "h-full w-full min-h-0")}
@@ -227,7 +278,8 @@ export function PostMediaGallery({
     grid = (
       <div
         className={cn(
-          "grid grid-cols-2 grid-rows-2 h-[min(460px,60vh)] min-h-[240px]",
+          "grid grid-cols-2 grid-rows-2",
+          GRID_HEIGHT_FOUR,
           GRID_GAP
         )}
       >

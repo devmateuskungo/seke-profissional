@@ -19,8 +19,8 @@ import { Textarea } from "@/components/ui/textarea"
 import {
   publishPost,
   updatePost,
-  uploadMediaToCloudinary,
 } from "@/lib/posts-client"
+import { compressImageToJpegDataUrl } from "@/lib/compress-image-client"
 import type { MyPostSummary } from "@/types/post"
 
 const MAX_IMAGE_BYTES = 12 * 1024 * 1024
@@ -189,12 +189,21 @@ export function DraftFinalizeModal({
         onErrorMessage("Sessão inválida. Inicie sessão novamente.")
         return false
       }
-      const upload = await uploadMediaToCloudinary(newFile, token)
-      if (!upload.success) {
-        onErrorMessage(upload.error)
-        return false
+      if (mediaKind === "image") {
+        try {
+          const dataUrl = await compressImageToJpegDataUrl(newFile)
+          return [mediaKind, dataUrl]
+        } catch (err) {
+          onErrorMessage(
+            err instanceof Error
+              ? err.message
+              : "Não foi possível preparar a imagem."
+          )
+          return false
+        }
       }
-      return [mediaKind, upload.data.url]
+      onErrorMessage("Upload de vídeo indisponível.")
+      return false
     }
     return [mediaKind, previewUrl]
   }, [
@@ -232,12 +241,16 @@ export function DraftFinalizeModal({
           return
         }
         if (newFile && mediaKind === "image") {
-          const upload = await uploadMediaToCloudinary(newFile, token)
-          if (!upload.success) {
-            onErrorMessage(upload.error)
+          try {
+            imagePayload = await compressImageToJpegDataUrl(newFile)
+          } catch (err) {
+            onErrorMessage(
+              err instanceof Error
+                ? err.message
+                : "Não foi possível preparar a imagem."
+            )
             return
           }
-          imagePayload = upload.data.url
         } else if (!previewUrl) {
           imagePayload = null
         }

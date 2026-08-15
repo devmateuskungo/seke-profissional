@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/lib/use-auth"
 import { HomeSidebarMetrics } from "@/components/home/home-sidebar-metrics"
+import { ProfileUserPostsCard, ProfileUserPostsPanel } from "@/components/profile/profile-user-posts-card"
 import { useAccountRole, type AccountRole } from "@/lib/use-account-role"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -59,7 +60,6 @@ import {
   NetworkListSkeleton,
   ProfileLayoutSkeleton,
 } from "@/components/profile/profile-layout-skeleton"
-import { uploadMediaToCloudinary } from "@/lib/posts-client"
 import {
   buildUpdateProfilePayload,
   extractRatingFromProfile,
@@ -69,6 +69,7 @@ import {
   updateProfile,
   updateProfileAvatar,
   updateProfileLocation,
+  uploadProfileAvatarFile,
 } from "@/lib/profile-client"
 import type { ProfileRatingSummary, ProfileStats } from "@/types/auth"
 import { getClientGeolocation, type GeoCoords } from "@/lib/geolocation"
@@ -90,11 +91,6 @@ import { MyServiceCard } from "@/components/itemprofileservice/my-service-card"
 import { fetchMyMarketplaceServices } from "@/lib/marketplace-client"
 import { deleteService, toggleService } from "@/lib/services-client"
 import { isProfessionalUser } from "@/lib/is-professional-user"
-import {
-  resolveProfessionalIdForUser,
-  updateProfessionalAvatarUrl,
-  uploadProfessionalAvatarFile,
-} from "@/lib/professionals-client"
 import {
   extractProfessionalProfileFields,
   fetchProfessionalProfile,
@@ -162,6 +158,15 @@ function imageNeedsUnoptimized(src: string): boolean {
   )
 }
 
+function toCoordNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value
+  if (typeof value === "string" && value.trim()) {
+    const n = Number(value)
+    if (Number.isFinite(n)) return n
+  }
+  return null
+}
+
 function pickPerfilInfoFromUnknown(raw: unknown): Partial<PerfilInfo> | null {
   if (!raw || typeof raw !== "object") return null
   const root = raw as Record<string, unknown>
@@ -212,8 +217,10 @@ function pickPerfilInfoFromUnknown(raw: unknown): Partial<PerfilInfo> | null {
     picked.cove_image = (o.cove_image as string | null) ?? null
   }
   if (typeof o.location === "string") picked.location = o.location
-  if (typeof o.latitude === "number") picked.latitude = o.latitude
-  if (typeof o.longitude === "number") picked.longitude = o.longitude
+  const lat = toCoordNumber(o.latitude)
+  const lng = toCoordNumber(o.longitude)
+  if (lat != null) picked.latitude = lat
+  if (lng != null) picked.longitude = lng
   if (typeof o.member_since === "string") picked.member_since = o.member_since
   if (typeof o.created_at === "string") picked.member_since = o.created_at
   if (Array.isArray(o.roles)) {
@@ -531,6 +538,7 @@ export default function PerfilPage() {
   const [verifyingProfessional, setVerifyingProfessional] = useState(false)
   const [isPerfilLoading, setIsPerfilLoading] = useState(false)
   const [careerTab, setCareerTab] = useState(0)
+  const [profileInfoTab, setProfileInfoTab] = useState<"info" | "posts">("info")
   const [bioExpanded, setBioExpanded] = useState(false)
 
   const [editProfileOpen, setEditProfileOpen] = useState(false)
@@ -953,19 +961,13 @@ export default function PerfilPage() {
           const lat =
             geo.success
               ? geo.coords.latitude
-              : typeof updatedProfile?.latitude === "number"
-                ? updatedProfile.latitude
-                : typeof perfilInfo?.latitude === "number"
-                  ? perfilInfo.latitude
-                  : null
+              : toCoordNumber(updatedProfile?.latitude) ??
+                toCoordNumber(perfilInfo?.latitude)
           const lng =
             geo.success
               ? geo.coords.longitude
-              : typeof updatedProfile?.longitude === "number"
-                ? updatedProfile.longitude
-                : typeof perfilInfo?.longitude === "number"
-                  ? perfilInfo.longitude
-                  : null
+              : toCoordNumber(updatedProfile?.longitude) ??
+                toCoordNumber(perfilInfo?.longitude)
 
           if (typeof lat !== "number" || typeof lng !== "number") {
             toast.error(
@@ -1001,29 +1003,13 @@ export default function PerfilPage() {
 
         const avatarUrl = formData.avatar.trim()
         if (avatarUrl && !avatarUrl.startsWith("data:")) {
-          const isProfessionalAccount =
-            accountRole === "professional" ||
-            isProfessionalUser(perfilInfo?.profile_type)
-
-          if (isProfessionalAccount && professionalId) {
-            const avatarUpdate = await updateProfessionalAvatarUrl(
-              professionalId,
-              token,
-              avatarUrl
-            )
-            if (!avatarUpdate.success) {
-              toast.error(avatarUpdate.error)
-              return false
-            }
-          } else {
-            const avatarUpdate = await updateProfileAvatar(token, {
-              user_id: userId,
-              avatarUrl,
-            })
-            if (!avatarUpdate.success) {
-              toast.error(avatarUpdate.error)
-              return false
-            }
+          const avatarUpdate = await updateProfileAvatar(token, {
+            user_id: userId,
+            avatarUrl,
+          })
+          if (!avatarUpdate.success) {
+            toast.error(avatarUpdate.error)
+            return false
           }
         }
 
@@ -1214,11 +1200,13 @@ export default function PerfilPage() {
           }
         : { ...profileForm, [editingInfoField]: editingInfoValue }
     setProfileForm(nextForm)
-    const saved = await persistProfile(
-      nextForm,
-      false,
-      editingInfoField === "location" ? locationCoords : undefined
-    )
+
+    let coordsForSave = editingInfoField === "location" ? locationCoords : undefined
+    if (editingInfoField === "location" && !coordsForSave) {
+      coordsForSave = await refreshProfileLocationCoords()
+    }
+
+    const saved = await persistProfile(nextForm, false, coordsForSave)
     if (saved) {
       setEditingInfoField(null)
       setEditingInfoValue("")
@@ -1233,6 +1221,7 @@ export default function PerfilPage() {
     locationCoords,
     persistProfile,
     profileForm,
+    refreshProfileLocationCoords,
   ])
 
   const handleCancelInfoField = useCallback(() => {
@@ -1338,99 +1327,35 @@ export default function PerfilPage() {
         }
         syncUserDataInSession({ id: userId })
 
-        const isProfessionalAccount =
-          accountRole === "professional" ||
-          isProfessionalUser(perfilInfo?.profile_type)
-
-        let resolvedProfessionalId = professionalId
-        if (isProfessionalAccount && !resolvedProfessionalId) {
-          resolvedProfessionalId = await resolveProfessionalIdForUser(
-            token,
-            userId
-          )
-          if (resolvedProfessionalId) {
-            setProfessionalId(resolvedProfessionalId)
-          }
-        }
-
+        const directUpload = await uploadProfileAvatarFile(token, userId, file)
         let avatarUrl: string | null = null
 
-        if (isProfessionalAccount) {
-          if (!resolvedProfessionalId) {
-            toast.error(
-              "Não foi possível identificar o perfil profissional para atualizar a foto."
-            )
-            setAvatarPreviewSrc("")
-            return
-          }
-
-          const directUpload = await uploadProfessionalAvatarFile(
-            resolvedProfessionalId,
-            file,
-            token
-          )
-
-          if (directUpload.success) {
-            avatarUrl = directUpload.data.url
-          } else {
-            const upload = await uploadMediaToCloudinary(file, token)
-            if (!upload.success) {
-              toast.error(directUpload.error)
-              setAvatarPreviewSrc("")
-              return
-            }
-
-            const professionalAvatarUpdate = await updateProfessionalAvatarUrl(
-              resolvedProfessionalId,
-              token,
-              upload.data.url
-            )
-            if (!professionalAvatarUpdate.success) {
-              toast.error(professionalAvatarUpdate.error)
-              setAvatarPreviewSrc("")
-              return
-            }
-            avatarUrl = professionalAvatarUpdate.data.url
-          }
-
-          const refreshedUrl = await refreshProfileSnapshot(token, userId)
-          if (refreshedUrl) {
-            avatarUrl = refreshedUrl
-            setAvatarPreviewSrc("")
-          } else if (avatarUrl) {
-            setPerfilUser((prev) => ({
-              ...(prev ?? {}),
-              avatar: avatarUrl ?? undefined,
-            }))
-            syncUserDataInSession({ id: userId, avatar: avatarUrl ?? undefined })
-            setAvatarPreviewSrc("")
-          }
+        if (directUpload.success) {
+          avatarUrl = directUpload.data.url
         } else {
-          const upload = await uploadMediaToCloudinary(file, token)
-          if (!upload.success) {
-            toast.error(upload.error)
-            setAvatarPreviewSrc("")
-            return
-          }
-
           const avatarUpdate = await updateProfileAvatar(token, {
             user_id: userId,
-            avatarUrl: upload.data.url,
+            avatarUrl: dataUrl,
           })
           if (!avatarUpdate.success) {
-            toast.error(avatarUpdate.error)
+            toast.error(avatarUpdate.error || directUpload.error)
             setAvatarPreviewSrc("")
             return
           }
-          avatarUrl = upload.data.url
+          avatarUrl = dataUrl
+        }
 
+        const refreshedUrl = await refreshProfileSnapshot(token, userId)
+        if (refreshedUrl) avatarUrl = refreshedUrl
+
+        if (avatarUrl) {
           setPerfilUser((prev) => ({
             ...(prev ?? {}),
             avatar: avatarUrl ?? undefined,
           }))
           syncUserDataInSession({ id: userId, avatar: avatarUrl ?? undefined })
-          setAvatarPreviewSrc("")
         }
+        setAvatarPreviewSrc("")
 
         toast.success("Foto de perfil atualizada.")
       } catch (err) {
@@ -1441,14 +1366,7 @@ export default function PerfilPage() {
         setAvatarUploading(false)
       }
     },
-    [
-      accountRole,
-      perfilInfo?.profile_type,
-      professionalId,
-      profileUserId,
-      refreshProfileSnapshot,
-      toast,
-    ]
+    [profileUserId, refreshProfileSnapshot, toast]
   )
 
   const openAvatarFilePicker = useCallback(() => {
@@ -1766,6 +1684,10 @@ export default function PerfilPage() {
     }
   }
 
+  const handleViewProfilePosts = () => {
+    setProfileInfoTab("posts")
+  }
+
   if (isLoading || isPerfilLoading) {
     return <ProfileLayoutSkeleton />
   }
@@ -1868,6 +1790,12 @@ export default function PerfilPage() {
           <aside className="order-2 space-y-6 lg:order-1 lg:col-span-3">
             <HomeSidebarMetrics role={metricsRole} userId={profileUserId} />
 
+            <ProfileUserPostsCard
+              active={profileInfoTab === "posts"}
+              disabled={!profileUserId}
+              onViewPosts={handleViewProfilePosts}
+            />
+
             <Card>
               <div className="mb-3 border-b border-border/40 pb-3">
                 <h3 className="text-base font-semibold text-foreground">Idiomas</h3>
@@ -1880,6 +1808,14 @@ export default function PerfilPage() {
 
           {/* Conteúdo central — capa e perfil sempre por cima no mobile */}
           <div className="order-1 space-y-6 lg:order-2 lg:col-span-9">
+            {profileInfoTab === "posts" ? (
+              <ProfileUserPostsPanel
+                userId={profileUserId}
+                authorName={displayUser.name || "Utilizador"}
+                onBack={() => setProfileInfoTab("info")}
+              />
+            ) : (
+              <>
             <div className="overflow-hidden rounded-md border border-border/45 bg-card">
               <div className="relative h-48 bg-primary/15">
                 {coverImageSrc ? (
@@ -1913,9 +1849,6 @@ export default function PerfilPage() {
                   onChange={handleCoverFileChange}
                   disabled={coverUploading || savingProfile}
                 />
-                <div className="absolute inset-0 flex items-center justify-center opacity-25">
-                  <MapPin size={48} className="text-primary" />
-                </div>
               </div>
               <div className="relative px-4 pb-8 pt-0 md:px-8">
                 <div className="-translate-y-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -2963,6 +2896,8 @@ export default function PerfilPage() {
                 </div>
               )}
             </Card>
+              </>
+            )}
           </div>
       </div>
 

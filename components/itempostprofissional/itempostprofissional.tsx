@@ -3,18 +3,20 @@
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useCallback, useEffect, useRef, useState } from "react"
-import { Briefcase, Heart, Loader2, Play, UserMinus, UserPlus, Volume2, VolumeX } from "lucide-react"
+import { useCallback, useEffect, useState } from "react"
+import { Briefcase, Heart, Loader2, UserMinus, UserPlus } from "lucide-react"
 
 import { DeletePostConfirmDialog } from "@/components/delete-post-confirm-dialog/delete-post-confirm-dialog"
 import { PostLikesTooltip } from "@/components/post-likes-tooltip/post-likes-tooltip"
 import { PostMeatballMenu } from "@/components/post-meatball-menu/post-meatball-menu"
 import { PostEditModal } from "@/components/post-edit-modal/post-edit-modal"
+import { PostExpandableContent } from "@/components/post-expandable-content/post-expandable-content"
 import { PostMediaGallery } from "@/components/post-media-gallery/post-media-gallery"
+import { PostVideoGallery } from "@/components/post-video-gallery/post-video-gallery"
 import { useToast } from "@/components/ui/toaster"
 import { followUser, unfollowUser } from "@/lib/follow-client"
 import { likePost, unlikePost } from "@/lib/likes-client"
-import { deletePost } from "@/lib/posts-client"
+import { deletePost, dedupeMediaUrls } from "@/lib/posts-client"
 import { resolveUserAvatarUrl, userAvatarSrcUnoptimized } from "@/lib/user-avatar"
 import { cn } from "@/lib/utils"
 import { sameUserId, useViewerUserId } from "@/lib/viewer-user-id"
@@ -27,15 +29,6 @@ import type {
 function resolveAuthToken(): string | null {
   if (typeof window === "undefined") return null
   return window.sessionStorage.getItem("auth_token")
-}
-
-function imageNeedsUnoptimized(src: string): boolean {
-  return (
-    src.startsWith("http://") ||
-    src.startsWith("https://") ||
-    src.startsWith("data:") ||
-    src.startsWith("//")
-  )
 }
 
 function normalizeMediaSrc(value: string | null | undefined): string | null {
@@ -59,97 +52,6 @@ function normalizeMediaSrc(value: string | null | undefined): string | null {
     }
     return null
   }
-}
-
-const MEDIA_FRAME_CLASS =
-  "relative w-full aspect-video max-h-[min(560px,80vh)] min-h-[220px] bg-black"
-
-function FeedInlineVideo({
-  src,
-  posterUrl,
-}: {
-  src: string
-  posterUrl?: string | null
-}) {
-  const videoRef = useRef<HTMLVideoElement | null>(null)
-  const [playing, setPlaying] = useState(false)
-  const [muted, setMuted] = useState(true)
-
-  const syncPlaying = useCallback(() => {
-    const el = videoRef.current
-    if (!el) return
-    setPlaying(!el.paused)
-  }, [])
-
-  const togglePlay = async () => {
-    const el = videoRef.current
-    if (!el) return
-    if (el.paused) {
-      try {
-        await el.play()
-      } catch {
-        /* ignore — autoplay policies / load errors */
-      }
-    } else {
-      el.pause()
-    }
-    syncPlaying()
-  }
-
-  const toggleMuted = () => {
-    const el = videoRef.current
-    if (!el) return
-    const next = !el.muted
-    el.muted = next
-    setMuted(next)
-  }
-
-  return (
-    <div key={src} className={MEDIA_FRAME_CLASS}>
-      <video
-        ref={videoRef}
-        src={src}
-        className="h-full w-full object-contain"
-        playsInline
-        muted={muted}
-        preload="metadata"
-        poster={posterUrl ?? undefined}
-        onClick={() => void togglePlay()}
-        onPlay={syncPlaying}
-        onPause={syncPlaying}
-        onEnded={() => setPlaying(false)}
-      />
-      {!playing ? (
-        <button
-          type="button"
-          onClick={() => void togglePlay()}
-          className="absolute inset-0 grid place-items-center bg-black/40 transition-colors hover:bg-black/50"
-          aria-label="Reproduzir vídeo"
-        >
-          <span className="inline-flex size-17 items-center justify-center rounded-full border-2 border-white/40 bg-black/50 text-white shadow-lg backdrop-blur-[2px]">
-            <Play className="size-8 translate-x-0.5" aria-hidden />
-          </span>
-        </button>
-      ) : null}
-      <div className="pointer-events-none absolute bottom-2 right-2 flex gap-2">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation()
-            toggleMuted()
-          }}
-          className="pointer-events-auto inline-flex size-9 items-center justify-center rounded-full border border-white/25 bg-black/45 text-white shadow-sm backdrop-blur-sm hover:bg-black/55"
-          aria-label={muted ? "Ativar som" : "Silenciar"}
-        >
-          {muted ? (
-            <VolumeX className="size-4" aria-hidden />
-          ) : (
-            <Volume2 className="size-4" aria-hidden />
-          )}
-        </button>
-      </div>
-    </div>
-  )
 }
 
 export interface ItemPostProfissonalProps {
@@ -235,20 +137,33 @@ export default function ItemPostProfissonal({
   const normalizedImagemPost = imagemPost
     ? normalizeMediaSrc(imagemPost)
     : null
-  const galleryUrls = (mediaUrls ?? [])
-    .map((u) => normalizeMediaSrc(u))
-    .filter((u): u is string => Boolean(u))
+  const galleryUrls = dedupeMediaUrls(
+    (mediaUrls ?? [])
+      .map((u) => normalizeMediaSrc(u))
+      .filter((u): u is string => Boolean(u))
+  )
+  const videoGalleryUrls =
+    mediaType === "video"
+      ? galleryUrls.length > 0
+        ? galleryUrls
+        : normalizedMediaUrl
+          ? [normalizedMediaUrl]
+          : []
+      : []
   const resolvedImageSrc =
-    mediaType === "image" || galleryUrls.length > 0 || (!mediaType && normalizedImagemPost)
-      ? normalizedMediaUrl ?? normalizedImagemPost ?? galleryUrls[0] ?? null
-      : null
+    mediaType === "video"
+      ? null
+      : mediaType === "image" || galleryUrls.length > 0 || (!mediaType && normalizedImagemPost)
+        ? normalizedMediaUrl ?? normalizedImagemPost ?? galleryUrls[0] ?? null
+        : null
   const imageGalleryUrls =
-    galleryUrls.length > 0
-      ? galleryUrls
-      : resolvedImageSrc
-        ? [resolvedImageSrc]
-        : []
-  const resolvedVideoSrc = mediaType === "video" ? normalizedMediaUrl : null
+    mediaType === "video"
+      ? []
+      : galleryUrls.length > 0
+        ? galleryUrls
+        : resolvedImageSrc
+          ? dedupeMediaUrls([resolvedImageSrc])
+          : []
   const videoPoster =
     mediaType === "video" ? normalizedImagemPost ?? null : null
 
@@ -336,13 +251,13 @@ export default function ItemPostProfissonal({
     <div className="bg-card text-card-foreground rounded-md border border-gray-100 overflow-hidden">
       <div className="p-4 flex items-center justify-between gap-2">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 bg-muted rounded-full overflow-hidden shrink-0">
+          <div className="relative size-10 shrink-0 overflow-hidden rounded-full bg-muted">
             <Image
               src={avatarSrc}
               alt={nome}
-              width={40}
-              height={40}
-              className="object-cover w-full h-full"
+              fill
+              sizes="40px"
+              className="object-cover object-center"
               unoptimized={userAvatarSrcUnoptimized(avatarSrc)}
             />
           </div>
@@ -428,21 +343,23 @@ export default function ItemPostProfissonal({
         <h2 className="text-[15px] sm:text-base font-semibold text-foreground leading-snug tracking-tight">
           {titulo}
         </h2>
-        <div>
-          <p className="text-sm text-foreground/90 leading-relaxed line-clamp-4 whitespace-pre-wrap">
-            {descricao}
-          </p>
-          <button
-            type="button"
-            className="text-xs font-medium text-muted-foreground hover:text-foreground mt-1 transition-colors"
-          >
-            ver mais
-          </button>
-        </div>
+        <PostExpandableContent text={descricao} />
       </div>
 
-      {resolvedVideoSrc ? (
-        <FeedInlineVideo src={resolvedVideoSrc} posterUrl={videoPoster} />
+      {videoGalleryUrls.length > 0 ? (
+        <PostVideoGallery
+          urls={videoGalleryUrls}
+          posterUrl={videoPoster}
+          postId={postId}
+          authorName={nome}
+          authorAvatar={imagemPerfil}
+          liked={likedVisual}
+          likesCount={curtidas}
+          liking={liking}
+          onLike={() => void handleLikeClick()}
+          shareUrl={postId ? `/posts/${postId}` : null}
+          shareTitle={titulo || descricao}
+        />
       ) : imageGalleryUrls.length > 0 ? (
         <PostMediaGallery urls={imageGalleryUrls} alt={titulo || descricao} />
       ) : null}

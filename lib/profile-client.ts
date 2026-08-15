@@ -186,12 +186,76 @@ export async function updateProfileAvatar(
   token: string,
   payload: UpdateProfileAvatarRequest
 ): Promise<JsonResult<unknown>> {
+  // PUT https://…/api/profile/avatar
   const res = await fetch("/api/profile/avatar", {
     method: "PUT",
     headers: authHeaders(token),
     body: JSON.stringify(payload),
   })
   return parseJsonResponse(res)
+}
+
+/** PUT /api/profile/avatar — upload multipart do avatar. */
+export async function uploadProfileAvatarFile(
+  token: string,
+  userId: string,
+  file: File
+): Promise<JsonResult<{ url: string | null }>> {
+  const trimmedUserId = userId.trim()
+  if (!trimmedUserId) {
+    return { success: false, error: "O campo user_id é obrigatório." }
+  }
+
+  const form = new FormData()
+  form.append("user_id", trimmedUserId)
+  form.append("avatar", file, file.name)
+
+  const res = await fetch("/api/profile/avatar", {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    },
+    body: form,
+  })
+
+  const parsed = await parseJsonResponse(res)
+  if (!parsed.success) return parsed
+
+  return { success: true, data: { url: pickAvatarUrlFromResponse(parsed.data) } }
+}
+
+function pickAvatarUrlFromResponse(raw: unknown): string | null {
+  if (!raw || typeof raw !== "object") return null
+  const queue: Record<string, unknown>[] = [raw as Record<string, unknown>]
+  const seen = new Set<Record<string, unknown>>()
+
+  while (queue.length > 0) {
+    const node = queue.shift()!
+    if (seen.has(node)) continue
+    seen.add(node)
+
+    for (const key of [
+      "avatar",
+      "avatarUrl",
+      "avatar_url",
+      "profile_photo_url",
+      "image",
+      "url",
+    ]) {
+      const value = node[key]
+      if (typeof value === "string" && value.trim()) return value.trim()
+    }
+
+    for (const key of ["data", "user", "profile"]) {
+      const nested = node[key]
+      if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+        queue.push(nested as Record<string, unknown>)
+      }
+    }
+  }
+
+  return null
 }
 
 export async function updateProfileLocation(

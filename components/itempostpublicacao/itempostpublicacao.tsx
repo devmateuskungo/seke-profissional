@@ -24,13 +24,15 @@ import { DeletePostConfirmDialog } from "@/components/delete-post-confirm-dialog
 import { PostEditModal } from "@/components/post-edit-modal/post-edit-modal"
 import { PostMeatballMenu } from "@/components/post-meatball-menu/post-meatball-menu"
 import { PostLikesTooltip } from "@/components/post-likes-tooltip/post-likes-tooltip"
+import { PostContentWithHashtags } from "@/components/post-content-with-hashtags/post-content-with-hashtags"
 import { PostMediaGallery } from "@/components/post-media-gallery/post-media-gallery"
+import { PostVideoGallery } from "@/components/post-video-gallery/post-video-gallery"
 import { likePost, unlikePost } from "@/lib/likes-client"
-import { deletePost, fetchPostById } from "@/lib/posts-client"
+import { collectPostImageUrls, deletePost, fetchPostById, dedupeMediaUrls } from "@/lib/posts-client"
 import { resolveUserAvatarUrl, userAvatarSrcUnoptimized } from "@/lib/user-avatar"
+import { cn } from "@/lib/utils"
 import { sameUserId, useViewerUserId } from "@/lib/viewer-user-id"
 import type { LikePostResponse, PostDetail } from "@/types/post"
-import { cn } from "@/lib/utils"
 
 function resolveAuthToken(accessToken: string | null | undefined): string | null {
   if (accessToken !== undefined) return accessToken
@@ -138,16 +140,21 @@ export function ItemPostPublicacaoContent({
   const avatarSrc = resolveUserAvatarUrl(post.user.avatar)
   const mediaType = post.media_type ?? (post.image ? "image" : null)
   const mediaUrl = post.media_url?.trim() || post.image?.trim() || ""
-  const galleryUrls = (post.media_urls ?? [])
-    .map((u) => u.trim())
-    .filter(Boolean)
   const imageGalleryUrls =
-    mediaType === "image" || galleryUrls.length > 0
-      ? galleryUrls.length > 0
-        ? galleryUrls
-        : mediaUrl
-          ? [mediaUrl]
-          : []
+    mediaType === "video"
+      ? []
+      : collectPostImageUrls({
+          media_urls: post.media_urls,
+          media_url: post.media_url,
+          image: post.image,
+          media_type: post.media_type,
+        })
+  const videoGalleryUrls =
+    mediaType === "video"
+      ? dedupeMediaUrls([
+          ...(post.media_urls ?? []),
+          ...(mediaUrl ? [mediaUrl] : []),
+        ])
       : []
   const imageAlt =
     post.content.trim().slice(0, 100) || "Imagem da publicação"
@@ -195,22 +202,26 @@ export function ItemPostPublicacaoContent({
         </div>
       </CardHeader>
 
-      {mediaType === "video" && mediaUrl ? (
-        <div className="relative w-full aspect-video max-h-80 bg-black">
-          <video
-            src={mediaUrl}
-            controls
-            className="h-full w-full object-cover"
-            preload="metadata"
-          />
-        </div>
+      {videoGalleryUrls.length > 0 ? (
+        <PostVideoGallery
+          urls={videoGalleryUrls}
+          postId={post.id}
+          authorName={post.user.name}
+          authorAvatar={post.user.avatar}
+          liked={likedVisual}
+          likesCount={post.stats?.likes ?? 0}
+          liking={liking}
+          onLike={() => void handleLikeClick()}
+          shareUrl={`/posts/${post.id}`}
+          shareTitle={post.content}
+        />
       ) : imageGalleryUrls.length > 0 ? (
         <PostMediaGallery urls={imageGalleryUrls} alt={imageAlt} />
       ) : null}
 
       <CardContent className="p-4 space-y-3">
-        <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
-          {post.content}
+        <p className="text-sm text-foreground leading-relaxed">
+          <PostContentWithHashtags text={post.content} />
         </p>
       </CardContent>
 

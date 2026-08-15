@@ -116,22 +116,79 @@ export async function proxyProfileRequest(
     const auth = getAuthorizationHeader(request)
     if (!auth.ok) return auth.response
 
-    let endpoint = buildProfileEndpoint(options.subPath ?? "")
+    const endpoint = buildProfileEndpoint(options.subPath ?? "")
     const headers: HeadersInit = {
       Authorization: auth.value,
       Accept: "application/json",
     }
 
-    let body: string | undefined
+    let body: BodyInit | undefined
     const queryUserId = request.nextUrl.searchParams.get("user_id")?.trim()
     const userIdFromToken = extractUserIdFromBearer(auth.value)
+    const contentType = request.headers.get("content-type") ?? ""
+
+    /** GET /profile com `{ user_id }` no corpo (id do login). POST no BFF = mesmo contrato. */
+    const isFetchProfile = options.method === "GET" || options.method === "POST"
+
+    // PUT multipart (avatar) → FormData para …/profile/avatar
+    if (
+      options.method === "PUT" &&
+      options.body === undefined &&
+      contentType.includes("multipart/form-data")
+    ) {
+      const incoming = await request.formData()
+      const outgoing = new FormData()
+
+      const resolvedUserId =
+        (typeof incoming.get("user_id") === "string" &&
+        String(incoming.get("user_id")).trim()
+          ? String(incoming.get("user_id")).trim()
+          : null) ||
+        queryUserId ||
+        userIdFromToken
+
+      if (!resolvedUserId) {
+        return NextResponse.json(
+          { message: "O campo user_id é obrigatório." } satisfies ApiErrorResponse,
+          { status: 400 }
+        )
+      }
+
+      outgoing.append("user_id", resolvedUserId)
+
+      for (const [key, value] of incoming.entries()) {
+        if (key === "user_id") continue
+        if (value instanceof File) {
+          if (value.size > 0) outgoing.append(key, value, value.name)
+        } else if (typeof value === "string" && value.trim()) {
+          outgoing.append(key, value)
+        }
+      }
+
+      const res = await fetch(endpoint, {
+        method: "PUT",
+        headers: { Authorization: auth.value },
+        body: outgoing,
+        cache: "no-store",
+      })
+
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        const message =
+          (data && typeof data.message === "string" && data.message) ||
+          options.errorFallback
+        return NextResponse.json(
+          { message } satisfies ApiErrorResponse,
+          { status: res.status }
+        )
+      }
+      return NextResponse.json(data)
+    }
+
     const rawPayload =
       options.body !== undefined
         ? options.body
         : await request.json().catch(() => null)
-
-    /** GET /profile com `{ user_id }` no corpo (id do login). POST no BFF = mesmo contrato. */
-    const isFetchProfile = options.method === "GET" || options.method === "POST"
 
     if (isFetchProfile) {
       const resolvedGetUserId =
@@ -183,7 +240,7 @@ export async function proxyProfileRequest(
       body = JSON.stringify(payload)
     }
 
-    if (isFetchProfile && body) {
+    if (isFetchProfile && typeof body === "string") {
       const headerRecord: Record<string, string> = {
         Accept: "application/json",
         "Content-Type": "application/json",

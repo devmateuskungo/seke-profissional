@@ -45,6 +45,24 @@ export function Navbar() {
     const navLinkClass =
         "flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-primary md:px-2.5 lg:gap-2 lg:px-2.5"
 
+    const renderSearchField = () => (
+        <div className="relative w-full">
+            <Search
+                className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
+                aria-hidden
+            />
+            <Input
+                type="search"
+                name="q"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Pesquisar…"
+                className="h-9 w-full border-gray-200 bg-gray-50/80 pl-8 pr-2.5 text-xs shadow-none placeholder:text-gray-400 focus-visible:bg-white sm:text-sm"
+                autoComplete="off"
+            />
+        </div>
+    )
+
     return (
         <>
         <nav className="fixed top-0 left-0 right-0 z-50 border-b border-gray-200 bg-white/95 shadow-sm backdrop-blur supports-backdrop-filter:bg-white/80 [&_a]:no-underline [&_a:hover]:no-underline [&_a:focus]:no-underline">
@@ -57,28 +75,14 @@ export function Navbar() {
                         </Link>
                     </div>
 
-                    {/* Pesquisa */}
+                    {/* Pesquisa — desktop/tablet (≥ md) */}
                     <form
                         role="search"
                         aria-label="Pesquisar na plataforma"
                         onSubmit={handleSearch}
-                        className="flex min-w-0 flex-1 items-center sm:max-w-[11rem] md:max-w-[9.5rem] md:flex-none lg:max-w-[11rem] xl:max-w-xs"
+                        className="hidden min-w-0 flex-1 items-center md:flex md:max-w-[9.5rem] md:flex-none lg:max-w-[11rem] xl:max-w-xs"
                     >
-                        <div className="relative w-full">
-                            <Search
-                                className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
-                                aria-hidden
-                            />
-                            <Input
-                                type="search"
-                                name="q"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Pesquisar…"
-                                className="h-9 w-full border-gray-200 bg-gray-50/80 pl-8 pr-2.5 text-xs shadow-none placeholder:text-gray-400 focus-visible:bg-white sm:text-sm"
-                                autoComplete="off"
-                            />
-                        </div>
+                        {renderSearchField()}
                     </form>
 
                     {/* Menu central — tablet (ícones) e desktop (ícones + texto) */}
@@ -173,7 +177,7 @@ export function Navbar() {
                     </div>
 
                     {/* Ações à direita */}
-                    <div className="flex shrink-0 items-center gap-1 sm:gap-2 md:gap-1.5 lg:gap-2">
+                    <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2 md:ml-0 md:gap-1.5 lg:gap-2">
                         <NavbarNotifications />
 
                         {/* Auth / perfil — sempre visível; em mobile os CTAs não ficam só no menu */}
@@ -217,6 +221,16 @@ export function Navbar() {
                         </button>
                     </div>
                 </div>
+
+                {/* Pesquisa — mobile (< md), abaixo da barra principal */}
+                <form
+                    role="search"
+                    aria-label="Pesquisar na plataforma"
+                    onSubmit={handleSearch}
+                    className="border-t border-gray-100 pb-2.5 pt-2 md:hidden"
+                >
+                    {renderSearchField()}
+                </form>
 
                 {/* Menu mobile (< md) */}
                 {isMenuOpen && (
