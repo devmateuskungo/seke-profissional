@@ -96,7 +96,7 @@ export function UserMenu() {
         </DropdownMenu.Trigger>
         <DropdownMenu.Portal>
           <DropdownMenu.Content
-            className="min-w-[200px] rounded-lg bg-white p-1 shadow-lg border border-gray-200"
+            className="z-[9999] min-w-[200px] rounded-lg bg-white p-1 shadow-lg border border-gray-200"
             align="end"
             sideOffset={6}
             alignOffset={-4}

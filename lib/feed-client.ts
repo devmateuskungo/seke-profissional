@@ -1,6 +1,6 @@
 import type { ApiErrorResponse } from "@/types/auth"
 import { parseLikedByMeFromPostLike } from "@/lib/parse-liked-by-me"
-import { parseMidiaTupleUrls, dedupeMediaUrls } from "@/lib/posts-client"
+import { parseMidiaTupleUrls, dedupeMediaUrls, normalizeHashtagLabel } from "@/lib/posts-client"
 import type { PostDetail } from "@/types/post"
 import type { GlobalFeedPagination, GlobalFeedResponse } from "@/types/feed"
 
@@ -105,7 +105,7 @@ function parseFeedUser(
     (o.author && typeof o.author === "object" ? o.author : null) ??
     (o.profile && typeof o.profile === "object" ? o.profile : null)
 
-  if (nested && typeof nested === "object") {
+  if (nested && typeof nested === "object" && !Array.isArray(nested)) {
     const u = nested as Record<string, unknown>
     const id =
       pickId(u.id) ??
@@ -422,6 +422,14 @@ function normalizePagination(p: Record<string, unknown>): GlobalFeedPagination {
   ) {
     has_more = page < total_pages
   }
+  if (
+    has_more === undefined &&
+    total != null &&
+    total >= 0 &&
+    limit > 0
+  ) {
+    has_more = page * limit < total
+  }
 
   return {
     page,
@@ -442,6 +450,7 @@ export interface FetchGlobalFeedOptions {
   page?: number
   limit?: number
   token?: string | null
+  extraParams?: Record<string, string>
 }
 
 /** Evita mostrar erros técnicos do backend (ex.: `undefined.user_id`) na UI. */
@@ -491,6 +500,12 @@ async function fetchFeedFromUrl(
     page: String(page),
     limit: String(limit),
   })
+  if (options.extraParams) {
+    for (const [key, value] of Object.entries(options.extraParams)) {
+      const trimmed = value.trim()
+      if (trimmed) qs.set(key, trimmed)
+    }
+  }
 
   const headers: HeadersInit = { Accept: "application/json" }
   if (token) {
@@ -590,4 +605,30 @@ export async function fetchHomeFeed(
   }
 
   return main
+}
+
+const SEARCH_HASHTAG_API = "/api/posts/search/hashtag"
+
+/**
+ * GET /api/posts/search/hashtag/:hashtag?page=1&limit=20
+ * → GET {API}/posts/search/hashtag/:hashtag
+ */
+export async function searchPostsByHashtag(
+  hashtag: string,
+  options: FetchGlobalFeedOptions = {}
+): Promise<FetchGlobalFeedOutcome> {
+  const tag = normalizeHashtagLabel(hashtag)
+  if (!tag) {
+    return { success: false, error: "Indique uma hashtag para pesquisar." }
+  }
+
+  return fetchFeedFromUrl(
+    `${SEARCH_HASHTAG_API}/${encodeURIComponent(tag)}`,
+    {
+      page: options.page ?? 1,
+      limit: options.limit ?? 20,
+      token: options.token,
+    },
+    false
+  )
 }

@@ -9,6 +9,7 @@ import { Briefcase, Heart, Loader2, UserMinus, UserPlus } from "lucide-react"
 import { DeletePostConfirmDialog } from "@/components/delete-post-confirm-dialog/delete-post-confirm-dialog"
 import { PostLikesTooltip } from "@/components/post-likes-tooltip/post-likes-tooltip"
 import { PostMeatballMenu } from "@/components/post-meatball-menu/post-meatball-menu"
+import { PostShareMenu } from "@/components/post-share-menu/post-share-menu"
 import { PostEditModal } from "@/components/post-edit-modal/post-edit-modal"
 import { PostExpandableContent } from "@/components/post-expandable-content/post-expandable-content"
 import { PostMediaGallery } from "@/components/post-media-gallery/post-media-gallery"
@@ -389,6 +390,7 @@ export default function ItemPostProfissonal({
       ) : null}
 
       <div className="px-4 pb-4 flex items-center justify-between border-t border-border/60 pt-3 bg-background/60">
+        <div className="flex items-center gap-3">
         <div
           className={cn(
             "flex items-center gap-2 group rounded-md p-1 -m-1 transition-colors",
@@ -462,6 +464,10 @@ export default function ItemPostProfissonal({
               {curtidas}
             </span>
           )}
+        </div>
+        {postId ? (
+          <PostShareMenu postId={postId} title={titulo || descricao} />
+        ) : null}
         </div>
 
         {!isOwnPost ? (

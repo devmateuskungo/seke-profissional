@@ -8,6 +8,8 @@ import type {
   MyPostSummary,
   MyPostsPagination,
   PostDetail,
+  SharePostRequest,
+  SharePostResponse,
   UpdatePostRequest,
   UserPostListItem,
   UserPostsPagination,
@@ -1196,5 +1198,65 @@ export async function fetchPostById(
   return {
     success: true,
     data: parsed,
+  }
+}
+
+export type SharePostOutcome =
+  | { success: true; data: SharePostResponse }
+  | { success: false; error: string; statusCode?: number }
+
+/**
+ * POST /api/posts/:id/share — regista a partilha numa plataforma.
+ * Body: `{ id, platform }`.
+ */
+export async function sharePost(
+  postId: string,
+  platform: string,
+  token: string
+): Promise<SharePostOutcome> {
+  const id = postId.trim()
+  if (!id) {
+    return { success: false, error: "ID da publicação inválido." }
+  }
+
+  const payload: SharePostRequest = {
+    id,
+    platform: platform.trim(),
+  }
+
+  const res = await fetch(`${POSTS_API}/${encodeURIComponent(id)}/share`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  })
+
+  const raw = await res.json().catch(() => ({}))
+
+  if (!res.ok) {
+    const data = raw as ApiErrorResponse
+    const message =
+      typeof data.message === "string" && data.message.trim()
+        ? data.message.trim()
+        : "Não foi possível partilhar a publicação."
+    return {
+      success: false,
+      error: message,
+      statusCode: res.status,
+    }
+  }
+
+  const data = raw as SharePostResponse
+  return {
+    success: true,
+    data: {
+      message:
+        typeof data.message === "string" && data.message.trim()
+          ? data.message.trim()
+          : "Partilha registada.",
+    },
   }
 }

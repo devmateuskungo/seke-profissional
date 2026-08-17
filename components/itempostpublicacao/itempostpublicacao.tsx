@@ -23,6 +23,7 @@ import { useToast } from "@/components/ui/toaster"
 import { DeletePostConfirmDialog } from "@/components/delete-post-confirm-dialog/delete-post-confirm-dialog"
 import { PostEditModal } from "@/components/post-edit-modal/post-edit-modal"
 import { PostMeatballMenu } from "@/components/post-meatball-menu/post-meatball-menu"
+import { PostShareMenu } from "@/components/post-share-menu/post-share-menu"
 import { PostLikesTooltip } from "@/components/post-likes-tooltip/post-likes-tooltip"
 import { PostContentWithHashtags } from "@/components/post-content-with-hashtags/post-content-with-hashtags"
 import { PostMediaGallery } from "@/components/post-media-gallery/post-media-gallery"
@@ -305,6 +306,7 @@ export function ItemPostPublicacaoContent({
             <MessageCircle size={18} className="shrink-0" />
             <span className="text-sm tabular-nums">{post.stats.comments}</span>
           </div>
+          <PostShareMenu postId={post.id} title={post.content} />
         </div>
         {!isOwnPost ? (
           <Button size="sm" className="text-xs" asChild>

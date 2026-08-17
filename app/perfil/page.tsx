@@ -1785,16 +1785,18 @@ export default function PerfilPage() {
 
   return (
     <div className="">
-      <div className="mx-auto grid grid-cols-1 gap-6 p-4 lg:grid-cols-12">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           {/* Sidebar esquerda — abaixo no mobile, à esquerda no desktop */}
           <aside className="order-2 space-y-6 lg:order-1 lg:col-span-3">
             <HomeSidebarMetrics role={metricsRole} userId={profileUserId} />
 
-            <ProfileUserPostsCard
-              active={profileInfoTab === "posts"}
-              disabled={!profileUserId}
-              onViewPosts={handleViewProfilePosts}
-            />
+            {isProfessional ? (
+              <ProfileUserPostsCard
+                active={profileInfoTab === "posts"}
+                disabled={!profileUserId}
+                onViewPosts={handleViewProfilePosts}
+              />
+            ) : null}
 
             <Card>
               <div className="mb-3 border-b border-border/40 pb-3">
@@ -1808,7 +1810,7 @@ export default function PerfilPage() {
 
           {/* Conteúdo central — capa e perfil sempre por cima no mobile */}
           <div className="order-1 space-y-6 lg:order-2 lg:col-span-9">
-            {profileInfoTab === "posts" ? (
+            {isProfessional && profileInfoTab === "posts" ? (
               <ProfileUserPostsPanel
                 userId={profileUserId}
                 authorName={displayUser.name || "Utilizador"}
@@ -1817,7 +1819,7 @@ export default function PerfilPage() {
             ) : (
               <>
             <div className="overflow-hidden rounded-md border border-border/45 bg-card">
-              <div className="relative h-48 bg-primary/15">
+              <div className="relative h-28 bg-primary/15 sm:h-36 md:h-48">
                 {coverImageSrc ? (
                   <Image
                     src={coverImageSrc}
@@ -1831,7 +1833,7 @@ export default function PerfilPage() {
                   type="button"
                   onClick={openCoverFilePicker}
                   aria-label="Editar imagem de capa"
-                  className="absolute right-3 top-3 z-10 rounded-full border border-border/60 bg-background/90 p-2 text-foreground shadow-sm transition-colors hover:bg-accent"
+                  className="absolute right-2 top-2 z-10 rounded-full border border-border/60 bg-background/90 p-1.5 text-foreground shadow-sm transition-colors hover:bg-accent sm:right-3 sm:top-3 sm:p-2"
                   disabled={coverUploading || savingProfile}
                 >
                   {coverUploading ? (
@@ -1850,15 +1852,15 @@ export default function PerfilPage() {
                   disabled={coverUploading || savingProfile}
                 />
               </div>
-              <div className="relative px-4 pb-8 pt-0 md:px-8">
-                <div className="-translate-y-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div className="relative px-3 pb-5 pt-0 sm:px-4 md:px-8 md:pb-8">
+                <div className="-translate-y-8 flex flex-row items-end justify-between gap-3 sm:-translate-y-10 md:-translate-y-12">
                   <div className="relative shrink-0">
-                    <div className="relative h-32 w-32 overflow-hidden rounded-3xl border-2 border-border/35 bg-card">
+                    <div className="relative size-20 overflow-hidden rounded-2xl border-2 border-border/35 bg-card sm:size-28 sm:rounded-3xl md:size-32">
                       <Image
                         src={avatarSrc}
                         alt={displayUser.name ?? "Avatar"}
                         fill
-                        sizes="128px"
+                        sizes="(min-width: 768px) 128px, (min-width: 640px) 112px, 80px"
                         className="object-cover"
                         priority
                         unoptimized={userAvatarSrcUnoptimized(avatarSrc)}
@@ -1868,7 +1870,7 @@ export default function PerfilPage() {
                       type="button"
                       onClick={openAvatarFilePicker}
                       aria-label="Editar foto de perfil"
-                      className="absolute -bottom-2 -right-2 rounded-full border border-border/60 bg-background p-2 text-foreground shadow-sm transition-colors hover:bg-accent"
+                      className="absolute -bottom-1.5 -right-1.5 rounded-full border border-border/60 bg-background p-1.5 text-foreground shadow-sm transition-colors hover:bg-accent sm:-bottom-2 sm:-right-2 sm:p-2"
                       disabled={avatarUploading || savingProfile}
                     >
                       {avatarUploading ? (
@@ -1886,11 +1888,11 @@ export default function PerfilPage() {
                       disabled={avatarUploading || savingProfile}
                     />
                   </div>
-                  <div className="flex gap-1.5 sm:mb-2">
+                  <div className="mb-0.5 flex gap-1.5 sm:mb-2">
                     <button
                       type="button"
                       onClick={handleShare}
-                      className="flex items-center gap-1.5 rounded-lg border border-border/45 px-3 py-1.5 text-xs font-medium text-foreground transition-all hover:bg-accent"
+                      className="flex items-center gap-1.5 rounded-lg border border-border/45 px-2.5 py-1.5 text-xs font-medium text-foreground transition-all hover:bg-accent sm:px-3"
                     >
                       <Share2 size={14} /> Partilhar
                     </button>
@@ -1905,10 +1907,10 @@ export default function PerfilPage() {
                   </div>
                 </div>
 
-                <div className="-mt-8 grid grid-cols-1 gap-6 md:grid-cols-12">
+                <div className="-mt-5 grid grid-cols-1 gap-6 sm:-mt-6 md:-mt-8 md:grid-cols-12">
                   <div className="md:col-span-8">
                     <div className="mb-1 flex flex-wrap items-center gap-2">
-                      <h1 className="text-xl font-semibold tracking-tight text-foreground">
+                      <h1 className="text-lg font-semibold tracking-tight text-foreground sm:text-xl">
                         {displayUser.name || "Utilizador"}
                       </h1>
                       {isProfessional ? (
@@ -1968,7 +1970,7 @@ export default function PerfilPage() {
                         </Button>
                       </div>
                     ) : null}
-                    <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground sm:gap-4 sm:text-sm">
                       {isProfessional ? (
                         <span className="flex items-center gap-1">
                           <Briefcase size={14} /> Profissional

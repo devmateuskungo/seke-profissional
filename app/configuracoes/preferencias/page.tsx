@@ -1,3 +1,4 @@
+import { AccountRoleSettingsCard } from "@/components/settings/account-role-settings"
 import {
   SettingsPageHeader,
   SettingsRow,
@@ -11,6 +12,8 @@ export default function PreferenciasSettingsPage() {
         title="Preferências"
         description="Personalize a experiência na plataforma."
       />
+
+      <AccountRoleSettingsCard />
 
       <SettingsSectionCard title="Exibição">
         <div className="flex flex-col gap-2 py-2">

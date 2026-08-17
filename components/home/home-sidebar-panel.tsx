@@ -93,7 +93,7 @@ export function HomeSidebarPanel({
           </button>
         </div>
 
-        <div className="flex-1 space-y-4 overflow-y-auto p-4">
+        <div className="flex-1 space-y-4 overflow-y-auto p-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           <HomeUserProfileCard onNavigate={onClose} />
           <HomeFindProfessionalCard
             variant="sidebar"

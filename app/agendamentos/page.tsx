@@ -109,7 +109,7 @@ export default function AgendamentosPage() {
   }, [bookings])
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:py-8">
+    <div className="mx-auto w-full max-w-5xl py-6 sm:py-8">
       <div className="mb-5 flex items-start justify-between gap-4">
         <div className="min-w-0">
           <Link

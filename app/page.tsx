@@ -526,10 +526,9 @@ function HomeInner() {
         userId={viewerUserId}
       />
 
-      <div className="flex gap-6">
+      <div className="flex items-start gap-6">
         <aside
-          className="hidden lg:block space-y-4"
-          style={{ width: '342px' }}
+          className="sticky top-20 z-10 hidden w-[342px] shrink-0 space-y-4 self-start lg:block"
         >
           <HomeUserProfileCard />
           <HomeFindProfessionalCard variant="sidebar" />
@@ -549,7 +548,7 @@ function HomeInner() {
           ) : null}
         </aside>
 
-        <main className="flex-1">
+        <main className="min-w-0 flex-1">
           <div className="bg-white ">
             <div>
               <HeroSection />
@@ -581,8 +580,9 @@ function HomeInner() {
 
               <div className="flex gap-2">
                 <button
+                  type="button"
                   onClick={() => setFiltroLocal('todos')}
-                  className={`flex-1 py-2  rounded-md text-sm font-medium cursor-pointer transition-colors ${filtro === 'todos'
+                  className={`flex-1 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors ${filtro === 'todos'
                     ? 'bg-[#2b81e5] text-white'
                     : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
                     }`}
@@ -590,24 +590,30 @@ function HomeInner() {
                   Todos ({contarTodos})
                 </button>
                 <button
+                  type="button"
                   onClick={() => setFiltroLocal('solicitacoes')}
-                  className={`flex-1 flex items-center justify-center cursor-pointer space-x-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${filtro === 'solicitacoes'
+                  aria-label={`Clientes (${contarSolicitacoes})`}
+                  className={`flex-1 flex items-center justify-center cursor-pointer gap-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${filtro === 'solicitacoes'
                     ? 'bg-[#2b81e5] text-white'
                     : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
                     }`}
                 >
-                  <Users size={16} />
-                  <span>Clientes ({contarSolicitacoes})</span>
+                  <Users size={16} aria-hidden />
+                  <span className="hidden md:inline">Clientes</span>
+                  <span>({contarSolicitacoes})</span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => setFiltroLocal('profissionais')}
-                  className={`flex-1 flex items-center justify-center cursor-pointer space-x-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${filtro === 'profissionais'
+                  aria-label={`Profissionais (${contarProfissionais})`}
+                  className={`flex-1 flex items-center justify-center cursor-pointer gap-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${filtro === 'profissionais'
                     ? 'bg-[#2b81e5] text-white'
                     : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
                     }`}
                 >
-                  <Briefcase size={16} />
-                  <span>Profissionais ({contarProfissionais})</span>
+                  <Briefcase size={16} aria-hidden />
+                  <span className="hidden md:inline">Profissionais</span>
+                  <span>({contarProfissionais})</span>
                 </button>
               </div>
             </div>
@@ -781,8 +787,7 @@ function HomeInner() {
         </main>
 
         <aside
-          className="hidden lg:block space-y-4"
-          style={{ width: '342px' }}
+          className="sticky top-20 z-10 hidden w-[342px] shrink-0 space-y-4 self-start lg:block"
         >
           <div className="bg-white rounded-md border border-gray-200">
             <div className="p-4 border-b border-gray-200">

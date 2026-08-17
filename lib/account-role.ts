@@ -4,6 +4,14 @@ import { isProfessionalUser } from "@/lib/is-professional-user"
 
 export type AccountRole = "client" | "professional"
 
+export const ACCOUNT_ROLE_CHANGED_EVENT = "seke-account-role-changed"
+const PREFERRED_ACCOUNT_ROLE_KEY = "seke_active_account_role"
+
+export const ACCOUNT_ROLE_LABELS: Record<AccountRole, string> = {
+  client: "Cliente",
+  professional: "Profissional",
+}
+
 export function resolveAccountRole(profileType?: string | null): AccountRole | null {
   if (isProfessionalUser(profileType)) return "professional"
   if (isClientUser(profileType)) return "client"
@@ -23,6 +31,35 @@ export function readStoredProfileType(): string | null {
   }
 }
 
+function readPreferredAccountRole(): AccountRole | null {
+  if (typeof window === "undefined") return null
+  try {
+    return resolveAccountRole(window.localStorage.getItem(PREFERRED_ACCOUNT_ROLE_KEY))
+  } catch {
+    return null
+  }
+}
+
+export function pickActiveAccountRole(
+  availableRoles: AccountRole[],
+  fallbackType?: string | null
+): AccountRole | null {
+  if (availableRoles.length === 0) {
+    return resolveAccountRole(fallbackType) ?? resolveAccountRole(readStoredProfileType())
+  }
+
+  const stored = resolveAccountRole(readStoredProfileType())
+  if (stored && availableRoles.includes(stored)) return stored
+
+  const preferred = readPreferredAccountRole()
+  if (preferred && availableRoles.includes(preferred)) return preferred
+
+  const fromFallback = resolveAccountRole(fallbackType)
+  if (fromFallback && availableRoles.includes(fromFallback)) return fromFallback
+
+  return availableRoles[0] ?? null
+}
+
 export function syncProfileTypeInSession(profileType: string): void {
   if (typeof window === "undefined") return
   try {
@@ -37,41 +74,55 @@ export function syncProfileTypeInSession(profileType: string): void {
   }
 }
 
-export function extractProfileTypeFromProfile(raw: unknown): string | null {
+export function persistActiveAccountRole(role: AccountRole): void {
+  syncProfileTypeInSession(role)
+  if (typeof window === "undefined") return
+  try {
+    window.localStorage.setItem(PREFERRED_ACCOUNT_ROLE_KEY, role)
+  } catch {
+    /* ignore */
+  }
+  window.dispatchEvent(new Event(ACCOUNT_ROLE_CHANGED_EVENT))
+}
+
+export function extractAccountRolesFromProfile(raw: unknown): AccountRole[] {
   const data = unwrapProfilePayload(raw)
-  if (!data) {
-    if (!raw || typeof raw !== "object") return null
-    const root = raw as Record<string, unknown>
-    const nested =
-      root.data && typeof root.data === "object"
-        ? (root.data as Record<string, unknown>)
-        : root
-    if (typeof nested.profile_type === "string" && nested.profile_type.trim()) {
-      return nested.profile_type.trim()
-    }
-    if (Array.isArray(nested.roles)) {
-      const role = nested.roles.find(
-        (item): item is string => typeof item === "string" && item.trim() !== ""
-      )
-      if (role) return role.trim()
-    }
-    return null
+  if (!data) return []
+
+  const seen = new Set<AccountRole>()
+  const roles: AccountRole[] = []
+
+  const pushRole = (value: unknown) => {
+    const role = resolveAccountRole(typeof value === "string" ? value : null)
+    if (!role || seen.has(role)) return
+    seen.add(role)
+    roles.push(role)
   }
 
   if (Array.isArray(data.roles)) {
-    const role = data.roles.find(
-      (item): item is string => typeof item === "string" && item.trim() !== ""
-    )
-    if (role) return role.trim()
+    for (const item of data.roles) {
+      pushRole(item)
+    }
   }
 
-  if (data.professional && typeof data.professional === "object") {
-    return "professional"
+  if (data.client && typeof data.client === "object" && !seen.has("client")) {
+    roles.push("client")
+    seen.add("client")
   }
 
-  if (data.client && typeof data.client === "object") {
-    return "client"
+  if (
+    data.professional &&
+    typeof data.professional === "object" &&
+    !seen.has("professional")
+  ) {
+    roles.push("professional")
+    seen.add("professional")
   }
 
-  return null
+  return roles
+}
+
+export function extractProfileTypeFromProfile(raw: unknown): string | null {
+  const available = extractAccountRolesFromProfile(raw)
+  return pickActiveAccountRole(available)
 }

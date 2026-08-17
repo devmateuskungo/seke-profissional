@@ -16,13 +16,13 @@ import {
   Heart,
   Loader2,
   Play,
-  Share2,
   Volume2,
   VolumeX,
   X,
 } from "lucide-react"
 
 import { useToast } from "@/components/ui/toaster"
+import { PostShareMenu } from "@/components/post-share-menu/post-share-menu"
 import { fetchHomeFeed } from "@/lib/feed-client"
 import { likePost, unlikePost } from "@/lib/likes-client"
 import { cn } from "@/lib/utils"
@@ -483,33 +483,6 @@ export function VideoFeedGalleryProvider({
     }
   }, [current, toast])
 
-  const handleShare = useCallback(async () => {
-    if (!current) return
-    let url = current.shareUrl
-    try {
-      url = new URL(current.shareUrl, window.location.origin).toString()
-    } catch {
-      /* keep relative */
-    }
-    const title = current.shareTitle || "Publicação SEKE"
-
-    try {
-      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
-        await navigator.share({ title, url, text: title })
-        return
-      }
-    } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") return
-    }
-
-    try {
-      await navigator.clipboard.writeText(url)
-      toast.success("Link copiado.")
-    } catch {
-      toast.error("Não foi possível partilhar. Tente novamente.")
-    }
-  }, [current, toast])
-
   const value = useMemo<VideoFeedGalleryContextValue>(
     () => ({
       openFromPost,
@@ -592,20 +565,11 @@ export function VideoFeedGalleryProvider({
                     </span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => void handleShare()}
-                    className="flex flex-col items-center gap-1 md:gap-1.5"
-                    aria-label="Partilhar"
-                  >
-                    <Share2
-                      className="size-8 text-white drop-shadow-md"
-                      strokeWidth={2}
-                    />
-                    <span className="text-xs font-semibold text-white drop-shadow">
-                      Partilhar
-                    </span>
-                  </button>
+                  <PostShareMenu
+                    postId={current.postId}
+                    title={current.shareTitle}
+                    variant="overlay"
+                  />
 
                   {loadingMore ? (
                     <Loader2 className="mt-1 size-5 animate-spin text-white/70" />

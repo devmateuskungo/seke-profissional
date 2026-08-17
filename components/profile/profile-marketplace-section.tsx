@@ -126,7 +126,7 @@ function MetricTile({
   return (
     <div
       className={cn(
-        "rounded-lg border border-gray-100 bg-white p-4 sm:p-5",
+        "rounded-lg border border-gray-100 bg-white p-3 sm:p-5",
         className
       )}
     >
@@ -363,7 +363,7 @@ export function ProfileMarketplacePanels({
           </p>
         </div>
       ) : null}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         {isProfessional && professionalStats ? (
           <>
             <MetricTile
@@ -396,7 +396,7 @@ export function ProfileMarketplacePanels({
                 value={professionalRejected}
                 icon={BarChart3}
                 accent="text-muted-foreground"
-                className="sm:col-span-2 xl:col-span-1"
+                className="col-span-2 xl:col-span-1"
               />
             ) : null}
           </>

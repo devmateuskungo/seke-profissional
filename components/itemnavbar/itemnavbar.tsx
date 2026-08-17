@@ -38,7 +38,7 @@ export function Navbar() {
         e.preventDefault()
         const q = searchQuery.trim()
         if (!q) return
-        router.push(`/conexoes?q=${encodeURIComponent(q)}`)
+        router.push(`/pesquisa?hashtag=${encodeURIComponent(q)}`)
         setIsMenuOpen(false)
     }
 
@@ -56,7 +56,7 @@ export function Navbar() {
                 name="q"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Pesquisar…"
+                placeholder="Pesquisar hashtag…"
                 className="h-9 w-full border-gray-200 bg-gray-50/80 pl-8 pr-2.5 text-xs shadow-none placeholder:text-gray-400 focus-visible:bg-white sm:text-sm"
                 autoComplete="off"
             />
@@ -78,7 +78,7 @@ export function Navbar() {
                     {/* Pesquisa — desktop/tablet (≥ md) */}
                     <form
                         role="search"
-                        aria-label="Pesquisar na plataforma"
+                        aria-label="Pesquisar publicações por hashtag"
                         onSubmit={handleSearch}
                         className="hidden min-w-0 flex-1 items-center md:flex md:max-w-[9.5rem] md:flex-none lg:max-w-[11rem] xl:max-w-xs"
                     >
@@ -225,7 +225,7 @@ export function Navbar() {
                 {/* Pesquisa — mobile (< md), abaixo da barra principal */}
                 <form
                     role="search"
-                    aria-label="Pesquisar na plataforma"
+                    aria-label="Pesquisar publicações por hashtag"
                     onSubmit={handleSearch}
                     className="border-t border-gray-100 pb-2.5 pt-2 md:hidden"
                 >

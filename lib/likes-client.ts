@@ -226,22 +226,30 @@ export type LikePostRequestOptions = {
 }
 
 /**
- * POST /api/likes/post/:postId — dar like numa publicação (Authorization obrigatório).
- * Resposta: { liked, total_likes } ou formato mínimo (ex. `action` / `like_id`).
+ * POST /api/interactions/posts/:postId/like
+ * → POST {API}/interactions/posts/:postId/like
+ * Body: `{ postId }`.
  */
 export async function likePost(
   postId: string,
   token: string,
   requestOptions?: LikePostRequestOptions
 ): Promise<LikePostOutcome> {
+  const id = postId.trim()
+  if (!id) {
+    return { success: false, error: "ID da publicação inválido." }
+  }
+
   const res = await fetch(
-    `${LIKES_POST_API}/${encodeURIComponent(postId)}`,
+    `/api/interactions/posts/${encodeURIComponent(id)}/like`,
     {
       method: "POST",
       headers: {
         Accept: "application/json",
+        "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
+      body: JSON.stringify({ postId: id }),
       cache: "no-store",
     }
   )

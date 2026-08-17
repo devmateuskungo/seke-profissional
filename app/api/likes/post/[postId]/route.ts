@@ -110,9 +110,8 @@ export async function GET(
 }
 
 /**
- * POST /api/likes/post/:postId — proxy para POST …/likes/posts/:postId/like
- * Dar like numa publicação (Authorization obrigatório).
- * Resposta típica: { liked: true, total_likes: number }
+ * POST /api/likes/post/:postId — proxy para POST …/interactions/posts/:postId/like
+ * Body: { postId }
  */
 export async function POST(
   request: NextRequest,
@@ -138,15 +137,17 @@ export async function POST(
       )
     }
 
-    const baseUrl = getBaseUrl()
-    const url = `${baseUrl}/likes/posts/${encodeURIComponent(trimmed)}/like`
+    const baseUrl = getBaseUrl().replace(/\/+$/, "")
+    const url = `${baseUrl}/interactions/posts/${encodeURIComponent(trimmed)}/like`
 
     const res = await fetch(url, {
       method: "POST",
       headers: {
         Accept: "application/json",
+        "Content-Type": "application/json",
         Authorization: authorization,
       },
+      body: JSON.stringify({ postId: trimmed }),
       cache: "no-store",
     })
 

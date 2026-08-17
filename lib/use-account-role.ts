@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react"
 import {
-  extractProfileTypeFromProfile,
+  ACCOUNT_ROLE_CHANGED_EVENT,
+  extractAccountRolesFromProfile,
+  pickActiveAccountRole,
   readStoredProfileType,
   resolveAccountRole,
   syncProfileTypeInSession,
@@ -21,6 +23,18 @@ export function useAccountRole(): {
   const { isAuthenticated, isLoading: authLoading } = useAuth()
   const [role, setRole] = useState<AccountRole | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const applyStoredRole = () => {
+      const fromStored = resolveAccountRole(readStoredProfileType())
+      if (fromStored) setRole(fromStored)
+    }
+
+    window.addEventListener(ACCOUNT_ROLE_CHANGED_EVENT, applyStoredRole)
+    return () => {
+      window.removeEventListener(ACCOUNT_ROLE_CHANGED_EVENT, applyStoredRole)
+    }
+  }, [])
 
   useEffect(() => {
     if (authLoading) return
@@ -55,9 +69,10 @@ export function useAccountRole(): {
       if (cancelled) return
 
       if (result.success) {
-        const profileType = extractProfileTypeFromProfile(result.data)
-        if (profileType) syncProfileTypeInSession(profileType)
-        setRole(resolveAccountRole(profileType))
+        const available = extractAccountRolesFromProfile(result.data)
+        const nextRole = pickActiveAccountRole(available)
+        if (nextRole) syncProfileTypeInSession(nextRole)
+        setRole(nextRole)
       } else {
         setRole(null)
       }

@@ -14,7 +14,6 @@ import {
   Heart,
   Loader2,
   Play,
-  Share2,
   Volume2,
   VolumeX,
   X,
@@ -22,7 +21,7 @@ import {
 
 import { cn } from "@/lib/utils"
 import { dedupeMediaUrls } from "@/lib/posts-client"
-import { useToast } from "@/components/ui/toaster"
+import { PostShareMenu } from "@/components/post-share-menu/post-share-menu"
 import { useVideoFeedGalleryOptional } from "@/components/video-feed-gallery/video-feed-gallery-provider"
 
 function normalizeMediaSrc(value: string | null | undefined): string | null {
@@ -339,7 +338,6 @@ export function PostVideoGallery({
   shareUrl,
   shareTitle,
 }: PostVideoGalleryProps) {
-  const toast = useToast()
   const videoFeed = useVideoFeedGalleryOptional()
   const videos = dedupeMediaUrls(
     urls.map(normalizeMediaSrc).filter((u): u is string => Boolean(u))
@@ -480,44 +478,6 @@ export function PostVideoGallery({
   const canGoPrev = currentGalleryIndex > 0
   const canGoNext = currentGalleryIndex < videos.length - 1
 
-  const resolveShareUrl = useCallback(() => {
-    if (typeof window === "undefined") return shareUrl?.trim() || ""
-    if (shareUrl?.trim()) {
-      try {
-        return new URL(shareUrl, window.location.origin).toString()
-      } catch {
-        return shareUrl.trim()
-      }
-    }
-    return window.location.href
-  }, [shareUrl])
-
-  const handleShare = useCallback(async () => {
-    const url = resolveShareUrl()
-    if (!url) {
-      toast.error("Não foi possível partilhar esta publicação.")
-      return
-    }
-
-    const title = shareTitle?.trim() || "Publicação SEKE"
-
-    try {
-      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
-        await navigator.share({ title, url, text: title })
-        return
-      }
-    } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") return
-    }
-
-    try {
-      await navigator.clipboard.writeText(url)
-      toast.success("Link copiado.")
-    } catch {
-      toast.error("Não foi possível partilhar. Tente novamente.")
-    }
-  }, [resolveShareUrl, shareTitle, toast])
-
   const renderFullscreenGallery = () => (
     <div
       className="fixed inset-0 z-50 bg-black"
@@ -575,20 +535,13 @@ export function PostVideoGallery({
                 </span>
               </button>
 
-              <button
-                type="button"
-                onClick={() => void handleShare()}
-                className="flex flex-col items-center gap-1 md:gap-1.5"
-                aria-label="Partilhar"
-              >
-                <Share2
-                  className="size-8 text-white drop-shadow-md"
-                  strokeWidth={2}
+              {postId ? (
+                <PostShareMenu
+                  postId={postId}
+                  title={shareTitle}
+                  variant="overlay"
                 />
-                <span className="text-xs font-semibold text-white drop-shadow">
-                  Partilhar
-                </span>
-              </button>
+              ) : null}
             </div>
           </div>
         </div>

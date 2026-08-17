@@ -43,6 +43,25 @@ export interface DeletePostResponse {
   message: string
 }
 
+/** Plataformas enviadas em POST /posts/:id/share (`platform`). */
+export type PostSharePlatform =
+  | "Linkdin"
+  | "Facebook"
+  | "WhatsApp"
+  | "Twitter"
+  | "Telegram"
+  | "Copy"
+
+/** Corpo enviado em POST /api/posts/:id/share → POST …/posts/:id/share */
+export interface SharePostRequest {
+  id: string
+  platform: PostSharePlatform | string
+}
+
+export interface SharePostResponse {
+  message?: string
+}
+
 /** Resposta de POST ou DELETE /api/likes/post/:postId — dar ou remover like */
 export interface LikePostResponse {
   liked: boolean

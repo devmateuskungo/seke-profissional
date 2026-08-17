@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/toaster"
 import { lightTheme } from "@/style/light"
 import { loginWithCredentials } from "@/lib/auth-client"
-import { extractProfileTypeFromProfile } from "@/lib/account-role"
+import { extractProfileTypeFromProfile, persistActiveAccountRole, resolveAccountRole } from "@/lib/account-role"
 import { fetchProfile } from "@/lib/profile-client"
 import { extractUserIdFromJwt } from "@/lib/jwt-user-id"
 
@@ -97,12 +97,8 @@ export function ItemLogin() {
               const profileOutcome = await fetchProfile(token, resolvedId)
               if (profileOutcome.success) {
                 const profileType = extractProfileTypeFromProfile(profileOutcome.data)
-                if (profileType) {
-                  window.sessionStorage.setItem(
-                    "user_data",
-                    JSON.stringify({ ...userData, profile_type: profileType })
-                  )
-                }
+                const role = resolveAccountRole(profileType)
+                if (role) persistActiveAccountRole(role)
               }
             }
           }

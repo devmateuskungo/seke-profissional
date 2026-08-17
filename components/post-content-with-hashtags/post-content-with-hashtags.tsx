@@ -1,4 +1,6 @@
+import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { normalizeHashtagLabel } from "@/lib/posts-client"
 
 /** Padrão de hashtag no texto: #palavra (com grupo de captura para split) */
 export const HASHTAG_IN_TEXT_PATTERN = /(#[a-zA-Z0-9_\u00C0-\u024F]+)/g
@@ -29,16 +31,18 @@ export function PostContentWithHashtags({
         if (!part) return null
 
         if (HASHTAG_TOKEN_PATTERN.test(part)) {
+          const tag = normalizeHashtagLabel(part)
           return (
-            <span
+            <Link
               key={`tag-${index}-${part}`}
+              href={tag ? `/pesquisa?hashtag=${encodeURIComponent(tag)}` : "/pesquisa"}
               className={cn(
-                "font-semibold text-primary hover:underline",
+                "font-semibold text-primary no-underline hover:underline",
                 hashtagClassName
               )}
             >
               {part}
-            </span>
+            </Link>
           )
         }
 

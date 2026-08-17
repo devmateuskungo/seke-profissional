@@ -47,7 +47,7 @@ export function ProfileLayoutSkeleton() {
       aria-busy="true"
       aria-label="A carregar perfil"
     >
-      <div className="mx-auto grid grid-cols-1 gap-6 p-4 lg:grid-cols-12">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         <aside className="space-y-6 lg:col-span-3">
           <Card>
             <Skeleton className="mb-4 h-4 w-28" />
@@ -76,16 +76,16 @@ export function ProfileLayoutSkeleton() {
 
         <div className="space-y-6 lg:col-span-9">
           <div className="overflow-hidden rounded-md border border-border/45 bg-card">
-            <Skeleton className="h-48 w-full rounded-none" />
-            <div className="relative px-4 pb-8 pt-0 md:px-8">
-              <div className="-translate-y-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                <Skeleton className="size-32 shrink-0 rounded-3xl" />
+            <Skeleton className="h-28 w-full rounded-none sm:h-36 md:h-48" />
+            <div className="relative px-3 pb-5 pt-0 sm:px-4 md:px-8 md:pb-8">
+              <div className="-translate-y-8 flex flex-row items-end justify-between gap-3 sm:-translate-y-10 md:-translate-y-12">
+                <Skeleton className="size-20 shrink-0 rounded-2xl sm:size-28 sm:rounded-3xl md:size-32" />
                 <div className="flex gap-2 sm:mb-2">
                   <Skeleton className="h-10 w-28 rounded-lg md:w-36" />
                   <Skeleton className="size-10 rounded-lg" />
                 </div>
               </div>
-              <div className="-mt-8 space-y-3">
+              <div className="-mt-5 space-y-3 sm:-mt-6 md:-mt-8">
                 <div className="flex flex-wrap items-center gap-2">
                   <Skeleton className="h-8 w-48" />
                   <Skeleton className="h-6 w-20 rounded-md" />

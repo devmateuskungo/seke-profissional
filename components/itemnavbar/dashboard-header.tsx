@@ -109,7 +109,7 @@ export function DashboardHeader() {
           </DropdownMenu.Trigger>
           <DropdownMenu.Portal>
             <DropdownMenu.Content
-              className="min-w-[200px] rounded-lg bg-popover p-1 shadow-md border border-border"
+              className="z-[9999] min-w-[200px] rounded-lg bg-popover p-1 shadow-md border border-border"
               align="end"
               sideOffset={6}
               alignOffset={-4}
