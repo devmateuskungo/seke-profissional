@@ -3,7 +3,6 @@
 import Image from 'next/image';
 import { Loader2, MapPin, Phone } from 'lucide-react';
 import { resolveUserAvatarUrl, userAvatarSrcUnoptimized } from '@/lib/user-avatar';
-import { lightTheme } from '@/style/light';
 
 export interface SolicitacaoClienteProps {
   nome?: string;
@@ -66,7 +65,7 @@ export default function SolicitacaoCliente({
   const avatarSrc = resolveUserAvatarUrl(avatar)
 
   const prioridadeCores = {
-    baixa: 'text-gray-600',
+    baixa: 'text-muted-foreground',
     media: 'text-amber-600',
     alta: 'text-red-600'
   };
@@ -78,9 +77,9 @@ export default function SolicitacaoCliente({
   };
 
   return (
-    <div className="bg-white border border-gray-100 rounded-lg overflow-hidden">
-      <div className="px-4 py-3 flex items-center justify-between border-b border-gray-50">
-        <div className="flex items-center gap-3 text-xs text-gray-500">
+    <div className="bg-card border border-border rounded-lg overflow-hidden">
+      <div className="px-4 py-3 flex items-center justify-between border-b border-border">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span>{tempoSolicitacao}</span>
           <span>•</span>
           <span>{distancia}</span>
@@ -92,7 +91,7 @@ export default function SolicitacaoCliente({
 
       <div className="p-4">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 bg-gray-100 rounded-full overflow-hidden shrink-0">
+          <div className="w-10 h-10 bg-secondary rounded-full overflow-hidden shrink-0">
             <Image
               src={avatarSrc}
               alt={nome}
@@ -104,14 +103,14 @@ export default function SolicitacaoCliente({
           </div>
           
           <div>
-            <h3 className="text-xs font-medium text-gray-900">{nome}</h3>
-            <div className="flex items-center gap-2 text-xs text-gray-500">
-              <MapPin size={10} className="text-gray-400" />
+            <h3 className="text-xs font-medium text-foreground">{nome}</h3>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <MapPin size={10} className="text-muted-foreground" />
               <span>{bairro}, {localizacao}</span>
               {telefone && (
                 <>
                   <span>•</span>
-                  <Phone size={10} className="text-gray-400" />
+                  <Phone size={10} className="text-muted-foreground" />
                   <span>{telefone}</span>
                 </>
               )}
@@ -120,13 +119,13 @@ export default function SolicitacaoCliente({
         </div>
 
         <div className="mb-4">
-          <h4 className="text-sm font-medium text-gray-900">{servico}</h4>
-          <p className="text-xs text-gray-500 mt-1 line-clamp-2">{descricao}</p>
+          <h4 className="text-sm font-medium text-foreground">{servico}</h4>
+          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{descricao}</p>
           {orcamento ? (
-            <p className="text-xs font-medium text-gray-700 mt-2">{orcamento}</p>
+            <p className="text-xs font-medium text-foreground mt-2">{orcamento}</p>
           ) : null}
           {typeof totalPropostas === "number" && totalPropostas > 0 ? (
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               {totalPropostas} proposta{totalPropostas !== 1 ? "s" : ""}
             </p>
           ) : null}
@@ -137,8 +136,7 @@ export default function SolicitacaoCliente({
             type="button"
             onClick={onViewProposals}
             disabled={!onViewProposals}
-            style={{ backgroundColor: lightTheme.colors.primary }}
-            className="w-full flex items-center justify-center gap-2 text-white text-sm py-2 rounded-lg transition-colors hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground text-sm py-2 rounded-lg transition-colors hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {typeof totalPropostas === "number" && totalPropostas > 0
               ? `Ver propostas (${totalPropostas})`
@@ -148,8 +146,7 @@ export default function SolicitacaoCliente({
           <div className="flex items-center gap-2">
             {hasMyProposal || proposalSent ? (
               <p
-                className="w-full text-center text-sm font-medium py-2 rounded-lg text-white"
-                style={{ backgroundColor: lightTheme.colors.success }}
+                className="w-full text-center text-sm font-medium py-2 rounded-lg text-white bg-emerald-600"
               >
                 Proposta enviada
               </p>
@@ -158,8 +155,7 @@ export default function SolicitacaoCliente({
                 type="button"
                 onClick={onSendProposal}
                 disabled={isProcessing || !onSendProposal}
-                style={{ backgroundColor: lightTheme.colors.primary }}
-                className="w-full flex items-center justify-center gap-2 text-white text-sm py-2 rounded-lg transition-colors hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground text-sm py-2 rounded-lg transition-colors hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {isProcessing && processingAction === "proposal" ? (
                   <>
@@ -175,13 +171,12 @@ export default function SolicitacaoCliente({
         ) : showAcceptAction ? (
           <div className="flex items-center gap-2">
             {rejected ? (
-              <p className="w-full text-center text-sm font-medium text-gray-500 py-2">
+              <p className="w-full text-center text-sm font-medium text-muted-foreground py-2">
                 Serviço rejeitado
               </p>
             ) : accepted ? (
               <p
-                className="w-full text-center text-sm font-medium py-2 rounded-lg text-white"
-                style={{ backgroundColor: lightTheme.colors.success }}
+                className="w-full text-center text-sm font-medium py-2 rounded-lg text-white bg-emerald-600"
               >
                 Serviço aceite
               </p>
@@ -191,8 +186,7 @@ export default function SolicitacaoCliente({
                   type="button"
                   onClick={onAccept}
                   disabled={isProcessing || !onAccept}
-                  style={{ backgroundColor: lightTheme.colors.primary }}
-                  className="flex-1 flex items-center justify-center gap-2 text-white text-sm py-2 rounded-lg transition-colors hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="flex-1 flex items-center justify-center gap-2 bg-primary text-primary-foreground text-sm py-2 rounded-lg transition-colors hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {isProcessing && processingAction === "accept" ? (
                     <>
@@ -207,7 +201,7 @@ export default function SolicitacaoCliente({
                   type="button"
                   onClick={onReject}
                   disabled={isProcessing || !onReject}
-                  className="flex-1 flex items-center justify-center gap-2 text-gray-600 text-sm py-2 rounded-lg transition-colors hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="flex-1 flex items-center justify-center gap-2 text-muted-foreground text-sm py-2 rounded-lg transition-colors hover:bg-accent disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {isProcessing && processingAction === "reject" ? (
                     <>

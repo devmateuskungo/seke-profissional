@@ -8,7 +8,6 @@ import {
   updateProfessionalAvailability,
 } from "@/lib/professional-client"
 import { cn } from "@/lib/utils"
-import { lightTheme } from "@/style/light"
 
 interface HomeProfessionalAvailabilityProps {
   userId: string | null
@@ -38,7 +37,7 @@ function AvailabilitySwitch({
       onClick={() => onChange(!checked)}
       className={cn(
         "relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full p-0.5 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2b81e5]/40 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60",
-        checked ? "bg-[#2b81e5]" : "bg-gray-200"
+        checked ? "bg-[#2b81e5]" : "bg-secondary"
       )}
     >
       <span
@@ -129,38 +128,37 @@ export function HomeProfessionalAvailability({
   }
 
   return (
-    <div className="bg-white p-4 rounded-md border border-gray-200">
+    <div className="bg-card p-4 rounded-md border border-border">
       <div className="flex items-center gap-2.5 mb-3">
         <div
-          className="flex size-8 shrink-0 items-center justify-center rounded-lg"
-          style={{
-            backgroundColor: isAvailable ? `${lightTheme.colors.primary}20` : "#f3f4f6",
-            color: isAvailable ? lightTheme.colors.primary : "#6b7280",
-          }}
+          className={cn(
+            "flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors",
+            isAvailable ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground"
+          )}
         >
           <UserCheck className="size-3.5" aria-hidden />
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="text-sm font-semibold leading-tight">Disponibilidade</h3>
-          <p className="text-xs text-gray-500 leading-tight mt-0.5">
+          <p className="text-xs text-muted-foreground leading-tight mt-0.5">
             Disponível para receber novos serviços
           </p>
         </div>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-4 text-gray-400">
+        <div className="flex items-center justify-center py-4 text-muted-foreground">
           <Loader2 className="size-4 animate-spin" aria-hidden />
           <span className="sr-only">A carregar disponibilidade…</span>
         </div>
       ) : (
         <>
-          <label className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 bg-gray-50/80 px-3 py-2.5 cursor-pointer">
+          <label className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/80 px-3 py-2.5 cursor-pointer">
             <div className="min-w-0">
-              <p className="text-sm font-medium text-gray-900 leading-tight">
+              <p className="text-sm font-medium text-foreground leading-tight">
                 {isAvailable ? "Disponível" : "Indisponível"}
               </p>
-              <p className="text-xs text-gray-500 leading-tight mt-0.5">
+              <p className="text-xs text-muted-foreground leading-tight mt-0.5">
                 {isAvailable
                   ? "Clientes podem solicitar os seus serviços."
                   : "Não receberá novos pedidos."}

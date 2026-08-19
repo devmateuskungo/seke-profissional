@@ -70,23 +70,23 @@ export function HomeSidebarPanel({
         aria-label="Fechar painel"
         onClick={onClose}
       />
-      <aside className="absolute top-0 left-0 z-10 flex h-full w-full max-w-md flex-col bg-white shadow-2xl animate-in slide-in-from-left duration-300">
-        <div className="flex items-center justify-between gap-3 border-b border-gray-200 px-4 py-4">
+      <aside className="absolute top-0 left-0 z-10 flex h-full w-full max-w-md flex-col bg-background shadow-2xl animate-in slide-in-from-left duration-300">
+        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-4">
           <div>
             <h2
               id="home-sidebar-panel-title"
-              className="text-lg font-semibold text-gray-900"
+              className="text-lg font-semibold text-foreground"
             >
               Resumo
             </h2>
-            <p className="mt-0.5 text-sm text-gray-500">
+            <p className="mt-0.5 text-sm text-muted-foreground">
               Profissionais, disponibilidade e métricas
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="cursor-pointer rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
+            className="cursor-pointer rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             aria-label="Fechar"
           >
             <X size={22} />

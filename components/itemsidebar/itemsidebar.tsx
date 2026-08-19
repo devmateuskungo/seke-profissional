@@ -47,7 +47,7 @@ export default function SidebarProfissional({ children }: SidebarProfissionalPro
 
   return (
     <SidebarProvider defaultOpen>
-      <Sidebar variant="inset" collapsible="icon" className="bg-white">
+      <Sidebar variant="inset" collapsible="icon" className="bg-sidebar">
         {/* HEADER (Perfil) */}
         <SidebarHeader className="p-4 ">
           

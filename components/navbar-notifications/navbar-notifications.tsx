@@ -210,9 +210,9 @@ export function NavbarNotifications() {
         type="button"
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          "relative flex h-10 w-10 items-center justify-center rounded-full text-gray-600 transition-colors cursor-pointer",
-          "hover:bg-gray-100 hover:text-[#2b81e5]",
-          open && "bg-gray-100 text-[#2b81e5]"
+          "relative flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors cursor-pointer",
+          "hover:bg-accent hover:text-primary",
+          open && "bg-accent text-primary"
         )}
         aria-label="Notificações"
         aria-expanded={open}
@@ -227,16 +227,16 @@ export function NavbarNotifications() {
 
       {open ? (
         <div
-          className="absolute right-0 z-60 mt-2 w-[min(calc(100vw-1.5rem),22rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg"
+          className="absolute right-0 z-60 mt-2 w-[min(calc(100vw-1.5rem),22rem)] overflow-hidden rounded-xl border border-border bg-popover shadow-lg"
           role="menu"
         >
-          <header className="border-b border-gray-200 bg-white px-4 py-3">
+          <header className="border-b border-border bg-popover px-4 py-3">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <h2 className="text-sm font-semibold text-gray-900">
+                <h2 className="text-sm font-semibold text-foreground">
                   Notificações
                 </h2>
-                <p className="mt-0.5 text-xs text-gray-500">
+                <p className="mt-0.5 text-xs text-muted-foreground">
                   {unreadCount > 0
                     ? `${unreadCount} ${unreadCount === 1 ? "não lida" : "não lidas"}`
                     : "Nenhuma nova"}
@@ -256,7 +256,7 @@ export function NavbarNotifications() {
           </header>
 
           <div
-            className="flex border-b border-gray-200 bg-white px-1"
+            className="flex border-b border-border bg-popover px-1"
             role="tablist"
             aria-label="Filtrar notificações"
           >
@@ -270,8 +270,8 @@ export function NavbarNotifications() {
                 className={cn(
                   "min-w-0 flex-1 cursor-pointer rounded-md px-1.5 py-2 text-center text-xs font-medium transition-colors",
                   listFilter === tab.id
-                    ? "text-[#2b81e5]"
-                    : "text-gray-500 hover:text-gray-800"
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 <span
@@ -290,14 +290,14 @@ export function NavbarNotifications() {
 
           <div className="max-h-[min(70vh,360px)] overflow-y-auto overscroll-contain [scrollbar-width:thin]">
             {loading && items.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-2 bg-white py-12 text-gray-500">
+              <div className="flex flex-col items-center justify-center gap-2 bg-popover py-12 text-muted-foreground">
                 <Loader2 className="size-5 animate-spin" />
                 <span className="text-sm">A carregar…</span>
               </div>
             ) : items.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-2 bg-white px-6 py-12 text-center">
-                <Inbox className="size-8 text-gray-300" strokeWidth={1.5} />
-                <p className="text-sm text-gray-600">
+              <div className="flex flex-col items-center justify-center gap-2 bg-popover px-6 py-12 text-center">
+                <Inbox className="size-8 text-muted-foreground/50" strokeWidth={1.5} />
+                <p className="text-sm text-muted-foreground">
                   {listFilter === "unread"
                     ? "Sem notificações não lidas."
                     : listFilter === "read"
@@ -306,7 +306,7 @@ export function NavbarNotifications() {
                 </p>
               </div>
             ) : (
-              <ul className="divide-y divide-gray-100 bg-white">
+              <ul className="divide-y divide-border bg-popover">
                 {items.map((n) => {
                   const actorAvatarSrc = resolveUserAvatarUrl(n.actor.avatar)
                   return (
@@ -318,15 +318,15 @@ export function NavbarNotifications() {
                         setOpen(false)
                       }}
                       className={cn(
-                        "group relative flex cursor-pointer gap-3 bg-white px-4 py-3 transition-colors",
+                        "group relative flex cursor-pointer gap-3 bg-popover px-4 py-3 transition-colors",
                         "no-underline hover:no-underline focus:no-underline",
-                        "hover:bg-gray-50",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-gray-300",
-                        !n.read && "border-l-[3px] border-l-[#2b81e5]"
+                        "hover:bg-accent",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-border",
+                        !n.read && "border-l-[3px] border-l-primary"
                       )}
                     >
                       <div className="relative shrink-0">
-                        <div className="relative h-10 w-10 overflow-hidden rounded-full bg-gray-100">
+                        <div className="relative h-10 w-10 overflow-hidden rounded-full bg-secondary">
                           <Image
                             src={actorAvatarSrc}
                             alt={n.actor.name}
@@ -338,18 +338,18 @@ export function NavbarNotifications() {
                         </div>
                       </div>
                       <div className="min-w-0 flex-1 pt-0.5">
-                        <p className="text-[13px] leading-relaxed text-gray-800">
+                        <p className="text-[13px] leading-relaxed text-foreground">
                           {n.type === "like" ? (
                             <>
                               A sua publicação recebeu uma nova curtida de{" "}
-                              <span className="font-semibold text-gray-900">
+                              <span className="font-semibold text-foreground">
                                 {n.actor.name}
                               </span>
                               .
                             </>
                           ) : (
                             <>
-                              <span className="font-semibold text-gray-900">
+                              <span className="font-semibold text-foreground">
                                 {n.actor.name}
                               </span>{" "}
                               começou a seguir-te.
@@ -357,11 +357,11 @@ export function NavbarNotifications() {
                           )}
                         </p>
                         {n.type === "like" && n.post?.content_preview ? (
-                          <p className="mt-2 line-clamp-2 border-l-2 border-gray-200 pl-2 text-xs leading-snug text-gray-600">
+                          <p className="mt-2 line-clamp-2 border-l-2 border-border pl-2 text-xs leading-snug text-muted-foreground">
                             {n.post.content_preview}
                           </p>
                         ) : null}
-                        <p className="mt-2 flex items-center gap-1.5 text-[11px] tabular-nums text-gray-400">
+                        <p className="mt-2 flex items-center gap-1.5 text-[11px] tabular-nums text-muted-foreground">
                           <Clock className="size-3 shrink-0 opacity-70" />
                           {formatNotifWhen(n.created_at)}
                         </p>

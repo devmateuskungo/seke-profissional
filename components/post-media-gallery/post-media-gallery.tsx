@@ -113,7 +113,7 @@ function FeedSingleImage({
     <button
       type="button"
       onClick={onOpen}
-      className="relative flex w-full min-h-[160px] items-center justify-center overflow-hidden bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:bg-neutral-900/40 sm:min-h-[200px]"
+      className="relative flex w-full min-h-[160px] items-center justify-center overflow-hidden bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:bg-neutral-900/40 sm:min-h-[200px]"
       aria-label={`Ver imagem: ${alt}`}
     >
       {!loaded ? (

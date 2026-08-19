@@ -120,21 +120,21 @@ export default function ProfissionalAgendaPage() {
             Voltar
           </Link>
           <div className="mt-3 flex items-center gap-2">
-            <div className="flex size-9 items-center justify-center rounded-lg bg-[#dceffd] text-[#2b81e5]">
+            <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <CalendarDays className="size-4" aria-hidden />
             </div>
-            <h1 className="text-xl font-semibold text-gray-900">Agenda</h1>
+            <h1 className="text-xl font-semibold text-foreground">Agenda</h1>
           </div>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-muted-foreground">
             Veja os serviços agendados e organize a sua semana.
           </p>
         </div>
       </div>
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-lg border border-gray-100 bg-white px-4 py-3">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">Total</p>
-          <p className="mt-1 text-xl font-semibold tracking-tight text-gray-900">
+        <div className="rounded-lg border border-border bg-card px-4 py-3">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Total</p>
+          <p className="mt-1 text-xl font-semibold tracking-tight text-foreground">
             {loading ? "—" : bookingMetrics.total}
           </p>
         </div>
@@ -160,16 +160,16 @@ export default function ProfissionalAgendaPage() {
 
       <div className="space-y-4">
         {loading && appointmentItems.length === 0 ? (
-          <div className="w-full rounded-lg border border-gray-200 bg-white px-6 py-10 text-center text-sm text-gray-600">
-            <Loader2 className="mx-auto size-5 animate-spin text-[#2b81e5]" aria-hidden />
+          <div className="w-full rounded-lg border border-border bg-card px-6 py-10 text-center text-sm text-muted-foreground">
+            <Loader2 className="mx-auto size-5 animate-spin text-primary" aria-hidden />
             <div className="mt-3">A carregar agenda…</div>
           </div>
         ) : error && appointmentItems.length === 0 ? (
-          <div className="w-full rounded-lg border border-gray-200 bg-white px-6 py-10 text-center">
-            <p className="text-sm text-gray-800">{error}</p>
+          <div className="w-full rounded-lg border border-border bg-card px-6 py-10 text-center">
+            <p className="text-sm text-foreground">{error}</p>
             <button
               type="button"
-              className="mt-5 inline-flex items-center justify-center gap-2 rounded-md bg-[#2b81e5] px-4 py-2.5 text-sm font-medium text-white hover:opacity-90"
+              className="mt-5 inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90"
               onClick={() => void load()}
               disabled={loading}
             >
@@ -182,8 +182,8 @@ export default function ProfissionalAgendaPage() {
             </button>
           </div>
         ) : appointmentItems.length === 0 ? (
-          <div className="w-full rounded-lg border border-gray-200 bg-white px-6 py-12 text-center">
-            <p className="text-sm text-gray-500">Sem agendamentos.</p>
+          <div className="w-full rounded-lg border border-border bg-card px-6 py-12 text-center">
+            <p className="text-sm text-muted-foreground">Sem agendamentos.</p>
           </div>
         ) : (
           appointmentItems.map((item, idx) => (

@@ -16,7 +16,7 @@ export function PersonalDataStep({ fotoPreview, onImageUpload }: PersonalDataSte
             <div className="flex justify-center mb-2">
                 <div className="relative w-24 h-24 group">
                     <label htmlFor="foto" className="cursor-pointer block w-full h-full">
-                        <div className="relative w-full h-full rounded-full overflow-hidden border-4 border-gray-200 group-hover:border-primary transition-colors bg-linear-to-br from-gray-50 to-stone-100 flex items-center justify-center">
+                        <div className="relative w-full h-full rounded-full overflow-hidden border-4 border-border group-hover:border-primary transition-colors bg-linear-to-br from-muted to-stone-100 flex items-center justify-center">
 
                             {fotoPreview ? (
                                 <Image
@@ -57,7 +57,7 @@ export function PersonalDataStep({ fotoPreview, onImageUpload }: PersonalDataSte
                 </div>
             </div>
 
-            <p className="text-center text-xs text-gray-500 mb-2">
+            <p className="text-center text-xs text-muted-foreground mb-2">
                 Clique na imagem para adicionar uma foto de perfil
             </p>
 

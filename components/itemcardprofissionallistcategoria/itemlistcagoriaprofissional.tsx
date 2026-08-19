@@ -4,7 +4,6 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { BadgeCheck, MapPin, Navigation, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { lightTheme } from "@/style";
 import {
   resolveUserAvatarUrl,
   userAvatarSrcUnoptimized,
@@ -75,10 +74,10 @@ export default function ItemlistcategoriaProfissional({
   };
 
   return (
-    <article className="flex w-full max-w-none flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition-shadow hover:shadow-md sm:max-w-[300px]">
+    <article className="flex w-full max-w-none flex-col overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-md sm:max-w-[300px]">
       <div className="flex items-start gap-3 p-4 pb-3">
         <div className="relative shrink-0">
-          <div className="size-14 overflow-hidden rounded-full bg-muted ring-2 ring-gray-100">
+          <div className="size-14 overflow-hidden rounded-full bg-muted ring-2 ring-border">
             <Image
               src={avatarSrc}
               alt={name}
@@ -91,7 +90,7 @@ export default function ItemlistcategoriaProfissional({
           <span
             className={cn(
               "absolute bottom-0 right-0 size-3.5 rounded-full border-2 border-white",
-              online ? "bg-emerald-500" : "bg-gray-300"
+              online ? "bg-emerald-500" : "bg-muted-foreground/50"
             )}
             title={online ? "Online" : "Offline"}
           />
@@ -99,23 +98,23 @@ export default function ItemlistcategoriaProfissional({
 
         <div className="min-w-0 flex-1 pt-0.5">
           <div className="flex items-start gap-1">
-            <h3 className="truncate text-sm font-semibold leading-snug text-gray-900">
+            <h3 className="truncate text-sm font-semibold leading-snug text-foreground">
               {name}
             </h3>
             {verified ? (
               <BadgeCheck
-                className="mt-0.5 size-4 shrink-0 text-[#2b81e5]"
+                className="mt-0.5 size-4 shrink-0 text-primary"
                 aria-label="Verificado"
               />
             ) : null}
           </div>
 
-          <div className="mt-1 flex items-center gap-1 text-xs text-gray-500">
+          <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
             <Star className="size-3.5 shrink-0 fill-amber-400 text-amber-400" />
-            <span className="font-medium text-gray-800">
+            <span className="font-medium text-foreground">
               {rating.toFixed(1)}
             </span>
-            <span className="text-gray-300">·</span>
+            <span className="text-muted-foreground/50">·</span>
             <span>
               {totalReviews > 0
                 ? `${totalReviews} ${totalReviews === 1 ? "avaliação" : "avaliações"}`
@@ -131,13 +130,13 @@ export default function ItemlistcategoriaProfissional({
             "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
             isAvailable
               ? "bg-emerald-50 text-emerald-700"
-              : "bg-gray-100 text-gray-500"
+              : "bg-secondary text-muted-foreground"
           )}
         >
           <span
             className={cn(
               "size-1.5 rounded-full",
-              isAvailable ? "bg-emerald-500" : "bg-gray-400"
+              isAvailable ? "bg-emerald-500" : "bg-muted-foreground/70"
             )}
             aria-hidden
           />
@@ -146,13 +145,13 @@ export default function ItemlistcategoriaProfissional({
         <span
           className={cn(
             "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
-            online ? "bg-sky-50 text-sky-700" : "bg-gray-100 text-gray-500"
+            online ? "bg-sky-50 text-sky-700" : "bg-secondary text-muted-foreground"
           )}
         >
           <span
             className={cn(
               "size-1.5 rounded-full",
-              online ? "bg-sky-500" : "bg-gray-400"
+              online ? "bg-sky-500" : "bg-muted-foreground/70"
             )}
             aria-hidden
           />
@@ -162,33 +161,33 @@ export default function ItemlistcategoriaProfissional({
 
       <div className="flex flex-1 flex-col gap-2 px-4 py-3">
         {bioText ? (
-          <p className="line-clamp-2 text-xs leading-relaxed text-gray-500">
+          <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
             {bioText}
           </p>
         ) : null}
 
         {location ? (
-          <p className="flex items-center gap-1.5 text-xs text-gray-500">
-            <MapPin className="size-3.5 shrink-0 text-gray-400" aria-hidden />
+          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <MapPin className="size-3.5 shrink-0 text-muted-foreground/70" aria-hidden />
             <span className="truncate">{location}</span>
           </p>
         ) : null}
 
         {typeof distanceKm === "number" && !Number.isNaN(distanceKm) ? (
-          <p className="flex items-center gap-1.5 text-xs font-medium text-[#2b81e5]">
+          <p className="flex items-center gap-1.5 text-xs font-medium text-primary">
             <Navigation className="size-3.5 shrink-0" aria-hidden />
             {formatDistanceKm(distanceKm)}
           </p>
         ) : null}
       </div>
 
-      <div className="mt-auto border-t border-gray-100 bg-gray-50/70 px-4 py-3">
+      <div className="mt-auto border-t border-border bg-muted/70 px-4 py-3">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-wide text-gray-400">
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground/70">
               Preço
             </p>
-            <p className="truncate text-sm font-semibold text-gray-900">
+            <p className="truncate text-sm font-semibold text-foreground">
               {priceLabel}
             </p>
           </div>
@@ -196,8 +195,7 @@ export default function ItemlistcategoriaProfissional({
             type="button"
             size="xs"
             onClick={goToProfile}
-            className="h-8 shrink-0 px-3 text-xs text-white hover:opacity-90"
-            style={{ backgroundColor: lightTheme.colors.primary }}
+            className="h-8 shrink-0 px-3 text-xs bg-primary text-primary-foreground hover:opacity-90"
           >
             Ver perfil
           </Button>

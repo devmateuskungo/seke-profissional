@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 export function ProfessionalCardSkeleton() {
   return (
     <article
-      className="flex w-full max-w-none flex-col overflow-hidden rounded-xl border border-gray-200 bg-white sm:max-w-[300px]"
+      className="flex w-full max-w-none flex-col overflow-hidden rounded-xl border border-border bg-card sm:max-w-[300px]"
       aria-hidden
     >
       <div className="flex items-start gap-3 p-4 pb-3">
@@ -23,7 +23,7 @@ export function ProfessionalCardSkeleton() {
         <Skeleton className="h-3 w-4/5" />
         <Skeleton className="h-3 w-20" />
       </div>
-      <div className="mt-auto border-t border-gray-100 bg-gray-50/70 px-4 py-3">
+      <div className="mt-auto border-t border-border bg-muted/70 px-4 py-3">
         <div className="flex items-center justify-between gap-2">
           <div className="space-y-1">
             <Skeleton className="h-2.5 w-8" />

@@ -40,8 +40,8 @@ export default function LogoutPage() {
 
   return (
     <div className="w-full max-w-md text-center">
-      <h1 className="text-xl font-semibold text-gray-900">A terminar sessão…</h1>
-      <p className="mt-2 text-sm text-gray-600">Só um instante.</p>
+      <h1 className="text-xl font-semibold text-foreground">A terminar sessão…</h1>
+      <p className="mt-2 text-sm text-muted-foreground">Só um instante.</p>
     </div>
   )
 }

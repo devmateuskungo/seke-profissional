@@ -150,10 +150,10 @@ export function FormStepper() {
             <CardHeader>
                 {/* Título indicativo do formulário */}
                 <div className="mb-1 text-left">
-                    <h2 className="text-2xl font-bold text-gray-800">
+                    <h2 className="text-2xl font-bold text-foreground">
                         Formulário de Cadastro
                     </h2>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-sm text-muted-foreground mt-1">
                         Preencha os dados para completar seu cadastro
                     </p>
                 </div>

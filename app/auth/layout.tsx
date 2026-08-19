@@ -20,7 +20,7 @@ export default function AuthLayout({
 
   if (hideImage) {
     return (
-      <div className="flex min-h-[100dvh] flex-col bg-white font-sans">
+      <div className="flex min-h-[100dvh] flex-col bg-background font-sans">
         <main className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-8 md:items-center md:justify-center">
           <div className="mx-auto w-full max-w-lg md:max-w-2xl">
             {children}
@@ -31,7 +31,7 @@ export default function AuthLayout({
   }
 
   return (
-    <div className="flex h-screen font-sans overflow-hidden bg-white">
+    <div className="flex h-screen font-sans overflow-hidden bg-background">
       <div className="flex w-full md:w-1/2 items-center justify-center px-6">
         {children}
       </div>

@@ -9,7 +9,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { resolveUserAvatarUrl, userAvatarSrcUnoptimized } from "@/lib/user-avatar";
 import { cn } from "@/lib/utils";
-import { lightTheme } from "@/style/light";
 
 interface AppointmentCardProps {
   date: string;
@@ -72,21 +71,21 @@ export default function AppointmentCard({
   const LocationIcon = isRemote ? Globe : MapPin;
 
   return (
-    <article className="overflow-hidden rounded-xl border border-gray-100 bg-white transition-all duration-200">
+    <article className="overflow-hidden rounded-xl border border-border bg-card transition-all duration-200">
       <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-5 sm:p-5">
         <div className="flex min-w-0 flex-1 items-start gap-4">
-          <div className="flex w-[72px] shrink-0 flex-col items-center justify-center rounded-lg border border-gray-100 bg-gray-50 px-2 py-3 text-center">
-            <span className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+          <div className="flex w-[72px] shrink-0 flex-col items-center justify-center rounded-lg border border-border bg-secondary px-2 py-3 text-center">
+            <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
               {month}
             </span>
-            <span className="text-2xl font-semibold leading-none tracking-tight text-gray-900">
+            <span className="text-2xl font-semibold leading-none tracking-tight text-foreground">
               {day}
             </span>
-            <span className="mt-1 text-xs font-medium text-[#2b81e5]">{time}</span>
+            <span className="mt-1 text-xs font-medium text-primary">{time}</span>
           </div>
 
           <div className="flex min-w-0 flex-1 items-start gap-3">
-            <div className="size-12 shrink-0 overflow-hidden rounded-full bg-muted ring-2 ring-gray-100 sm:size-14">
+            <div className="size-12 shrink-0 overflow-hidden rounded-full bg-muted ring-2 ring-border sm:size-14">
               <Image
                 src={resolvedAvatar}
                 alt={clientName}
@@ -99,7 +98,7 @@ export default function AppointmentCard({
 
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-start justify-between gap-2">
-                <h3 className="truncate text-base font-semibold tracking-tight text-gray-900 sm:text-lg">
+                <h3 className="truncate text-base font-semibold tracking-tight text-foreground sm:text-lg">
                   {service}
                 </h3>
                 <span
@@ -113,12 +112,12 @@ export default function AppointmentCard({
                 </span>
               </div>
 
-              <p className="mt-1 truncate text-sm font-medium text-gray-800">
+              <p className="mt-1 truncate text-sm font-medium text-foreground">
                 {clientName}
               </p>
 
-              <p className="mt-1.5 flex items-center gap-1.5 text-xs text-gray-500">
-                <LocationIcon className="size-3.5 shrink-0 text-gray-400" aria-hidden />
+              <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <LocationIcon className="size-3.5 shrink-0 text-muted-foreground/70" aria-hidden />
                 <span className="truncate">{role}</span>
               </p>
             </div>
@@ -126,10 +125,10 @@ export default function AppointmentCard({
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-gray-100 bg-gray-50/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+      <div className="flex flex-col gap-3 border-t border-border bg-muted/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div className="min-w-0">
-          <p className="text-[10px] uppercase tracking-wide text-gray-400">Valor</p>
-          <p className="truncate text-sm font-semibold tabular-nums text-gray-900 sm:text-base">
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground/70">Valor</p>
+          <p className="truncate text-sm font-semibold tabular-nums text-foreground sm:text-base">
             {price}
           </p>
         </div>
@@ -138,8 +137,7 @@ export default function AppointmentCard({
           <Button
             type="button"
             size="sm"
-            className="h-9 w-full rounded-lg text-white hover:opacity-90 sm:w-auto sm:min-w-[130px]"
-            style={{ backgroundColor: lightTheme.colors.primary }}
+            className="h-9 w-full rounded-lg bg-primary text-primary-foreground hover:opacity-90 sm:w-auto sm:min-w-[130px]"
           >
             Ver detalhes
           </Button>

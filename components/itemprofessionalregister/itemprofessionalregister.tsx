@@ -574,7 +574,7 @@ export function ItemProfessionalRegister({
             )}
           </div>
 
-          <div className="sticky bottom-0 z-10 -mx-4 mt-8 border-t border-gray-100 bg-white/95 px-4 py-3 backdrop-blur-sm supports-[backdrop-filter]:bg-white/80 sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+          <div className="sticky bottom-0 z-10 -mx-4 mt-8 border-t border-border bg-background/95 px-4 py-3 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80 sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
               <Button
                 type="button"

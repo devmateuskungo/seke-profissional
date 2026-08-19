@@ -78,7 +78,7 @@ export function MarketplacePage({ mode }: MarketplacePageProps) {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 py-6 sm:py-8">
-      <div className="border-y border-gray-100 bg-white py-4 sm:rounded-xl sm:border sm:p-6">
+      <div className="border-y border-border bg-card py-4 sm:rounded-xl sm:border sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1">
             <Link
@@ -93,7 +93,7 @@ export function MarketplacePage({ mode }: MarketplacePageProps) {
           </div>
           <Link
             href="/perfil"
-            className="shrink-0 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-primary transition-colors hover:bg-gray-50"
+            className="shrink-0 rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-primary transition-colors hover:bg-accent"
           >
             Ver perfil
           </Link>
@@ -101,7 +101,7 @@ export function MarketplacePage({ mode }: MarketplacePageProps) {
       </div>
 
       {wrongRole ? (
-        <div className="space-y-3 border-y border-gray-100 bg-white p-8 text-center sm:rounded-xl sm:border">
+        <div className="space-y-3 border-y border-border bg-card p-8 text-center sm:rounded-xl sm:border">
           <h2 className="text-base font-semibold text-foreground">{meta.wrongRoleTitle}</h2>
           <p className="mx-auto max-w-md text-sm text-muted-foreground">
             {meta.wrongRoleMessage}
@@ -111,7 +111,7 @@ export function MarketplacePage({ mode }: MarketplacePageProps) {
           </Button>
         </div>
       ) : (
-        <div className="border-y border-gray-100 bg-white py-4 sm:rounded-xl sm:border sm:p-6">
+      <div className="border-y border-border bg-card py-4 sm:rounded-xl sm:border sm:p-6">
           <ProfileMarketplacePanels
             isProfessional={isProfessional}
             userId={userId}

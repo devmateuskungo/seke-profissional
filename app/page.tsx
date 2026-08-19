@@ -11,7 +11,6 @@ import { Users, Briefcase, AlertCircle, RefreshCcw, PanelLeft } from 'lucide-rea
 import SolicitacaoCliente from '@/components/itempostclients/itempostclient';
 import { ItemPropostaEnviar } from '@/components/itempropostaenviar/itempropostaenviar';
 import { ItemPropostasGerir } from '@/components/itempropostasgerir/itempropostasgerir';
-import { lightTheme } from '@/style/light';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toaster';
 import { fetchHomeFeed } from '@/lib/feed-client';
@@ -42,6 +41,7 @@ import {
 import { HomeSidebarMetrics } from '@/components/home/home-sidebar-metrics';
 import { HomeProfessionalAvailability } from '@/components/home/home-professional-availability';
 import { HomeFindProfessionalCard } from '@/components/home/home-find-professional-card';
+import { HomeBecomeClientCard } from '@/components/home/home-become-client-card';
 import { HomeUserProfileCard } from '@/components/home/home-user-profile-card';
 import { HomeSidebarPanel } from '@/components/home/home-sidebar-panel';
 import { useAuth } from '@/lib/use-auth';
@@ -65,22 +65,21 @@ function FeedErrorEmptyState({
       role="alert"
       aria-live="polite"
     >
-      <div className="max-w-md w-full rounded-lg bg-white px-6 py-8 text-center">
-        <div className="mx-auto mb-4 grid size-12 place-items-center rounded-full bg-red-50 text-red-600">
+      <div className="max-w-md w-full rounded-lg bg-card px-6 py-8 text-center">
+        <div className="mx-auto mb-4 grid size-12 place-items-center rounded-full bg-destructive/10 text-destructive">
           <AlertCircle className="size-6" aria-hidden />
         </div>
-        <h3 className="text-base font-semibold text-gray-900">
+        <h3 className="text-base font-semibold text-foreground">
           Não foi possível carregar o feed
         </h3>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-muted-foreground">
           {message?.trim() ? message : 'Verifique a sua ligação e tente novamente.'}
         </p>
         <div className="mt-5 flex justify-center">
           <Button
             type="button"
             onClick={onRetry}
-            style={{ backgroundColor: lightTheme.colors.primary }}
-            className="gap-2 text-white hover:opacity-90"
+            className="gap-2 bg-primary text-primary-foreground hover:opacity-90"
           >
             <RefreshCcw className="size-4" aria-hidden />
             Tentar novamente
@@ -509,8 +508,7 @@ function HomeInner() {
       <button
         type="button"
         onClick={() => setSidebarPanelOpen(true)}
-        className="fixed right-4 bottom-5 z-40 inline-flex size-12 items-center justify-center rounded-full text-white shadow-lg transition-opacity hover:opacity-90 lg:hidden"
-        style={{ backgroundColor: lightTheme.colors.primary }}
+        className="fixed right-4 bottom-[calc(5.25rem+env(safe-area-inset-bottom))] z-60 inline-flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-opacity hover:opacity-90 lg:hidden"
         aria-label="Abrir resumo: profissionais, disponibilidade e métricas"
       >
         <PanelLeft className="size-5" aria-hidden />
@@ -549,8 +547,8 @@ function HomeInner() {
         </aside>
 
         <main className="min-w-0 flex-1">
-          <div className="bg-white ">
-            <div>
+          <div className="bg-card border border-border rounded-md">
+            <div className="px-2 py-2 sm:px-2">
               <HeroSection />
             </div>
 
@@ -562,20 +560,20 @@ function HomeInner() {
             </div>
 
             {!accountRoleLoading && accountRole === 'client' ? (
-              <div className="mt-4 mb-6">
+              <div className="mt-4 mb-6 px-4 py-2 sm:px-6">
                 <ItemSolicitacaoCriar onSuccess={handleServiceRequestCreated} />
               </div>
             ) : null}
 
             {!accountRoleLoading && accountRole === 'professional' ? (
-              <div className="mt-4 mb-6">
+              <div className="mt-4 mb-6 px-4 py-2 sm:px-6">
                 <ItemPostCriar onSuccess={handlePostCreated} />
               </div>
             ) : null}
 
-            <div className="mt-2">
+            <div className="mt-2 px-4 sm:px-6">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-base font-semibold text-gray-900">Filtro</h2>
+                <h2 className="text-base font-semibold text-foreground">Filtro</h2>
               </div>
 
               <div className="flex gap-2">
@@ -583,8 +581,8 @@ function HomeInner() {
                   type="button"
                   onClick={() => setFiltroLocal('todos')}
                   className={`flex-1 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors ${filtro === 'todos'
-                    ? 'bg-[#2b81e5] text-white'
-                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-secondary text-secondary-foreground hover:bg-accent'
                     }`}
                 >
                   Todos ({contarTodos})
@@ -594,8 +592,8 @@ function HomeInner() {
                   onClick={() => setFiltroLocal('solicitacoes')}
                   aria-label={`Clientes (${contarSolicitacoes})`}
                   className={`flex-1 flex items-center justify-center cursor-pointer gap-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${filtro === 'solicitacoes'
-                    ? 'bg-[#2b81e5] text-white'
-                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-secondary text-secondary-foreground hover:bg-accent'
                     }`}
                 >
                   <Users size={16} aria-hidden />
@@ -607,8 +605,8 @@ function HomeInner() {
                   onClick={() => setFiltroLocal('profissionais')}
                   aria-label={`Profissionais (${contarProfissionais})`}
                   className={`flex-1 flex items-center justify-center cursor-pointer gap-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${filtro === 'profissionais'
-                    ? 'bg-[#2b81e5] text-white'
-                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-secondary text-secondary-foreground hover:bg-accent'
                     }`}
                 >
                   <Briefcase size={16} aria-hidden />
@@ -618,7 +616,7 @@ function HomeInner() {
               </div>
             </div>
 
-            <div className="">
+            <div className="px-4 sm:px-6">
               {feedLoading &&
               feedPosts.length === 0 &&
               (filtro === 'todos' || filtro === 'profissionais') ? (
@@ -767,7 +765,7 @@ function HomeInner() {
                 </>
               ) : (
                 <div className="text-center py-12">
-                  <p className="text-gray-500">Nenhum item encontrado</p>
+                  <p className="text-muted-foreground">Nenhum item encontrado</p>
                 </div>
               )}
             </div>
@@ -789,23 +787,27 @@ function HomeInner() {
         <aside
           className="sticky top-20 z-10 hidden w-[342px] shrink-0 space-y-4 self-start lg:block"
         >
-          <div className="bg-white rounded-md border border-gray-200">
-            <div className="p-4 border-b border-gray-200">
+          {!authLoading && isAuthenticated && !accountRoleLoading && accountRole === 'professional' ? (
+            <HomeBecomeClientCard userId={viewerUserId} />
+          ) : null}
+
+          <div className="bg-card rounded-md border border-border">
+            <div className="p-4 border-b border-border">
               <h3 className="text-base font-semibold">Profissionais recomendados</h3>
             </div>
             <div className="p-4 space-y-4">
               {sidebarProfRows.length === 0 ? (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   As publicações do feed aparecem aqui quando existirem autores na lista.
                 </p>
               ) : (
                 sidebarProfRows.map((prof) => (
                   <div key={prof.id} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-gray-200 rounded-full" />
+                      <div className="w-8 h-8 bg-secondary rounded-full" />
                       <div>
                         <p className="font-medium text-xs">{prof.nome}</p>
-                        <p className="text-xs text-gray-500">{prof.titulo}</p>
+                        <p className="text-xs text-muted-foreground">{prof.titulo}</p>
                       </div>
                     </div>
                     <button
@@ -820,13 +822,13 @@ function HomeInner() {
             </div>
           </div>
 
-          <div className="bg-white rounded-md border border-gray-200">
-            <div className="p-4 border-b border-gray-200">
+          <div className="bg-card rounded-md border border-border">
+            <div className="p-4 border-b border-border">
               <h3 className="text-base font-semibold">Solicitações recentes</h3>
             </div>
             <div className="p-4 space-y-3">
               {sidebarSolicitacaoRows.length === 0 ? (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   As solicitações de clientes aparecem aqui quando existirem.
                 </p>
               ) : (
@@ -841,16 +843,16 @@ function HomeInner() {
                     >
                       <div className="min-w-0 flex-1 text-sm">
                         <p className="font-medium text-xs truncate">{sol.nome}</p>
-                        <p className="text-xs text-gray-500 truncate">
+                        <p className="text-xs text-muted-foreground truncate">
                           {sol.servico} • {sol.bairro}
                         </p>
                         <span
                           className={`text-xs px-2 py-0.5 rounded-full inline-block mt-1 ${
                             sol.prioridade === 'alta'
-                              ? 'bg-red-50 text-red-600'
+                              ? 'bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-400'
                               : sol.prioridade === 'media'
-                                ? 'bg-amber-50 text-amber-600'
-                                : 'bg-gray-100 text-gray-700'
+                                ? 'bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400'
+                                : 'bg-secondary text-secondary-foreground'
                           }`}
                         >
                           {sol.prioridade === 'alta'

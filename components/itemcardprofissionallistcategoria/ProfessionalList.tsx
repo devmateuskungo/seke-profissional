@@ -9,7 +9,6 @@ import ProfessionalListFilters, {
 } from "./professional-list-filters";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { lightTheme } from "@/style/light";
 import { getClientGeolocation, type GeoCoords } from "@/lib/geolocation";
 import {
   buildProfessionalCategoryMap,
@@ -355,34 +354,33 @@ export default function ProfessionalList() {
             {isLoading && professionals.length === 0 ? (
               <Skeleton className="h-5 w-44" />
             ) : (
-              <p className="text-sm font-semibold text-gray-700">{countLabel}</p>
+              <p className="text-sm font-semibold text-foreground">{countLabel}</p>
             )}
           </div>
 
           {isLoading && professionals.length === 0 ? (
             <ProfessionalCardSkeletonGrid count={6} />
           ) : error && professionals.length === 0 ? (
-            <div className="w-full max-w-md rounded-lg border border-gray-200 bg-white px-6 py-8 text-center">
+            <div className="w-full max-w-md rounded-lg border border-border bg-card px-6 py-8 text-center">
               <div className="mx-auto mb-4 grid size-12 place-items-center rounded-full bg-red-50 text-red-600">
                 <AlertCircle className="size-6" aria-hidden />
               </div>
-              <h3 className="text-base font-semibold text-gray-900">
+              <h3 className="text-base font-semibold text-foreground">
                 Não foi possível carregar os profissionais
               </h3>
-              <p className="mt-1 text-sm text-gray-500">{error}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{error}</p>
               <Button
                 type="button"
                 onClick={handleRetry}
-                className="mt-5 gap-2 text-white"
-                style={{ backgroundColor: lightTheme.colors.primary }}
+                className="mt-5 gap-2 text-white bg-primary"
               >
                 <RefreshCcw className="size-4" aria-hidden />
                 Tentar novamente
               </Button>
             </div>
           ) : professionals.length === 0 ? (
-            <div className="w-full rounded-lg border border-gray-200 bg-white px-6 py-12 text-center">
-              <p className="text-sm text-gray-500">
+            <div className="w-full rounded-lg border border-border bg-card px-6 py-12 text-center">
+              <p className="text-sm text-muted-foreground">
                 Nenhum profissional encontrado com estes filtros.
               </p>
               {hasActiveFilters ? (
@@ -424,7 +422,7 @@ export default function ProfessionalList() {
                   type="button"
                   onClick={handleLoadMore}
                   disabled={isLoadingMore}
-                  className="cursor-pointer rounded-lg px-6 py-3 text-[#2b81e5] transition hover:bg-[#dceffd] disabled:opacity-60"
+                  className="cursor-pointer rounded-lg px-6 py-3 text-primary transition hover:bg-primary/10 disabled:opacity-60"
                 >
                   {isLoadingMore ? "A carregar…" : "Ver mais profissionais"}
                 </button>

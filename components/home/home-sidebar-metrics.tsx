@@ -18,11 +18,11 @@ function MetricCell({
   value: string | number
 }) {
   return (
-    <div className="rounded-lg bg-gray-50 px-2.5 py-2">
-      <p className="text-[10px] font-medium text-gray-500 truncate leading-tight">
+    <div className="rounded-lg bg-muted px-2.5 py-2">
+      <p className="text-[10px] font-medium text-muted-foreground truncate leading-tight">
         {label}
       </p>
-      <p className="mt-0.5 text-sm font-semibold tabular-nums text-gray-900 leading-tight">
+      <p className="mt-0.5 text-sm font-semibold tabular-nums text-foreground leading-tight">
         {value}
       </p>
     </div>
@@ -76,19 +76,19 @@ function MetricsCard({
   const items = metrics ?? emptyMetrics
 
   return (
-    <div className="bg-white p-4 rounded-md border border-gray-200">
+    <div className="bg-card p-4 rounded-md border border-border">
       <div className="flex items-start gap-2.5 mb-3">
         <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#dceffd] text-[#2b81e5]">
           <Icon className="size-3.5" aria-hidden />
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="text-sm font-semibold leading-tight">{title}</h3>
-          <p className="text-xs text-gray-500 leading-tight mt-0.5">{description}</p>
+          <p className="text-xs text-muted-foreground leading-tight mt-0.5">{description}</p>
         </div>
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-4 text-gray-400">
+        <div className="flex items-center justify-center py-4 text-muted-foreground">
           <Loader2 className="size-4 animate-spin" aria-hidden />
         </div>
       ) : (

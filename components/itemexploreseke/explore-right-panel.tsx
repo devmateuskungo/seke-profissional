@@ -57,23 +57,23 @@ export function ExploreRightPanel({ open, onClose }: ExploreRightPanelProps) {
         aria-label="Fechar painel"
         onClick={onClose}
       />
-      <aside className="absolute top-0 right-0 z-10 flex h-full w-full max-w-md flex-col bg-white shadow-2xl animate-in slide-in-from-right duration-300">
-        <div className="flex items-center justify-between gap-3 border-b border-gray-200 px-4 py-4">
+      <aside className="absolute top-0 right-0 z-10 flex h-full w-full max-w-md flex-col bg-card shadow-2xl animate-in slide-in-from-right duration-300">
+        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-4">
           <div>
             <h2
               id="explore-panel-title"
-              className="text-lg font-semibold text-gray-900"
+              className="text-lg font-semibold text-foreground"
             >
               Explore mais sobre a Seke
             </h2>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <p className="text-sm text-muted-foreground mt-0.5">
               Atalhos para as áreas principais
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors cursor-pointer"
+            className="rounded-lg p-2 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors cursor-pointer"
             aria-label="Fechar"
           >
             <X size={22} />
@@ -87,9 +87,9 @@ export function ExploreRightPanel({ open, onClose }: ExploreRightPanelProps) {
                 <Link
                   href={href}
                   onClick={onClose}
-                  className="flex items-center gap-3 rounded-lg border border-gray-100 bg-gray-50/80 px-3 py-3 text-sm font-medium text-gray-800 no-underline transition-colors hover:border-[#2b81e5]/40 hover:bg-[#2b81e5]/5 hover:text-[#2b81e5] hover:no-underline focus:no-underline"
+                  className="flex items-center gap-3 rounded-lg border border-border bg-muted/80 px-3 py-3 text-sm font-medium text-foreground no-underline transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary hover:no-underline focus:no-underline"
                 >
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-white text-[#2b81e5] shadow-sm ring-1 ring-gray-100">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-card text-primary shadow-sm ring-1 ring-border">
                     <Icon className="size-5" aria-hidden />
                   </span>
                   {label}

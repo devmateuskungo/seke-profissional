@@ -24,10 +24,10 @@ export function DocumentStep({
             {/* Título da etapa */}
             <div className="text-left">
                 
-                <h3 className="text-xl font-semibold text-gray-800">
+                <h3 className="text-xl font-semibold text-foreground">
                     Envio do Documento de Identificação
                 </h3>
-                <p className="text-sm text-gray-500 mt-1 mx-auto">
+                <p className="text-sm text-muted-foreground mt-1 mx-auto">
                     Para continuar, precisamos verificar sua identidade. 
                     Envie uma foto nítida do seu documento (frente e verso).
                 </p>
@@ -60,13 +60,13 @@ export function DocumentStep({
                                     </div>
                                 ) : (
                                     <>
-                                        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-2">
+                                        <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-2">
                                             <Upload size={28} className="text-[#2b81e5]" />
                                         </div>
-                                        <p className="text-sm font-medium text-gray-800">
+                                        <p className="text-sm font-medium text-foreground">
                                             Clique para enviar a FRENTE
                                         </p>
-                                        <p className="text-xs text-gray-400 mt-1">
+                                        <p className="text-xs text-muted-foreground/70 mt-1">
                                             Clique aqui ou arraste a imagem
                                         </p>
                                     </>
@@ -96,7 +96,7 @@ export function DocumentStep({
                             htmlFor="documento-verso" 
                             className="cursor-pointer block"
                         >
-                            <div className="flex flex-col items-center justify-center h-40 bg-linear-to-br from-gray-50 to-gray-100 rounded-lg p-4">
+                            <div className="flex flex-col items-center justify-center h-40 bg-linear-to-br from-muted to-secondary rounded-lg p-4">
                                 {documentoVerso ? (
                                     <div className="relative w-full h-36">
                                         <Image
@@ -109,13 +109,13 @@ export function DocumentStep({
                                     </div>
                                 ) : (
                                     <>
-                                        <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center mb-2">
-                                            <Camera size={28} className="text-gray-600" />
+                                        <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-2">
+                                            <Camera size={28} className="text-muted-foreground" />
                                         </div>
-                                        <p className="text-sm font-medium text-gray-600">
+                                        <p className="text-sm font-medium text-muted-foreground">
                                             Clique para enviar o VERSO
                                         </p>
-                                        <p className="text-xs text-gray-400 mt-1">
+                                        <p className="text-xs text-muted-foreground/70 mt-1">
                                             Clique aqui ou arraste a imagem
                                         </p>
                                     </>

@@ -20,10 +20,10 @@ export interface StatsCardItem {
 }
 
 const colorClasses = {
-  primary: "bg-[#dceffd] text-[#2b81e5]",
-  success: "bg-primary/10 text-primary",
+  primary: "bg-primary/10 text-primary",
+  success: "bg-emerald-100 text-emerald-700",
   warning: "bg-amber-100 text-amber-700",
-  muted: "bg-gray-100 text-gray-700",
+  muted: "bg-secondary text-foreground",
   error: "bg-red-100 text-red-700",
 };
 
@@ -97,12 +97,12 @@ export default function DashboardStatsCards({
       {allCards.map((item) => (
         <Card
           key={item.id}
-          className="overflow-hidden border border-gray-100 shadow-none"
+          className="overflow-hidden border border-border shadow-none"
         >
           <CardContent className="p-3">
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-medium text-gray-500 truncate">
+                <p className="text-xs font-medium text-muted-foreground truncate">
                   {item.title}
                 </p>
                 <p className="mt-0.5 text-base sm:text-lg font-semibold tabular-nums truncate">

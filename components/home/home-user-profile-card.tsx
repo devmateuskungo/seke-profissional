@@ -40,12 +40,12 @@ export function HomeUserProfileCard({
       href="/perfil"
       onClick={onNavigate}
       className={cn(
-        "group flex items-center gap-3 rounded-xl border border-gray-100 bg-white p-5 transition-colors hover:bg-gray-50",
+        "group flex items-center gap-3 rounded-xl border border-border bg-card p-5 transition-colors hover:bg-accent",
         className
       )}
       aria-label={`Abrir o perfil de ${name}`}
     >
-      <span className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-sm font-medium text-gray-700 ring-1 ring-gray-100">
+      <span className="relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary text-sm font-medium text-secondary-foreground ring-1 ring-border">
         {hasPhoto ? (
           <Image
             src={avatarSrc}
@@ -60,15 +60,15 @@ export function HomeUserProfileCard({
         )}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-base font-semibold text-gray-900">
+        <span className="block truncate text-base font-semibold text-foreground">
           {name}
         </span>
-        <span className="mt-0.5 block text-sm text-gray-500">
+        <span className="mt-0.5 block text-sm text-muted-foreground">
           Ver o meu perfil
         </span>
       </span>
       <ChevronRight
-        className="size-5 shrink-0 text-gray-400 transition-transform group-hover:translate-x-0.5"
+        className="size-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
         aria-hidden
       />
     </Link>

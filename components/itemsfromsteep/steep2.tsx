@@ -117,7 +117,7 @@ export function AddressStep() {
             <div className="flex flex-col gap-3">
                 <div>
                     <Label className="text-base font-semibold">Serviços</Label>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-sm text-muted-foreground mt-1">
                         Selecione os serviços que você oferece por categoria
                     </p>
                 </div>
@@ -142,7 +142,7 @@ export function AddressStep() {
                 {/* Serviços da Categoria Selecionada */}
                 {categoriaSelecionada && servicosFiltrados.length > 0 && (
                     <div className="mt-2">
-                        <Label className="text-sm text-gray-600 mb-2 block">
+                        <Label className="text-sm text-muted-foreground mb-2 block">
                             Serviços disponíveis em {categoriaSelecionada}:
                         </Label>
                         <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-2 border rounded-lg">
@@ -187,22 +187,22 @@ export function AddressStep() {
                 
                 {/* Serviços Selecionados */}
                 {servicosSelecionados.length > 0 && (
-                    <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                        <p className="text-sm font-medium text-gray-700 mb-2">
+                    <div className="mt-4 p-3 bg-muted rounded-lg">
+                        <p className="text-sm font-medium text-foreground mb-2">
                             Serviços selecionados ({servicosSelecionados.length}):
                         </p>
                         <div className="flex flex-wrap gap-2">
                             {servicosSelecionados.map((servico) => (
                                 <span
                                     key={servico}
-                                    className="inline-flex items-center gap-1 px-3 py-1 bg-white border rounded-full text-sm"
+                                    className="inline-flex items-center gap-1 px-3 py-1 bg-card border rounded-full text-sm"
                                     style={{ borderColor: lightTheme.colors.primary }}
                                 >
                                     {servico}
                                     <button
                                         type="button"
                                         onClick={() => toggleServico(servico)}
-                                        className="ml-1 text-gray-500 hover:text-red-500 focus:outline-none"
+                                        className="ml-1 text-muted-foreground hover:text-red-500 focus:outline-none"
                                     >
                                         ×
                                     </button>

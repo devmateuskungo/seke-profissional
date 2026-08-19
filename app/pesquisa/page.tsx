@@ -29,7 +29,7 @@ export default function PesquisaPage() {
       fallback={
         <div className="flex items-start gap-6">
           <aside className="hidden w-[342px] shrink-0 lg:block">
-            <div className="h-24 animate-pulse rounded-md border border-gray-200 bg-white" />
+            <div className="h-24 animate-pulse rounded-md border border-border bg-card" />
           </aside>
           <div className="min-w-0 flex-1 space-y-4">
             <HomeFeedPostSkeleton />
@@ -213,14 +213,14 @@ function PesquisaResults() {
 
   const showTotalCard = Boolean(hashtag && totalFound != null && !loading)
   const totalCard = (
-    <div className="rounded-md border border-gray-200 bg-white p-4">
+    <div className="rounded-md border border-border bg-card p-4">
       <div className="flex items-center gap-3">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-gray-50 text-gray-600">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
           <FileSearch className="size-5" aria-hidden />
         </div>
         <div>
-          <p className="text-xs font-medium text-gray-500">Total encontrado</p>
-          <p className="text-2xl font-semibold tabular-nums text-gray-900">
+          <p className="text-xs font-medium text-muted-foreground">Total encontrado</p>
+          <p className="text-2xl font-semibold tabular-nums text-foreground">
             {totalFound}
           </p>
         </div>
@@ -247,7 +247,7 @@ function PesquisaResults() {
         <aside className="sticky top-20 z-10 hidden w-[342px] shrink-0 self-start lg:block">
           {showTotalCard ? totalCard : null}
           {hashtag && loading ? (
-            <div className="h-24 animate-pulse rounded-md border border-gray-200 bg-white" />
+            <div className="h-24 animate-pulse rounded-md border border-border bg-card" />
           ) : null}
         </aside>
 

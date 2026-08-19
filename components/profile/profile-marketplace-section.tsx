@@ -80,7 +80,7 @@ function getClientRequestStatus(status?: string) {
   if (normalized === "open") {
     return { label: "Aberta", className: "border-amber-100 bg-amber-500/10 text-amber-700" }
   }
-  return { label: "Encerrada", className: "border-gray-200 bg-muted text-muted-foreground" }
+  return { label: "Encerrada", className: "border-border bg-muted text-muted-foreground" }
 }
 
 function formatProposalPrice(value: string | number): string {
@@ -126,7 +126,7 @@ function MetricTile({
   return (
     <div
       className={cn(
-        "rounded-lg border border-gray-100 bg-white p-3 sm:p-5",
+        "rounded-lg border border-border bg-card p-3 sm:p-5",
         className
       )}
     >
@@ -341,7 +341,7 @@ export function ProfileMarketplacePanels({
 
   if (error) {
     return (
-      <div className="space-y-3 rounded-xl border border-gray-100 bg-white p-8 text-center">
+      <div className="space-y-3 rounded-xl border border-border bg-card p-8 text-center">
         <p className="text-sm text-destructive">{error}</p>
         <Button type="button" variant="outline" size="sm" onClick={() => void loadData()}>
           <RefreshCw className="size-3.5 mr-1.5" aria-hidden />
@@ -457,7 +457,7 @@ export function ProfileMarketplacePanels({
         ) : null}
 
         {listItems.length === 0 ? (
-          <div className="flex flex-col items-center rounded-xl border border-dashed border-gray-200 bg-gray-50/50 py-14 text-center text-muted-foreground">
+          <div className="flex flex-col items-center rounded-xl border border-dashed border-border bg-muted/50 py-14 text-center text-muted-foreground">
             <Send size={40} strokeWidth={1} className="mb-3 opacity-25" />
             <p className="text-sm max-w-sm">
               {isProfessional
@@ -487,7 +487,7 @@ export function ProfileMarketplacePanels({
                   return (
                     <li
                       key={item.id}
-                      className="space-y-3 rounded-xl border border-gray-100 bg-white p-4"
+                      className="space-y-3 rounded-xl border border-border bg-card p-4"
                     >
                       <div className="flex items-start gap-3">
                         <Image
@@ -523,7 +523,7 @@ export function ProfileMarketplacePanels({
                       ) : null}
 
                       <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div className="rounded-lg border border-gray-100 bg-gray-50/60 px-3 py-2">
+                        <div className="rounded-lg border border-border bg-muted/60 px-3 py-2">
                           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
                             Valor proposto
                           </p>
@@ -531,7 +531,7 @@ export function ProfileMarketplacePanels({
                             {formatProposalPrice(proposal.price)}
                           </p>
                         </div>
-                        <div className="rounded-lg border border-gray-100 bg-gray-50/60 px-3 py-2">
+                        <div className="rounded-lg border border-border bg-muted/60 px-3 py-2">
                           <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
                             Duração
                           </p>
@@ -601,7 +601,7 @@ export function ProfileMarketplacePanels({
                   return (
                     <li
                       key={item.id}
-                      className="space-y-3 rounded-xl border border-gray-100 bg-white p-4"
+                      className="space-y-3 rounded-xl border border-border bg-card p-4"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <p className="text-sm font-semibold leading-snug">{title}</p>

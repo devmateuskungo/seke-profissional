@@ -40,7 +40,6 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/toaster";
 import { ProfileLayoutSkeleton } from "@/components/profile/profile-layout-skeleton";
-import { lightTheme } from "@/style";
 import { createBooking } from "@/lib/bookings-client";
 import { fetchProfessionalMarketplaceServices } from "@/lib/marketplace-client";
 import { fetchProfessionalById } from "@/lib/professionals-client";
@@ -380,18 +379,17 @@ export default function ProfessionalProfileView({
         <div className="mx-auto mb-4 grid size-12 place-items-center rounded-full bg-red-50 text-red-600">
           <AlertCircle className="size-6" aria-hidden />
         </div>
-        <h1 className="text-lg font-semibold text-gray-900">
+        <h1 className="text-lg font-semibold text-foreground">
           Perfil não encontrado
         </h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-muted-foreground">
           {error ?? "Não foi possível carregar este profissional."}
         </p>
         <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
           <Button
             type="button"
             onClick={handleRetry}
-            className="gap-2 text-white"
-            style={{ backgroundColor: lightTheme.colors.primary }}
+            className="gap-2 text-white bg-primary"
           >
             <RefreshCcw className="size-4" aria-hidden />
             Tentar novamente
@@ -444,8 +442,7 @@ export default function ProfessionalProfileView({
 
         <Button
           type="button"
-          className="w-full gap-2 text-white"
-          style={{ backgroundColor: lightTheme.colors.primary }}
+          className="w-full gap-2 text-white bg-primary"
           onClick={() => void handleScheduleOpen()}
           disabled={!professional.is_available}
         >
@@ -486,7 +483,7 @@ export default function ProfessionalProfileView({
         <div className="grid grid-cols-1 gap-4 px-4 md:gap-6 md:px-0 lg:grid-cols-12">
           {/* Conteúdo principal — estilo LinkedIn */}
           <div className="space-y-6 lg:col-span-8">
-            <div className="overflow-hidden rounded-xl bg-white md:rounded-2xl md:border md:border-gray-100">
+            <div className="overflow-hidden rounded-xl bg-card md:rounded-2xl md:border md:border-border">
               <div className="relative h-32 bg-gradient-to-r from-[#dceffd] to-[#eef7ff] sm:h-40">
                 <div className="absolute inset-0 flex items-center justify-center opacity-20">
                   <Briefcase size={40} className="text-[#2b81e5]" />
@@ -496,7 +493,7 @@ export default function ProfessionalProfileView({
               <div className="relative px-4 pb-6 pt-0 md:px-8 md:pb-8">
                 <div className="-translate-y-10 flex flex-col gap-4 sm:-translate-y-12 sm:flex-row sm:items-end sm:justify-between">
                   <div className="relative shrink-0">
-                    <div className="relative size-24 overflow-hidden rounded-2xl bg-gray-100 ring-4 ring-white sm:size-28">
+                    <div className="relative size-24 overflow-hidden rounded-2xl bg-secondary ring-4 ring-card sm:size-28">
                       <Image
                         src={avatarSrc}
                         alt={professional.full_name}
@@ -519,7 +516,7 @@ export default function ProfessionalProfileView({
                     <button
                       type="button"
                       onClick={handleShare}
-                      className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 md:border md:border-gray-100"
+                      className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent md:border md:border-border"
                     >
                       <Share2 size={16} /> Partilhar
                     </button>
@@ -529,12 +526,12 @@ export default function ProfessionalProfileView({
                 <div className="-mt-6 space-y-4 sm:-mt-8">
                   <div>
                     <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <h1 className="text-xl font-semibold tracking-tight text-gray-900 sm:text-2xl">
+                      <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
                         {professional.full_name}
                       </h1>
                       {professional.is_verified ? (
                         <BadgeCheck
-                          className="size-5 shrink-0 text-[#2b81e5]"
+                          className="size-5 shrink-0 text-primary"
                           aria-label="Verificado"
                         />
                       ) : null}
@@ -542,14 +539,14 @@ export default function ProfessionalProfileView({
                         className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${
                           professional.is_available
                             ? "border-emerald-100 bg-emerald-50 text-emerald-700"
-                            : "border-gray-200 bg-gray-100 text-gray-500"
+                            : "border-border bg-secondary text-muted-foreground"
                         }`}
                       >
                         <span
                           className={`size-1.5 rounded-full ${
                             professional.is_available
                               ? "bg-emerald-500"
-                              : "bg-gray-400"
+                              : "bg-muted-foreground/70"
                           }`}
                           aria-hidden
                         />
@@ -559,25 +556,25 @@ export default function ProfessionalProfileView({
                       </span>
                     </div>
 
-                    <div className="flex flex-col gap-1.5 text-sm text-gray-500">
+                    <div className="flex flex-col gap-1.5 text-sm text-muted-foreground">
                       <span className="inline-flex items-center gap-1.5">
-                        <Briefcase size={14} className="shrink-0 text-gray-400" />
+                        <Briefcase size={14} className="shrink-0 text-muted-foreground/70" />
                         Profissional
                       </span>
                       <span className="inline-flex min-w-0 items-center gap-1.5">
-                        <MapPin size={14} className="shrink-0 text-gray-400" />
+                        <MapPin size={14} className="shrink-0 text-muted-foreground/70" />
                         <span className="truncate">{locationLabel}</span>
                       </span>
                       {memberSince ? (
                         <span className="inline-flex items-center gap-1.5">
-                          <Clock size={14} className="shrink-0 text-gray-400" />
+                          <Clock size={14} className="shrink-0 text-muted-foreground/70" />
                           Desde {memberSince}
                         </span>
                       ) : null}
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 border-t border-gray-100 pt-4 sm:gap-3">
+                  <div className="grid grid-cols-3 gap-2 border-t border-border pt-4 sm:gap-3">
                     {[
                       {
                         label: "Avaliação",
@@ -597,12 +594,12 @@ export default function ProfessionalProfileView({
                     ].map((stat) => (
                       <div
                         key={stat.label}
-                        className="rounded-lg bg-gray-50/80 px-2 py-2.5 text-center sm:px-3"
+                        className="rounded-lg bg-muted/80 px-2 py-2.5 text-center sm:px-3"
                       >
-                        <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400">
+                          <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground/70">
                           {stat.label}
                         </p>
-                        <p className="mt-0.5 text-sm font-semibold tabular-nums text-gray-900 sm:text-base">
+                          <p className="mt-0.5 text-sm font-semibold tabular-nums text-foreground sm:text-base">
                           {stat.val}
                         </p>
                       </div>
@@ -912,8 +909,7 @@ export default function ProfessionalProfileView({
                   scheduleServices.length === 0 ||
                   !selectedServiceId
                 }
-                className="text-white"
-                style={{ backgroundColor: lightTheme.colors.primary }}
+                className="text-white bg-primary"
               >
                 {scheduleSubmitting ? "A enviar…" : "Confirmar agendamento"}
               </Button>

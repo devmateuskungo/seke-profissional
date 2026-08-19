@@ -249,7 +249,7 @@ export default function ItemPostProfissonal({
   }
 
   return (
-    <div className="bg-card text-card-foreground rounded-md border border-gray-100 overflow-hidden">
+    <div className="bg-card text-card-foreground rounded-md border border-border overflow-hidden">
       <div className="p-4 flex items-center justify-between gap-2">
         <div className="flex items-center gap-3 min-w-0">
           <div className="relative size-10 shrink-0 overflow-hidden rounded-full bg-muted">

@@ -7,15 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-/** Cores do projeto */
-const COLORS = {
-  primary: "#2b81e5",
-  surface: "#ffffff",
-  background: "#f0f8fe",
-  border: "#c7ddf6",
-  text: "#192f52",
-  textSecondary: "#214b87",
-};
+
 
 export interface Conversation {
   id: string;
@@ -136,18 +128,16 @@ export default function ItemChatPage({
 
   return (
     <div
-      className="flex flex-col  bg-white overflow-hidden shadow-sm h-[calc(100vh-6rem)] min-h-[320px] sm:min-h-[420px] max-h-[calc(100vh-6rem)]"
-      style={{ borderColor: COLORS.border }}
+      className="flex flex-col bg-card overflow-hidden shadow-sm h-[calc(100vh-6rem)] min-h-[320px] sm:min-h-[420px] max-h-[calc(100vh-6rem)] border-border"
     >
       {/* Header da página */}
       <div
-        className="shrink-0 px-3 py-3 sm:px-4 sm:py-3 border-b"
-        style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
+        className="shrink-0 px-3 py-3 sm:px-4 sm:py-3 border-b border-border bg-card"
       >
-        <h1 className="text-base font-semibold sm:text-lg truncate" style={{ color: COLORS.text }}>
+        <h1 className="text-base font-semibold sm:text-lg truncate text-foreground">
           {pageTitle ?? (role === "profissional" ? "Propostas e Mensagens" : "Mensagens")}
         </h1>
-        <p className="text-xs sm:text-sm mt-0.5 line-clamp-1" style={{ color: COLORS.textSecondary }}>
+        <p className="text-xs sm:text-sm mt-0.5 line-clamp-1 text-muted-foreground">
           {pageSubtitle ??
             (role === "profissional"
               ? "Receba propostas de clientes e negocie aqui."
@@ -159,25 +149,24 @@ export default function ItemChatPage({
         {/* Lista de conversas */}
         <aside
           className={cn(
-            "flex flex-col border-r w-full sm:w-72 md:w-80 shrink-0 min-w-0",
+            "flex flex-col border-r border-border w-full sm:w-72 md:w-80 shrink-0 min-w-0 bg-card",
             selectedId && "hidden sm:flex"
           )}
-          style={{ backgroundColor: COLORS.surface, borderColor: COLORS.border }}
         >
           <div className="p-2 sm:p-3">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: COLORS.textSecondary }} />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-muted-foreground" />
               <Input
                 placeholder="Buscar..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 h-9 sm:h-10 bg-white text-sm rounded-lg border-gray-200"
+                className="pl-9 h-9 sm:h-10 bg-card text-sm rounded-lg border-border"
               />
             </div>
           </div>
           <div className="flex-1 overflow-auto">
             {filteredConversations.length === 0 ? (
-              <div className="p-4 text-center text-sm" style={{ color: COLORS.textSecondary }}>
+              <div className="p-4 text-center text-sm text-muted-foreground">
                 Nenhuma conversa encontrada.
               </div>
             ) : (
@@ -187,8 +176,8 @@ export default function ItemChatPage({
                   type="button"
                   onClick={() => setSelectedId(conv.id)}
                   className={cn(
-                    "w-full flex items-start gap-2.5 sm:gap-3 p-2.5 sm:p-3 text-left transition-colors hover:bg-white/80 active:bg-white/90",
-                    selectedId === conv.id && "bg-white shadow-sm"
+                    "w-full flex items-start gap-2.5 sm:gap-3 p-2.5 sm:p-3 text-left transition-colors hover:bg-accent",
+                    selectedId === conv.id && "bg-muted shadow-sm"
                   )}
                 >
                   <Image
@@ -200,26 +189,25 @@ export default function ItemChatPage({
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-semibold text-sm truncate" style={{ color: COLORS.text }}>
+                      <span className="font-semibold text-sm truncate text-foreground">
                         {conv.name}
                       </span>
-                      <span className="text-xs shrink-0" style={{ color: COLORS.textSecondary }}>
+                      <span className="text-xs shrink-0 text-muted-foreground">
                         {conv.lastTime}
                       </span>
                     </div>
                     {conv.proposalTitle && (
-                      <p className="flex items-center gap-1 text-xs mt-0.5" style={{ color: COLORS.primary }}>
+                      <p className="flex items-center gap-1 text-xs mt-0.5 text-primary">
                         <Briefcase className="h-3 w-3" />
                         <span className="truncate">{conv.proposalTitle}</span>
                       </p>
                     )}
-                    <p className="text-sm truncate mt-0.5" style={{ color: COLORS.textSecondary }}>
+                    <p className="text-sm truncate mt-0.5 text-muted-foreground">
                       {conv.lastMessage}
                     </p>
                     {conv.unread > 0 && (
                       <span
-                        className="inline-flex mt-1 min-w-[18px] h-[18px] items-center justify-center rounded-full text-xs font-bold text-white px-1"
-                        style={{ backgroundColor: COLORS.primary }}
+                        className="inline-flex mt-1 min-w-[18px] h-[18px] items-center justify-center rounded-full text-xs font-bold bg-primary text-primary-foreground px-1"
                       >
                         {conv.unread}
                       </span>
@@ -232,19 +220,17 @@ export default function ItemChatPage({
         </aside>
 
         {/* Área do chat */}
-        <main className="flex flex-col flex-1 min-w-0 bg-white">
+        <main className="flex flex-col flex-1 min-w-0 bg-card">
           {selected ? (
             <>
               {/* Header da conversa — mobile: botão Voltar */}
               <div
-                className="shrink-0 flex items-center gap-2 px-3 py-2 border-b sm:hidden min-h-[48px]"
-                style={{ borderColor: COLORS.border }}
+                className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-border sm:hidden min-h-[48px]"
               >
                 <button
                   type="button"
                   onClick={() => setSelectedId(null)}
-                  className="flex items-center gap-1 text-sm font-medium py-2 pr-3 -ml-1 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors"
-                  style={{ color: COLORS.text }}
+                  className="flex items-center gap-1 text-sm font-medium py-2 pr-3 -ml-1 rounded-lg hover:bg-accent transition-colors text-foreground"
                 >
                   <span className="text-lg leading-none">←</span>
                   Voltar
@@ -252,8 +238,7 @@ export default function ItemChatPage({
               </div>
               {/* Header da conversa — nome e proposta */}
               <div
-                className="shrink-0 flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 border-b"
-                style={{ borderColor: COLORS.border }}
+                className="shrink-0 flex items-center gap-3 px-3 sm:px-4 py-2.5 sm:py-3 border-b border-border"
               >
                 <Image
                   src={selected.avatarUrl}
@@ -263,11 +248,11 @@ export default function ItemChatPage({
                   className="rounded-full object-cover shrink-0 w-10 h-10 sm:w-11 sm:h-11"
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-sm sm:text-base truncate" style={{ color: COLORS.text }}>
+                  <p className="font-semibold text-sm sm:text-base truncate text-foreground">
                     {selected.name}
                   </p>
                   {selected.proposalTitle && (
-                    <p className="text-xs sm:text-sm flex items-center gap-1 truncate mt-0.5" style={{ color: COLORS.textSecondary }}>
+                    <p className="text-xs sm:text-sm flex items-center gap-1 truncate mt-0.5 text-muted-foreground">
                       <Briefcase className="h-3 w-3 shrink-0" />
                       <span className="truncate">{selected.proposalTitle}</span>
                     </p>
@@ -290,19 +275,17 @@ export default function ItemChatPage({
                         className={cn(
                           "rounded-2xl px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-[15px] leading-relaxed wrap-break-word",
                           msg.isOwn
-                            ? "rounded-br-md text-white"
-                            : "rounded-bl-md bg-gray-100 text-gray-900 border border-gray-200/80"
+                            ? "rounded-br-md bg-primary text-primary-foreground"
+                            : "rounded-bl-md bg-secondary text-foreground border border-border/80"
                         )}
-                        style={msg.isOwn ? { backgroundColor: COLORS.primary } : undefined}
                       >
                         <span className="block">{msg.text}</span>
                       </div>
                       <span
                         className={cn(
-                          "text-[11px] sm:text-xs tabular-nums",
+                          "text-[11px] sm:text-xs tabular-nums text-muted-foreground",
                           msg.isOwn ? "text-right" : "text-left"
                         )}
-                        style={{ color: COLORS.textSecondary }}
                       >
                         {msg.time}
                       </span>
@@ -313,22 +296,20 @@ export default function ItemChatPage({
 
               {/* Input enviar mensagem — área fixa, touch-friendly no mobile */}
               <div
-                className="shrink-0 p-3 sm:p-4 border-t flex gap-2 sm:gap-3 items-end"
-                style={{ borderColor: COLORS.border, backgroundColor: COLORS.background }}
+                className="shrink-0 p-3 sm:p-4 border-t border-border flex gap-2 sm:gap-3 items-end bg-background"
               >
                 <Input
                   placeholder="Escreva uma mensagem..."
                   value={messageInput}
                   onChange={(e) => setMessageInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
-                  className="flex-1 min-w-0 rounded-xl h-10 sm:h-11 text-sm sm:text-base border-gray-200 focus-visible:ring-2 focus-visible:ring-primary/20"
+                  className="flex-1 min-w-0 rounded-xl h-10 sm:h-11 text-sm sm:text-base border-border focus-visible:ring-2 focus-visible:ring-primary/20"
                 />
                 <Button
                   type="button"
                   size="icon"
                   onClick={sendMessage}
-                  className="shrink-0 h-10 w-10 sm:h-11 sm:w-11 rounded-xl"
-                  style={{ backgroundColor: COLORS.primary }}
+                  className="shrink-0 h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-primary text-primary-foreground"
                 >
                   <Send className="h-4 w-4" />
                 </Button>
@@ -337,15 +318,14 @@ export default function ItemChatPage({
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-8 text-center min-h-[240px]">
               <div
-                className="rounded-full p-4 mb-4"
-                style={{ backgroundColor: COLORS.surface }}
+                className="rounded-full p-4 mb-4 bg-muted"
               >
-                <MessageCircle className="h-10 w-10 sm:h-12 sm:w-12" style={{ color: COLORS.border }} />
+                <MessageCircle className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground" />
               </div>
-              <p className="font-semibold text-sm sm:text-base" style={{ color: COLORS.text }}>
+              <p className="font-semibold text-sm sm:text-base text-foreground">
                 Selecione uma conversa
               </p>
-              <p className="text-xs sm:text-sm mt-1.5 max-w-[260px]" style={{ color: COLORS.textSecondary }}>
+              <p className="text-xs sm:text-sm mt-1.5 max-w-[260px] text-muted-foreground">
                 {role === "profissional"
                   ? "Aqui aparecem as propostas de trabalho e mensagens dos clientes."
                   : "Suas conversas com os profissionais aparecem aqui."}

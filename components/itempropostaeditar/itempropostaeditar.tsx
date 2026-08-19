@@ -15,7 +15,6 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/toaster"
 import { updateProposal } from "@/lib/proposals-client"
-import { lightTheme } from "@/style/light"
 import type { MyProposalSummary, Proposal } from "@/types/proposal"
 
 function getSessionToken(): string | null {
@@ -188,7 +187,7 @@ export function ItemPropostaEditar({
             type="button"
             onClick={() => handleOpenChange(false)}
             disabled={submitting}
-            className="inline-flex items-center justify-center text-gray-600 text-xs font-medium py-1 px-3 h-9 rounded-full border border-gray-200 transition-colors hover:bg-gray-50 disabled:opacity-60"
+            className="inline-flex items-center justify-center text-muted-foreground text-xs font-medium py-1 px-3 h-9 rounded-full border border-border transition-colors hover:bg-accent disabled:opacity-60"
           >
             Cancelar
           </button>
@@ -196,8 +195,7 @@ export function ItemPropostaEditar({
             type="button"
             onClick={() => void handleSubmit()}
             disabled={submitting}
-            style={{ backgroundColor: lightTheme.colors.primary }}
-            className="inline-flex items-center justify-center gap-1.5 text-white text-xs font-medium py-1 px-3 rounded-full h-9 transition-colors hover:opacity-90 disabled:opacity-60"
+            className="inline-flex items-center justify-center gap-1.5 bg-primary text-primary-foreground text-xs font-medium py-1 px-3 rounded-full h-9 transition-colors hover:opacity-90 disabled:opacity-60"
           >
             {submitting ? (
               <>

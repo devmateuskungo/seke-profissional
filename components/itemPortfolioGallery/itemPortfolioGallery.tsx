@@ -46,7 +46,7 @@ export default function PortfolioGallery({
       {/* Imagem principal grande */}
       <div className="mb-6 md:mb-8 group relative">
         <div
-          className="relative aspect-video md:aspect-21/9 w-full overflow-hidden rounded-2xl bg-gray-100 shadow-xl transition-all duration-500 hover:shadow-2xl cursor-pointer border border-gray-200/50"
+          className="relative aspect-video md:aspect-21/9 w-full overflow-hidden rounded-2xl bg-secondary shadow-xl transition-all duration-500 hover:shadow-2xl cursor-pointer border border-border/50"
           onClick={() => openLightbox(mainItem.id)}
         >
           <Image
@@ -63,7 +63,7 @@ export default function PortfolioGallery({
           
           {/* Ícone de zoom */}
           <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-2 group-hover:translate-y-0 shadow-lg">
-            <ZoomIn className="w-5 h-5 text-gray-700" />
+            <ZoomIn className="w-5 h-5 text-foreground" />
           </div>
           
           {/* Legenda */}
@@ -78,7 +78,7 @@ export default function PortfolioGallery({
         {sideItems.map((item) => (
           <div
             key={item.id}
-            className="group relative aspect-square overflow-hidden rounded-xl bg-gray-100 shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer border border-gray-200/50"
+            className="group relative aspect-square overflow-hidden rounded-xl bg-secondary shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer border border-border/50"
             onClick={() => openLightbox(item.id)}
           >
             <Image

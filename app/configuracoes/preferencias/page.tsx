@@ -1,4 +1,5 @@
 import { AccountRoleSettingsCard } from "@/components/settings/account-role-settings"
+import { DarkModeToggle } from "@/components/settings/dark-mode-toggle"
 import {
   SettingsPageHeader,
   SettingsRow,
@@ -17,7 +18,7 @@ export default function PreferenciasSettingsPage() {
 
       <SettingsSectionCard title="Exibição">
         <div className="flex flex-col gap-2 py-2">
-          <SettingsRow label="Modo escuro" hint="Em breve" />
+          <DarkModeToggle />
           <SettingsRow label="Visualização preferencial do feed" hint="Em breve" />
         </div>
       </SettingsSectionCard>

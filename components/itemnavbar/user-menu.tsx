@@ -61,7 +61,7 @@ export function UserMenu() {
     <div className="flex items-center gap-2">
       <button
         type="button"
-        className="p-2 text-gray-600 hover:text-primary hover:bg-gray-100 rounded-full transition-colors cursor-pointer md:p-1.5"
+        className="p-2 text-muted-foreground hover:text-primary hover:bg-accent rounded-full transition-colors cursor-pointer md:p-1.5"
         aria-label="Mensagens"
         onClick={handleOpenMessages}
       >
@@ -72,52 +72,52 @@ export function UserMenu() {
         <DropdownMenu.Trigger asChild>
           <button
             type="button"
-            className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 cursor-pointer transition-colors"
+            className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 cursor-pointer transition-colors"
             aria-label="Menu do utilizador"
           >
-            <Avatar.Root className="inline-flex h-8 w-8 shrink-0 select-none items-center justify-center overflow-hidden rounded-full bg-gray-200 text-xs font-medium">
+            <Avatar.Root className="inline-flex h-8 w-8 shrink-0 select-none items-center justify-center overflow-hidden rounded-full bg-secondary text-xs font-medium">
               <Avatar.Image
                 src={avatarSrc}
                 alt={user.name}
                 className="h-full w-full object-cover"
               />
               <Avatar.Fallback
-                className="flex h-full w-full items-center justify-center text-gray-700"
+                className="flex h-full w-full items-center justify-center text-secondary-foreground"
                 delayMs={0}
               >
                 {getInitials(user.name)}
               </Avatar.Fallback>
             </Avatar.Root>
-            <span className="hidden lg:inline text-sm font-medium text-gray-700 max-w-[120px] truncate">
+            <span className="hidden lg:inline text-sm font-medium text-foreground max-w-[120px] truncate">
               {getDisplayHandle(user.name, user.email)}
             </span>
-            <ChevronDown className="hidden h-4 w-4 shrink-0 text-gray-500 lg:block" aria-hidden />
+            <ChevronDown className="hidden h-4 w-4 shrink-0 text-muted-foreground lg:block" aria-hidden />
           </button>
         </DropdownMenu.Trigger>
         <DropdownMenu.Portal>
           <DropdownMenu.Content
-            className="z-[9999] min-w-[200px] rounded-lg bg-white p-1 shadow-lg border border-gray-200"
+            className="z-[9999] min-w-[200px] rounded-lg bg-popover p-1 shadow-lg border border-border"
             align="end"
             sideOffset={6}
             alignOffset={-4}
           >
             <DropdownMenu.Item
-              className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 focus:bg-gray-100 outline-none"
+              className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground hover:bg-accent focus:bg-accent outline-none"
               onSelect={() => router.push("/perfil")}
             >
               <User size={16} />
               Meu perfil
             </DropdownMenu.Item>
             <DropdownMenu.Item
-              className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 focus:bg-gray-100 outline-none"
+              className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground hover:bg-accent focus:bg-accent outline-none"
               onSelect={() => router.push("/configuracoes")}
             >
               <Settings size={16} />
               Configuração
             </DropdownMenu.Item>
-            <DropdownMenu.Separator className="my-1 h-px bg-gray-200" />
+            <DropdownMenu.Separator className="my-1 h-px bg-border" />
             <DropdownMenu.Item
-              className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-red-600 hover:bg-red-50 focus:bg-red-50 outline-none"
+              className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-destructive hover:bg-destructive/10 focus:bg-destructive/10 outline-none"
               onSelect={handleLogout}
             >
               <LogOut size={16} />

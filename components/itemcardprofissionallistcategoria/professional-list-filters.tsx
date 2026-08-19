@@ -55,11 +55,11 @@ function FilterCard({
   return (
     <div
       className={cn(
-        "rounded-xl border border-gray-100 bg-white p-4",
+        "rounded-xl border border-border bg-card p-4",
         className
       )}
     >
-      <h2 className="mb-3 text-sm font-semibold tracking-tight text-gray-900">
+      <h2 className="mb-3 text-sm font-semibold tracking-tight text-foreground">
         {title}
       </h2>
       {children}
@@ -95,15 +95,15 @@ function FiltersContent({
     <div className="space-y-4">
       {showHeader ? (
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-gray-900">
-            <SlidersHorizontal className="size-4 text-[#2b81e5]" aria-hidden />
+          <div className="flex items-center gap-2 text-foreground">
+            <SlidersHorizontal className="size-4 text-primary" aria-hidden />
             <h2 className="text-sm font-semibold tracking-tight">Filtros</h2>
           </div>
           {hasActiveFilters ? (
             <button
               type="button"
               onClick={onClearFilters}
-              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-[#2b81e5] transition-colors hover:bg-[#dceffd]"
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
             >
               <X className="size-3.5" aria-hidden />
               Limpar
@@ -114,7 +114,7 @@ function FiltersContent({
 
       <FilterCard title="Categorias">
         {categoriesLoading ? (
-          <div className="flex items-center gap-2 py-2 text-sm text-gray-500">
+          <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
             <Loader2 className="size-4 animate-spin" aria-hidden />
             A carregar…
           </div>
@@ -127,8 +127,8 @@ function FiltersContent({
                 className={cn(
                   "w-full rounded-lg px-3 py-2 text-left text-sm transition-colors",
                   selectedCategoryId === null
-                    ? "bg-[#dceffd] font-medium text-[#2b81e5]"
-                    : "text-gray-700 hover:bg-gray-50"
+                    ? "bg-primary/10 font-medium text-primary"
+                    : "text-foreground hover:bg-accent"
                 )}
               >
                 Todas as categorias
@@ -143,7 +143,7 @@ function FiltersContent({
                     "w-full rounded-lg px-3 py-2 text-left text-sm transition-colors",
                     selectedCategoryId === category.id
                       ? "bg-[#dceffd] font-medium text-[#2b81e5]"
-                      : "text-gray-700 hover:bg-gray-50"
+                      : "text-foreground hover:bg-accent"
                   )}
                 >
                   {category.name}
@@ -157,7 +157,7 @@ function FiltersContent({
       <FilterCard title="Localização">
         <div className="space-y-4">
           <div className="grid gap-2">
-            <Label htmlFor="filter-province" className="text-xs text-gray-600">
+            <Label htmlFor="filter-province" className="text-xs text-muted-foreground">
               Província
             </Label>
             <ProvinceSelect
@@ -168,25 +168,25 @@ function FiltersContent({
             />
           </div>
 
-          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-100 bg-gray-50/70 p-3">
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-muted/70 p-3">
             <input
               type="checkbox"
               checked={sortByNearest}
               onChange={(e) => onSortByNearestChange(e.target.checked)}
-              className="mt-0.5 size-4 rounded border-gray-300"
+              className="mt-0.5 size-4 rounded border-border"
             />
             <span className="min-w-0">
-              <span className="block text-sm font-medium text-gray-900">
+              <span className="block text-sm font-medium text-foreground">
                 Mais próximos de mim
               </span>
-              <span className="mt-0.5 block text-xs text-gray-500">
+              <span className="mt-0.5 block text-xs text-muted-foreground">
                 Usa a sua localização GPS para ordenar por distância.
               </span>
             </span>
           </label>
 
           {sortByNearest ? (
-            <div className="space-y-3 rounded-xl border border-gray-100 bg-gray-50/60 p-3">
+            <div className="space-y-3 rounded-xl border border-border bg-muted/60 p-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex min-w-0 items-start gap-2">
                   <MapPin
@@ -197,17 +197,17 @@ function FiltersContent({
                     aria-hidden
                   />
                   <div className="min-w-0">
-                    <p className="text-xs font-medium text-gray-800">
+                    <p className="text-xs font-medium text-foreground">
                       A sua posição
                     </p>
                     {geoLoading ? (
-                      <p className="mt-0.5 text-xs text-gray-500">
+                      <p className="mt-0.5 text-xs text-muted-foreground">
                         A obter localização…
                       </p>
                     ) : geoError ? (
                       <p className="mt-0.5 text-xs text-red-600">{geoError}</p>
                     ) : (
-                      <p className="mt-0.5 text-xs text-gray-500">
+                      <p className="mt-0.5 text-xs text-muted-foreground">
                         Localização obtida com sucesso.
                       </p>
                     )}
@@ -231,7 +231,7 @@ function FiltersContent({
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="filter-radius" className="text-xs text-gray-600">
+                <Label htmlFor="filter-radius" className="text-xs text-muted-foreground">
                   Raio máximo: {maxDistanceKm} km
                 </Label>
                 <input
@@ -255,7 +255,7 @@ function FiltersContent({
       <FilterCard title="Preço (Kz / hora)">
         <div className="grid grid-cols-2 gap-3">
           <div className="grid gap-1.5">
-            <Label htmlFor="filter-min-price" className="text-xs text-gray-600">
+            <Label htmlFor="filter-min-price" className="text-xs text-muted-foreground">
               Mínimo
             </Label>
             <Input
@@ -271,7 +271,7 @@ function FiltersContent({
             />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="filter-max-price" className="text-xs text-gray-600">
+            <Label htmlFor="filter-max-price" className="text-xs text-muted-foreground">
               Máximo
             </Label>
             <Input
@@ -287,7 +287,7 @@ function FiltersContent({
             />
           </div>
         </div>
-        <p className="mt-2 text-xs text-gray-500">
+        <p className="mt-2 text-xs text-muted-foreground">
           Filtra pela tarifa horária do profissional.
         </p>
       </FilterCard>
@@ -302,8 +302,8 @@ function FiltersContent({
             className={cn(
               "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border px-2.5 py-2.5 text-sm font-medium transition-colors",
               availability === "today"
-                ? "border-[#2b81e5] bg-[#dceffd] text-[#2b81e5]"
-                : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border bg-card text-foreground hover:bg-accent"
             )}
           >
             <CalendarDays className="size-3.5 shrink-0" aria-hidden />
@@ -317,15 +317,15 @@ function FiltersContent({
             className={cn(
               "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border px-2.5 py-2.5 text-sm font-medium transition-colors",
               availability === "week"
-                ? "border-[#2b81e5] bg-[#dceffd] text-[#2b81e5]"
-                : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border bg-card text-foreground hover:bg-accent"
             )}
           >
             <CalendarDays className="size-3.5 shrink-0" aria-hidden />
             Semana
           </button>
         </div>
-        <p className="mt-2 text-xs text-gray-500">
+        <p className="mt-2 text-xs text-muted-foreground">
           Mostra apenas profissionais marcados como disponíveis.
         </p>
       </FilterCard>
@@ -340,7 +340,7 @@ function FiltersContent({
           Limpar todos os filtros
         </Button>
       ) : (
-        <p className="text-xs leading-relaxed text-gray-500">
+        <p className="text-xs leading-relaxed text-muted-foreground">
           Combine categoria, preço, disponibilidade e localização para
           encontrar o profissional ideal.
         </p>
@@ -408,23 +408,23 @@ export function ProfessionalListFiltersDrawer({
         onClick={close}
       />
 
-      <aside className="absolute left-0 top-0 z-10 flex h-full w-full max-w-sm flex-col bg-white shadow-2xl animate-in slide-in-from-left duration-300">
-        <div className="flex items-center justify-between gap-3 border-b border-gray-200 px-4 py-4">
+      <aside className="absolute left-0 top-0 z-10 flex h-full w-full max-w-sm flex-col bg-card shadow-2xl animate-in slide-in-from-left duration-300">
+        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-4">
           <div>
             <h2
               id="filters-panel-title"
-              className="text-lg font-semibold text-gray-900"
+              className="text-lg font-semibold text-foreground"
             >
               Filtros
             </h2>
-            <p className="mt-0.5 text-sm text-gray-500">
+            <p className="mt-0.5 text-sm text-muted-foreground">
               Refine a sua pesquisa de profissionais
             </p>
           </div>
           <button
             type="button"
             onClick={close}
-            className="cursor-pointer rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
+            className="cursor-pointer rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             aria-label="Fechar"
           >
             <X size={22} />
@@ -440,11 +440,11 @@ export function ProfessionalListFiltersDrawer({
           />
         </div>
 
-        <div className="border-t border-gray-200 bg-white p-4">
+        <div className="border-t border-border bg-card p-4">
           <div className="flex flex-col gap-2">
             <Button
               type="button"
-              className="h-10 w-full rounded-lg bg-[#2b81e5] text-white hover:opacity-90"
+              className="h-10 w-full rounded-lg bg-primary text-primary-foreground hover:opacity-90"
               onClick={close}
             >
               Ver resultados
@@ -485,20 +485,20 @@ export function ProfessionalListFiltersTrigger({
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-2 rounded-xl bg-white px-3.5 py-2.5 text-sm font-medium text-gray-800 transition-colors hover:bg-[#2b81e5]/5 hover:text-[#2b81e5]"
+      className="inline-flex items-center gap-2 rounded-xl bg-card px-3.5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-primary/5 hover:text-primary"
       aria-label="Abrir filtros"
     >
-      <span className="relative flex size-9 shrink-0 items-center justify-center rounded-md bg-[#dceffd] text-[#2b81e5]">
+      <span className="relative flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
         <SlidersHorizontal className="size-4" aria-hidden />
         {activeFilterCount > 0 ? (
-          <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-[#2b81e5] text-[10px] font-semibold text-white">
+          <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
             {activeFilterCount > 9 ? "9+" : activeFilterCount}
           </span>
         ) : null}
       </span>
       <span>Filtros</span>
       {activeFilterCount > 0 ? (
-        <span className="text-xs text-gray-500">
+        <span className="text-xs text-muted-foreground">
           {activeFilterCount} activo{activeFilterCount !== 1 ? "s" : ""}
         </span>
       ) : null}

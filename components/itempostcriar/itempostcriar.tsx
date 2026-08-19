@@ -391,7 +391,7 @@ export function ItemPostCriar({ onSuccess, className }: ItemPostCriarProps) {
                           type="button"
                           variant="secondary"
                           size="icon"
-                          className="absolute right-1.5 top-1.5 size-7 cursor-pointer rounded-full bg-white/95 text-gray-500 shadow-sm hover:bg-white hover:text-gray-700"
+                          className="absolute right-1.5 top-1.5 size-7 cursor-pointer rounded-full bg-card/95 text-muted-foreground shadow-sm hover:bg-card hover:text-foreground"
                           onClick={() => removeVideo(draft.id)}
                           disabled={mediaBusy}
                           aria-label="Remover vídeo"
@@ -436,7 +436,7 @@ export function ItemPostCriar({ onSuccess, className }: ItemPostCriarProps) {
                           type="button"
                           variant="secondary"
                           size="icon"
-                          className="absolute right-1.5 top-1.5 size-7 cursor-pointer rounded-full bg-white/95 text-gray-500 shadow-sm hover:bg-white hover:text-gray-700"
+                          className="absolute right-1.5 top-1.5 size-7 cursor-pointer rounded-full bg-card/95 text-muted-foreground shadow-sm hover:bg-card hover:text-foreground"
                           onClick={() => removeImage(draft.id)}
                           disabled={mediaBusy}
                           aria-label="Remover imagem"

@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 /** Cartão alinhado ao feed de publicações profissionais na home. */
 export function HomeFeedPostSkeleton() {
   return (
-    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+    <div className="overflow-hidden rounded-lg border border-border bg-card">
       <div className="flex items-start justify-between gap-3 p-4 pb-3">
         <div className="flex min-w-0 gap-3">
           <Skeleton className="size-10 shrink-0 rounded-full" />
@@ -20,7 +20,7 @@ export function HomeFeedPostSkeleton() {
         <Skeleton className="h-4 w-5/6" />
         <Skeleton className="h-4 w-2/3" />
       </div>
-      <div className="flex gap-4 border-t border-gray-100 px-4 py-3">
+      <div className="flex gap-4 border-t border-border px-4 py-3">
         <Skeleton className="h-8 w-24" />
         <Skeleton className="h-8 w-24" />
       </div>

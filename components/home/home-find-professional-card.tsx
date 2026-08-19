@@ -2,7 +2,6 @@
 
 import Link from "next/link"
 import { ArrowRight, Briefcase } from "lucide-react"
-import { lightTheme } from "@/style/light"
 import { cn } from "@/lib/utils"
 
 interface HomeFindProfessionalCardProps {
@@ -30,21 +29,20 @@ export function HomeFindProfessionalCard({
         )}
       >
         <span className="flex min-w-0 flex-1 items-center gap-3">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white text-[#2b81e5] shadow-sm ring-1 ring-[#cce6ff]">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-card text-[#2b81e5] shadow-sm ring-1 ring-[#cce6ff]">
             <Briefcase className="size-5" aria-hidden />
           </span>
           <span className="min-w-0">
-            <span className="block text-sm font-semibold text-gray-900">
+            <span className="block text-sm font-semibold text-foreground">
               Preciso de um Profissional
             </span>
-            <span className="mt-0.5 block text-xs text-gray-600">
+            <span className="mt-0.5 block text-xs text-muted-foreground">
               Encontra especialista agora
             </span>
           </span>
         </span>
         <span
-          className="inline-flex w-full shrink-0 items-center justify-center gap-1 rounded-lg px-3 py-2.5 text-xs font-medium text-white transition-opacity group-hover:opacity-90 sm:w-auto"
-          style={{ backgroundColor: lightTheme.colors.primary }}
+          className=          "inline-flex w-full shrink-0 items-center justify-center gap-1 rounded-lg px-3 py-2.5 text-xs font-medium text-primary-foreground transition-opacity group-hover:opacity-90 sm:w-auto bg-primary"
         >
           {buttonLabel}
           <ArrowRight className="size-3.5" aria-hidden />
@@ -56,7 +54,7 @@ export function HomeFindProfessionalCard({
   return (
     <div
       className={cn(
-        "rounded-xl border border-gray-100 bg-white p-5",
+        "rounded-xl border border-border bg-card p-5",
         className
       )}
     >
@@ -65,10 +63,10 @@ export function HomeFindProfessionalCard({
           <Briefcase className="size-5" aria-hidden />
         </span>
         <div className="min-w-0">
-          <h3 className="text-base font-semibold text-gray-900">
+          <h3 className="text-base font-semibold text-foreground">
             Preciso de um Profissional
           </h3>
-          <p className="mt-0.5 text-sm text-gray-500">
+          <p className="mt-0.5 text-sm text-muted-foreground">
             Encontra especialista agora
           </p>
         </div>
@@ -76,8 +74,7 @@ export function HomeFindProfessionalCard({
       <Link
         href="/categoria-profissional"
         onClick={onNavigate}
-        style={{ backgroundColor: lightTheme.colors.primary }}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium text-primary-foreground bg-primary transition-opacity hover:opacity-90"
       >
         Ver por categoria
         <ArrowRight className="size-4" aria-hidden />

@@ -53,7 +53,7 @@ export default function ItemChatWidget({
   }, [isOpen]);
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-0">
+    <div className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] right-4 z-40 flex flex-col items-end gap-0 md:bottom-6 md:right-6 md:z-50">
       {/* Painel expandido (comportamento igual LinkedIn: aparece por cima, cantos arredondados no topo) */}
       {isOpen && (
         <div

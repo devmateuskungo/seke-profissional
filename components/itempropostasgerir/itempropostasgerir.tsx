@@ -11,7 +11,6 @@ import { acceptProposal, rejectProposal } from "@/lib/proposals-client"
 import { fetchServiceRequestById } from "@/lib/service-request-client"
 import { resolveUserAvatarUrl, userAvatarSrcUnoptimized } from "@/lib/user-avatar"
 import { cn } from "@/lib/utils"
-import { lightTheme } from "@/style/light"
 import type {
   ServiceRequestDetail,
   ServiceRequestProposalDetail,
@@ -215,23 +214,23 @@ export function ItemPropostasGerir({
         onClick={close}
       />
 
-      <aside className="absolute top-0 right-0 z-10 flex h-full w-full max-w-md flex-col bg-white shadow-2xl animate-in slide-in-from-right duration-300">
-        <div className="flex items-center justify-between gap-3 border-b border-gray-200 px-4 py-4">
+      <aside className="absolute top-0 right-0 z-10 flex h-full w-full max-w-md flex-col bg-card shadow-2xl animate-in slide-in-from-right duration-300">
+        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-4">
           <div className="min-w-0">
             <h2
               id="propostas-panel-title"
-              className="text-lg font-semibold text-gray-900"
+              className="text-lg font-semibold text-foreground"
             >
               Propostas recebidas
             </h2>
-            <p className="mt-0.5 text-sm text-gray-500">
+            <p className="mt-0.5 text-sm text-muted-foreground">
               Profissionais interessados em «{title}».
             </p>
           </div>
           <button
             type="button"
             onClick={close}
-            className="cursor-pointer rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
+            className="cursor-pointer rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             aria-label="Fechar"
           >
             <X size={22} />
@@ -240,7 +239,7 @@ export function ItemPropostasGerir({
 
         <div className="flex-1 overflow-y-auto p-4">
           {loading ? (
-            <div className="flex items-center justify-center py-10 text-sm text-gray-500">
+            <div className="flex items-center justify-center py-10 text-sm text-muted-foreground">
               <Loader2 className="mr-2 size-5 animate-spin" aria-hidden />
               A carregar propostas…
             </div>
@@ -254,19 +253,19 @@ export function ItemPropostasGerir({
           ) : (
             <div className="space-y-4">
               {detail ? (
-                <div className="rounded-lg border border-gray-100 bg-gray-50/80 p-3 text-sm">
+                <div className="rounded-lg border border-border bg-muted/80 p-3 text-sm">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="font-medium text-gray-900">{title}</p>
-                    <span className="shrink-0 text-xs text-gray-500">
+                    <p className="font-medium text-foreground">{title}</p>
+                    <span className="shrink-0 text-xs text-muted-foreground">
                       {totalProposals} proposta{totalProposals !== 1 ? "s" : ""}
                     </span>
                   </div>
                   {detail.description ? (
-                    <p className="mt-1 line-clamp-2 text-xs text-gray-500">
+                    <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
                       {detail.description}
                     </p>
                   ) : null}
-                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500">
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     <span>Orçamento: {formatBudget(detail.budget_min, detail.budget_max)}</span>
                     {detail.location_text ? (
                       <span className="inline-flex items-center gap-1">
@@ -279,7 +278,7 @@ export function ItemPropostasGerir({
               ) : null}
 
               {proposals.length === 0 ? (
-                <p className="py-6 text-center text-sm text-gray-500">
+                <p className="py-6 text-center text-sm text-muted-foreground">
                   Ainda não há propostas para esta solicitação.
                 </p>
               ) : (
@@ -295,10 +294,10 @@ export function ItemPropostasGerir({
                     return (
                       <li
                         key={proposal.id}
-                        className="rounded-lg border border-gray-100 bg-gray-50/80 p-3 transition-colors hover:border-[#2b81e5]/40 hover:bg-[#2b81e5]/5"
+                        className="rounded-lg border border-border bg-muted/80 p-3 transition-colors hover:border-primary/40 hover:bg-primary/5"
                       >
                         <div className="flex items-start gap-3">
-                          <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-white ring-1 ring-gray-100">
+                          <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-card ring-1 ring-border">
                             <Image
                               src={avatarSrc}
                               alt={proposal.professional_name ?? "Profissional"}
@@ -312,22 +311,22 @@ export function ItemPropostasGerir({
                             <div className="flex items-start justify-between gap-2">
                               <div className="min-w-0">
                                 <div className="flex flex-wrap items-center gap-1.5">
-                                  <p className="truncate text-sm font-medium text-gray-800">
+                                  <p className="truncate text-sm font-medium text-foreground">
                                     {proposal.professional_name?.trim() || "Profissional"}
                                   </p>
                                   {proposal.professional_is_verified ? (
                                     <BadgeCheck
-                                      className="size-3.5 shrink-0 text-[#2b81e5]"
+                                      className="size-3.5 shrink-0 text-primary"
                                       aria-label="Profissional verificado"
                                     />
                                   ) : null}
                                 </div>
-                                <p className="mt-0.5 text-xs text-gray-500">
+                                <p className="mt-0.5 text-xs text-muted-foreground">
                                   {formatPrice(proposal.price)} ·{" "}
                                   {formatDuration(proposal.estimated_duration)}
                                 </p>
                                 {hasRating || reviews > 0 ? (
-                                  <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-gray-500">
+                                  <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted-foreground">
                                     <Star
                                       className="size-3 fill-amber-400 text-amber-400"
                                       aria-hidden
@@ -344,8 +343,8 @@ export function ItemPropostasGerir({
                                     proposal.status.toLowerCase() === "accepted"
                                       ? "border-emerald-100 bg-emerald-50 text-emerald-700"
                                       : proposal.status.toLowerCase() === "rejected"
-                                        ? "border-gray-200 bg-gray-100 text-gray-500"
-                                        : "border-[#cce6ff] bg-[#eef7ff] text-[#2b81e5]"
+                                        ? "border-border bg-secondary text-muted-foreground"
+                                        : "border-primary/30 bg-primary/10 text-primary"
                                   )}
                                 >
                                   {proposalStatusLabel(proposal.status)}
@@ -356,11 +355,11 @@ export function ItemPropostasGerir({
                         </div>
 
                         {proposal.message ? (
-                          <p className="mt-2 text-sm text-gray-600">{proposal.message}</p>
+                          <p className="mt-2 text-sm text-muted-foreground">{proposal.message}</p>
                         ) : null}
 
                         {proposal.professional_bio?.trim() ? (
-                          <p className="mt-1 line-clamp-2 text-xs text-gray-500">
+                          <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
                             {proposal.professional_bio}
                           </p>
                         ) : null}
@@ -368,7 +367,7 @@ export function ItemPropostasGerir({
                         <Link
                           href={`/categoria-profissional/${encodeURIComponent(proposal.professional_id)}`}
                           onClick={close}
-                          className="mt-2 inline-block text-xs font-medium text-[#2b81e5] no-underline hover:underline"
+                          className="mt-2 inline-block text-xs font-medium text-primary no-underline hover:underline"
                         >
                           Ver perfil
                         </Link>
@@ -379,8 +378,7 @@ export function ItemPropostasGerir({
                               type="button"
                               onClick={() => void handleAction(proposal.id, "accept")}
                               disabled={isProcessing}
-                              style={{ backgroundColor: lightTheme.colors.primary }}
-                              className="flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm text-white transition-colors hover:opacity-90 disabled:opacity-60"
+                              className="flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm bg-primary text-primary-foreground transition-colors hover:opacity-90 disabled:opacity-60"
                             >
                               {isProcessing && processingAction === "accept" ? (
                                 <>
@@ -395,7 +393,7 @@ export function ItemPropostasGerir({
                               type="button"
                               onClick={() => void handleAction(proposal.id, "reject")}
                               disabled={isProcessing}
-                              className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white py-2 text-sm text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-60"
+                              className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-border bg-card py-2 text-sm text-muted-foreground transition-colors hover:bg-accent disabled:opacity-60"
                             >
                               {isProcessing && processingAction === "reject" ? (
                                 <>
