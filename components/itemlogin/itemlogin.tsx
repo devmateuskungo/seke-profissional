@@ -134,8 +134,8 @@ export function ItemLogin() {
       <CardHeader className="mt-6">
         <CardTitle>Login</CardTitle>
         <CardDescription
+          className="text-muted-foreground"
           style={{
-            color: lightTheme.colors.textSecondary,
             fontSize: lightTheme.typography.fontSize.small,
           }}
         >
@@ -194,7 +194,7 @@ export function ItemLogin() {
       <CardFooter className="flex-col gap-2">
         <div className="relative w-full my-4">
           <div className="flex justify-center text-xs uppercase">
-            <span style={{ color: lightTheme.colors.textSecondary }}>ou</span>
+            <span className="text-muted-foreground">ou</span>
           </div>
         </div>
         <Button
@@ -209,7 +209,7 @@ export function ItemLogin() {
         </Button>
         <p className="mt-6">
           Ainda não tens uma conta?{" "}
-          <Link href="/auth/register" style={{ color: lightTheme.colors.primary }}>
+          <Link href="/auth/register" className="text-primary">
             Criar conta
           </Link>
         </p>

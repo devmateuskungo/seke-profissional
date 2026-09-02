@@ -2,27 +2,32 @@
 
 import { Suspense, useCallback, useEffect, useState } from "react"
 import Image from "next/image"
-import { useSearchParams } from "next/navigation"
+import Link from "next/link"
+import { useRouter, useSearchParams } from "next/navigation"
 import {
+  AlertCircle,
+  ArrowLeft,
   Briefcase,
   MapPin,
-  BarChart2,
-  Share2,
-  FileText,
   MessageSquare,
-  UserPlus,
+  RefreshCcw,
+  Share2,
   UserMinus,
+  UserPlus,
 } from "lucide-react"
-
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/toaster"
+import { ProfileLayoutSkeleton } from "@/components/profile/profile-layout-skeleton"
+import ProfessionalProfileView from "@/components/itemcardprofissionallistcategoria/professional-profile-view"
 import { followUser, unfollowUser } from "@/lib/follow-client"
 import { resolveUserAvatarUrl, userAvatarSrcUnoptimized } from "@/lib/user-avatar"
 import { sameUserId, useViewerUserId } from "@/lib/viewer-user-id"
 import type { PublicUserProfile } from "@/types/public-user-profile"
-import { ProfileLayoutSkeleton } from "@/components/profile/profile-layout-skeleton"
 
-const CAREER_TABS = ["Experiência", "Empresas", "Projetos", "Certificados"] as const
+function resolveAuthToken(): string | null {
+  if (typeof window === "undefined") return null
+  return window.sessionStorage.getItem("auth_token")
+}
 
 function Card({
   children,
@@ -40,37 +45,51 @@ function Card({
   )
 }
 
-const BADGE_STYLES: Record<string, string> = {
-  slate: "bg-muted text-muted-foreground border-border/40",
+function toRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null
 }
 
-function Badge({
-  children,
-  color = "slate",
-}: {
-  children: React.ReactNode
-  color?: keyof typeof BADGE_STYLES
-}) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium ${BADGE_STYLES[color] ?? BADGE_STYLES.slate}`}
-    >
-      {children}
-    </span>
-  )
+function readString(source: Record<string, unknown>, keys: string[]): string {
+  for (const key of keys) {
+    const value = source[key]
+    if (typeof value === "string" && value.trim()) return value.trim()
+    if (typeof value === "number" && Number.isFinite(value)) return String(value)
+  }
+  return ""
 }
 
-function resolveAuthToken(): string | null {
-  if (typeof window === "undefined") return null
-  return window.sessionStorage.getItem("auth_token")
+/** Extrai a lista de profissionais de `GET /api/professionals` */
+function extractProfessionals(raw: unknown): { id: string; user_id: string }[] {
+  if (!raw || typeof raw !== "object") return []
+  const root = raw as Record<string, unknown>
+  const data = toRecord(root.data) ?? root
+  const list = Array.isArray(data.professionals)
+    ? data.professionals
+    : Array.isArray(root.professionals)
+      ? root.professionals
+      : []
+
+  const items: { id: string; user_id: string }[] = []
+  for (const item of list) {
+    const record = toRecord(item)
+    if (!record) continue
+    const id = readString(record, ["id", "profile_id", "professional_id"])
+    const userId = readString(record, ["user_id", "userId"])
+    if (id && userId) items.push({ id, user_id: userId })
+  }
+  return items
 }
 
 function parsePublicProfile(raw: unknown): PublicUserProfile | null {
   if (!raw || typeof raw !== "object") return null
   const root = raw as Record<string, unknown>
-  const u = (root.user ?? root.data ?? root) as Record<string, unknown>
-  if (!u || typeof u !== "object") return null
-  if (u.id == null && typeof u.name !== "string") return null
+  const u = toRecord(root.user) ?? toRecord(root.data) ?? root
+  if (!u) return null
+  if (u.id == null && typeof u.name !== "string" && typeof u.full_name !== "string") {
+    return null
+  }
 
   const statsRaw = u.stats
   let stats: PublicUserProfile["stats"]
@@ -88,91 +107,170 @@ function parsePublicProfile(raw: unknown): PublicUserProfile | null {
   const is_following =
     typeof isFollowingRaw === "boolean" ? isFollowingRaw : undefined
 
+  const id =
+    typeof u.id === "string" || typeof u.id === "number"
+      ? u.id
+      : readString(u, ["user_id", "userId"]) || ""
+
+  if (id === "") return null
+
+  const name =
+    readString(u, ["name", "full_name", "fullName"]) || "Utilizador"
+
+  const locationParts = [readString(u, ["municipality"]), readString(u, ["province"])]
+    .filter(Boolean)
+  const location =
+    readString(u, ["location"]) ||
+    (locationParts.length > 0 ? locationParts.join(", ") : null)
+
+  const professionalRaw = toRecord(u.professional) ?? toRecord(root.professional)
+  const professional = professionalRaw
+    ? {
+        id:
+          readString(professionalRaw, ["id", "profile_id", "professional_id"]) ||
+          undefined,
+        is_verified: professionalRaw.is_verified === true,
+        hourly_rate:
+          typeof professionalRaw.hourly_rate === "string" ||
+          typeof professionalRaw.hourly_rate === "number" ||
+          professionalRaw.hourly_rate === null
+            ? (professionalRaw.hourly_rate as string | number | null)
+            : null,
+        is_available: professionalRaw.is_available === true,
+        rating_avg:
+          typeof professionalRaw.rating_avg === "string" ||
+          typeof professionalRaw.rating_avg === "number"
+            ? professionalRaw.rating_avg
+            : undefined,
+        total_reviews:
+          typeof professionalRaw.total_reviews === "number"
+            ? professionalRaw.total_reviews
+            : undefined,
+      }
+    : undefined
+
   return {
-    id: u.id as string | number,
-    name: String(u.name ?? ""),
-    avatar: typeof u.avatar === "string" ? u.avatar : null,
+    id,
+    name,
+    avatar:
+      typeof u.avatar === "string"
+        ? u.avatar
+        : typeof u.profile_photo_url === "string"
+          ? u.profile_photo_url
+          : null,
     bio: typeof u.bio === "string" ? u.bio : null,
-    location: typeof u.location === "string" ? u.location : null,
+    location,
     member_since:
       typeof u.member_since === "string"
         ? u.member_since
         : typeof u.memberSince === "string"
           ? u.memberSince
-          : null,
+          : typeof u.created_at === "string"
+            ? u.created_at
+            : null,
     stats,
     is_following,
+    professional,
   }
 }
 
 function DetalhesUserContent() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const userId = searchParams.get("userId")?.trim() ?? ""
+  const hintName = searchParams.get("name")?.trim() ?? ""
+
   const toast = useToast()
   const viewerId = useViewerUserId()
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [professionalId, setProfessionalId] = useState<string | null>(null)
   const [profile, setProfile] = useState<PublicUserProfile | null>(null)
   const [followLoading, setFollowLoading] = useState(false)
-  const [careerTab, setCareerTab] = useState(0)
   const [bioExpanded, setBioExpanded] = useState(false)
 
   const loadProfile = useCallback(async () => {
     if (!userId) {
       setLoading(false)
       setError("Nenhum utilizador seleccionado.")
+      setProfessionalId(null)
       setProfile(null)
       return
     }
 
     setLoading(true)
     setError(null)
+    setProfessionalId(null)
+    setProfile(null)
+
     try {
       const token = resolveAuthToken()
       const headers: HeadersInit = { Accept: "application/json" }
       if (token) headers.Authorization = `Bearer ${token}`
 
-      const res = await fetch(`/api/users/${encodeURIComponent(userId)}`, {
+      // 1) Verificar se é profissional (match exacto — sem fallback para [0])
+      const prosRes = await fetch(
+        `/api/professionals?user_id=${encodeURIComponent(userId)}&limit=50`,
+        { headers, cache: "no-store" }
+      )
+      const prosRaw = await prosRes.json().catch(() => null)
+
+      if (prosRes.ok) {
+        const professionals = extractProfessionals(prosRaw)
+        const matched = professionals.find((p) => sameUserId(p.user_id, userId))
+        if (matched?.id) {
+          setProfessionalId(matched.id.trim())
+          setLoading(false)
+          return
+        }
+      }
+
+      // 2) Perfil público de cliente / utilizador
+      const userRes = await fetch(`/api/users/${encodeURIComponent(userId)}`, {
         headers,
+        cache: "no-store",
       })
-      const raw = await res.json().catch(() => null)
+      const userRaw = await userRes.json().catch(() => null)
 
-      if (!res.ok) {
-        const msg =
-          raw && typeof raw === "object" && "message" in raw
-            ? String((raw as { message?: string }).message)
-            : "Não foi possível carregar o perfil."
-        setError(msg)
-        setProfile(null)
-        return
+      if (userRes.ok) {
+        const parsed = parsePublicProfile(userRaw)
+        if (parsed?.professional?.id) {
+          setProfessionalId(parsed.professional.id)
+          setLoading(false)
+          return
+        }
+        if (parsed) {
+          setProfile(parsed)
+          setLoading(false)
+          return
+        }
       }
 
-      const parsed = parsePublicProfile(raw)
-      if (!parsed) {
-        setError("Resposta inválida do servidor.")
-        setProfile(null)
-        return
-      }
-
-      setProfile(parsed)
+      // 3) Fallback: vista cliente (avatar nunca vem da URL — evita base64 gigante)
+      setProfile({
+        id: userId,
+        name: hintName || "Utilizador",
+        avatar: null,
+        bio: null,
+        location: null,
+      })
     } catch {
       setError("Erro de ligação. Tente novamente.")
-      setProfile(null)
     } finally {
       setLoading(false)
     }
-  }, [userId])
+  }, [userId, hintName])
 
   useEffect(() => {
-    loadProfile()
+    void loadProfile()
   }, [loadProfile])
 
-  const isOwnProfile = sameUserId(viewerId, userId)
-  const showFollow =
-    !!userId && !isOwnProfile && !!resolveAuthToken() && profile != null
+  const handleRetry = useCallback(() => {
+    void loadProfile()
+  }, [loadProfile])
 
-  const handleShare = async () => {
+  const handleShare = useCallback(async () => {
     if (typeof window === "undefined") return
     try {
       await navigator.clipboard.writeText(window.location.href)
@@ -180,19 +278,37 @@ function DetalhesUserContent() {
     } catch {
       toast.error("Não foi possível copiar o link.")
     }
-  }
+  }, [toast])
 
-  const handleFollowClick = async () => {
-    if (!userId || !profile) return
+  const handleMessage = useCallback(() => {
+    if (!userId) return
+    const token = resolveAuthToken()
+    if (!token) {
+      toast.error("Inicie sessão para enviar mensagens.")
+      router.push("/auth/login")
+      return
+    }
+    const params = new URLSearchParams({
+      userId,
+      name: profile?.name || hintName || "Utilizador",
+    })
+    router.push(`/chat?${params.toString()}`)
+  }, [userId, profile?.name, hintName, router, toast])
+
+  const isFollowing = profile?.is_following === true
+
+  const handleFollowClick = useCallback(async () => {
+    if (!userId) return
     const token = resolveAuthToken()
     if (!token) {
       toast.error("Inicie sessão para seguir utilizadores.")
+      router.push("/auth/login")
       return
     }
 
     setFollowLoading(true)
     try {
-      if (profile.is_following) {
+      if (isFollowing) {
         const result = await unfollowUser(userId, token)
         if (result.success) {
           setProfile((p) => (p ? { ...p, is_following: false } : p))
@@ -212,7 +328,7 @@ function DetalhesUserContent() {
     } finally {
       setFollowLoading(false)
     }
-  }
+  }, [userId, isFollowing, router, toast])
 
   if (!userId) {
     return (
@@ -225,270 +341,238 @@ function DetalhesUserContent() {
   }
 
   if (loading) {
-    return <ProfileLayoutSkeleton />
-  }
-
-  if (error || !profile) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center bg-muted/40 p-6 pt-20">
-        <p className="text-destructive">{error ?? "Perfil não encontrado."}</p>
+      <div className="bg-muted/40 pt-4">
+        <ProfileLayoutSkeleton />
       </div>
     )
   }
 
-  const avatarSrc = resolveUserAvatarUrl(profile.avatar ?? undefined)
-  const rawBio = profile.bio?.trim() ?? ""
-  const bioPreviewLen = 160
-  const showBioToggle = rawBio.length > bioPreviewLen
-  const bioText =
-    !rawBio
-      ? "Este utilizador ainda não definiu uma biografia."
-      : bioExpanded || !showBioToggle
-        ? rawBio
-        : `${rawBio.slice(0, bioPreviewLen).trim()}…`
+  if (error) {
+    return (
+      <div className="mx-auto w-full max-w-md px-4 py-12 text-center">
+        <div className="mx-auto mb-4 grid size-12 place-items-center rounded-full bg-red-50 text-red-600">
+          <AlertCircle className="size-6" aria-hidden />
+        </div>
+        <h1 className="text-lg font-semibold text-foreground">Perfil não encontrado</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{error}</p>
+        <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+          <Button
+            type="button"
+            onClick={handleRetry}
+            className="gap-2 bg-primary text-white"
+          >
+            <RefreshCcw className="size-4" aria-hidden />
+            Tentar novamente
+          </Button>
+          <Button type="button" variant="outline" asChild>
+            <Link href="/home">Voltar ao início</Link>
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
-  const locationLabel = profile.location?.trim()
-    ? profile.location
-    : "Localização não definida"
+  // Utilizador profissional → reutiliza a vista de categoria profissional
+  if (professionalId) {
+    return <ProfessionalProfileView professionalId={professionalId} />
+  }
 
-  const posts = profile.stats?.posts ?? 0
-  const followers = profile.stats?.followers ?? 0
-  const following = profile.stats?.following ?? 0
+  const isOwnProfile = sameUserId(viewerId, userId)
+  const showFollow = !!userId && !isOwnProfile && !!resolveAuthToken()
+  const name = profile?.name || hintName || "Utilizador"
+  const avatarSrc = resolveUserAvatarUrl(profile?.avatar || undefined)
+  const bioText = profile?.bio?.trim() || "Este utilizador ainda não definiu uma biografia."
+  const rawBio = profile?.bio?.trim() ?? ""
+  const showBioToggle = rawBio.length > 220
+  const bioPreview =
+    showBioToggle && !bioExpanded ? `${rawBio.slice(0, 220).trim()}…` : bioText
+  const locationLabel = profile?.location?.trim() || "Localização não definida"
+
+  const contactActionsCard = isOwnProfile ? (
+    <Card>
+      <h3 className="mb-2 text-sm font-bold">O seu perfil</h3>
+      <p className="text-xs text-muted-foreground">
+        Esta é a vista pública do seu perfil.
+      </p>
+      <Button type="button" variant="outline" className="mt-4 w-full" asChild>
+        <Link href="/perfil">Editar perfil</Link>
+      </Button>
+    </Card>
+  ) : (
+    <Card>
+      <h3 className="mb-1 text-sm font-bold">Conectar comigo</h3>
+      <p className="mb-4 text-xs text-muted-foreground">
+        Envie uma mensagem ou siga este utilizador.
+      </p>
+
+      <div className="space-y-2">
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full gap-2"
+          onClick={handleMessage}
+        >
+          <MessageSquare className="size-4" />
+          Enviar mensagem
+        </Button>
+
+        {showFollow ? (
+          <Button
+            type="button"
+            variant={isFollowing ? "outline" : "secondary"}
+            className="w-full gap-2"
+            disabled={followLoading}
+            onClick={() => void handleFollowClick()}
+          >
+            {isFollowing ? (
+              <>
+                <UserMinus className="size-4" />
+                Deixar de seguir
+              </>
+            ) : (
+              <>
+                <UserPlus className="size-4" />
+                Seguir
+              </>
+            )}
+          </Button>
+        ) : null}
+      </div>
+    </Card>
+  )
 
   return (
-    <div className="">
-      <div className="mx-auto grid grid-cols-1 gap-6 p-4 md:p-6 lg:grid-cols-12">
-        <aside className="order-2 space-y-6 lg:order-1 lg:col-span-3">
-          <Card>
-            <h3 className="mb-4 text-sm font-bold">Actividades</h3>
-            <div className="flex flex-col items-center py-6 text-muted-foreground">
-              <FileText
-                size={40}
-                strokeWidth={1}
-                className="mb-2 opacity-20"
-              />
-              <p className="text-xs">Nenhuma publicação ainda</p>
-            </div>
-          </Card>
+    <div className="min-h-screen pb-10">
+      <div className="mx-auto px-0 py-4 md:px-6 md:py-6">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="mb-4 inline-flex items-center gap-2 px-4 text-sm text-muted-foreground transition hover:text-foreground md:px-0"
+        >
+          <ArrowLeft className="size-4" aria-hidden />
+          Voltar
+        </button>
 
-          <Card>
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-sm font-bold">Idiomas</h3>
-            </div>
-            <div className="space-y-2">
-              <Badge color="slate">Português</Badge>
-            </div>
-          </Card>
-        </aside>
+        <div className="grid grid-cols-1 gap-4 px-4 md:gap-6 md:px-0 lg:grid-cols-12">
+          <div className="space-y-6 lg:col-span-8">
+            <div className="overflow-hidden rounded-xl bg-card md:rounded-2xl md:border md:border-border">
+              <div className="relative h-32 bg-gradient-to-r from-violet-100 to-indigo-50 sm:h-40">
+                <div className="absolute inset-0 flex items-center justify-center opacity-20">
+                  <Briefcase size={40} className="text-[#7c3aed]" />
+                </div>
+              </div>
 
-        <div className="order-1 space-y-6 lg:order-2 lg:col-span-9">
-          <div className="overflow-hidden rounded-md border border-border/45 bg-card">
-            <div className="relative h-48 bg-primary/15">
-              <div className="absolute inset-0 flex items-center justify-center opacity-25">
-                <MapPin size={48} className="text-primary" />
+              <div className="relative px-4 pb-6 pt-0 md:px-8 md:pb-8">
+                <div className="-translate-y-10 flex flex-col gap-4 sm:-translate-y-12 sm:flex-row sm:items-end sm:justify-between">
+                  <div className="relative shrink-0">
+                    <div className="relative size-24 overflow-hidden rounded-2xl bg-secondary ring-4 ring-card sm:size-28">
+                      <Image
+                        src={avatarSrc}
+                        alt={name}
+                        fill
+                        sizes="112px"
+                        className="object-cover"
+                        priority
+                        unoptimized={userAvatarSrcUnoptimized(avatarSrc)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 sm:mb-1">
+                    <button
+                      type="button"
+                      onClick={handleShare}
+                      className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent md:border md:border-border"
+                    >
+                      <Share2 size={16} /> Partilhar
+                    </button>
+                  </div>
+                </div>
+
+                <div className="-mt-6 space-y-4 sm:-mt-8">
+                  <div>
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+                        {name}
+                      </h1>
+                      <span className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                        <span
+                          className="size-1.5 rounded-full bg-muted-foreground/70"
+                          aria-hidden
+                        />
+                        Cliente
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5 text-sm text-muted-foreground">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Briefcase size={14} className="shrink-0 text-muted-foreground/70" />
+                        Cliente
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 text-muted-foreground/80">
+                        <MapPin size={14} className="shrink-0 text-muted-foreground/70" />
+                        {locationLabel}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="relative px-4 pb-8 pt-0 md:px-8">
-              <div className="-translate-y-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                <div className="relative shrink-0">
-                  <div className="relative h-32 w-32 overflow-hidden rounded-3xl border-2 border-border/35 bg-card">
+
+            <div className="lg:hidden">{contactActionsCard}</div>
+
+            <Card>
+              <h3 className="mb-4 font-bold">Sobre</h3>
+              <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
+                {bioPreview}
+                {showBioToggle ? (
+                  <button
+                    type="button"
+                    onClick={() => setBioExpanded((e) => !e)}
+                    className="ml-1 font-semibold text-primary hover:underline"
+                  >
+                    {bioExpanded ? "Mostrar menos" : "Ler mais"}
+                  </button>
+                ) : null}
+              </p>
+            </Card>
+          </div>
+
+          <aside className="lg:col-span-4">
+            <div className="space-y-4 lg:sticky lg:top-6">
+              <Card>
+                <div className="flex items-center gap-3">
+                  <div className="relative size-14 shrink-0 overflow-hidden rounded-full bg-muted">
                     <Image
                       src={avatarSrc}
-                      alt={profile.name}
+                      alt=""
                       fill
-                      sizes="128px"
+                      sizes="56px"
                       className="object-cover"
-                      priority
                       unoptimized={userAvatarSrcUnoptimized(avatarSrc)}
                     />
                   </div>
-                </div>
-                <div className="flex flex-wrap gap-2 sm:mb-2">
-                  <button
-                    type="button"
-                    onClick={handleShare}
-                    className="flex items-center gap-2 rounded-lg border border-border/45 px-4 py-2 text-sm font-semibold transition-all hover:bg-accent md:px-6"
-                  >
-                    <Share2 size={16} /> Partilhar
-                  </button>
-                  {showFollow ? (
-                    <Button
-                      type="button"
-                      variant={
-                        profile.is_following === true ? "outline" : "default"
-                      }
-                      size="default"
-                      className="gap-2"
-                      disabled={followLoading}
-                      onClick={handleFollowClick}
-                    >
-                      {profile.is_following ? (
-                        <>
-                          <UserMinus size={16} />
-                          Deixar de seguir
-                        </>
-                      ) : (
-                        <>
-                          <UserPlus size={16} />
-                          Seguir
-                        </>
-                      )}
-                    </Button>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="-mt-8 grid grid-cols-1 gap-6 md:grid-cols-12">
-                <div className="md:col-span-8">
-                  <div className="mb-1 flex flex-wrap items-center gap-2">
-                    <h1 className="text-2xl font-bold">{profile.name}</h1>
-                    <span className="rounded border border-primary/15 bg-primary/10 px-2 py-0.5 text-xs text-primary">
-                      Perfil público
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Briefcase size={14} /> Profissional
-                    </span>
-                    <span className="flex min-w-0 items-center gap-1">
-                      <MapPin size={14} className="shrink-0" />
-                      <span className="truncate">{locationLabel}</span>
-                    </span>
-                    <span className="flex items-center gap-1 font-medium">
-                      <span className="text-base leading-none" aria-hidden>
-                        🇦🇴
-                      </span>
-                      Angola
-                    </span>
-                    <span className="flex items-center gap-1 text-primary">
-                      <BarChart2 size={14} /> Estatísticas
-                    </span>
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-foreground">{name}</p>
+                    <p className="text-sm text-muted-foreground">Cliente</p>
                   </div>
                 </div>
+              </Card>
 
-                <div className="flex flex-nowrap items-center justify-start gap-2 sm:gap-3 md:col-span-4 md:justify-end">
-                  {[
-                    { label: "Publicações", val: String(posts) },
-                    { label: "A seguir", val: String(following) },
-                    { label: "Seguidores", val: String(followers) },
-                  ].map((stat) => (
-                    <div
-                      key={stat.label}
-                      className="flex shrink-0 items-baseline gap-1.5 whitespace-nowrap rounded-xl border border-border/45 bg-muted/50 px-3 py-2 sm:px-4"
-                    >
-                      <span className="text-[10px] font-bold uppercase text-muted-foreground">
-                        {stat.label}
-                      </span>
-                      <span className="font-bold tabular-nums text-primary">
-                        {stat.val}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+              <div className="hidden lg:block">{contactActionsCard}</div>
 
-          <Card className="grid grid-cols-1 gap-10 md:grid-cols-2">
-            <div>
-              <h3 className="mb-6 font-bold">Avaliações</h3>
-              <div className="flex flex-col items-start gap-8 sm:flex-row">
-                <div className="text-center">
-                  <p className="mb-1 text-5xl font-black">0.0</p>
-                  <div className="flex gap-0.5 text-border/55">
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <span key={s}>★</span>
-                    ))}
+              <Card>
+                <h3 className="mb-3 text-sm font-bold">Resumo</h3>
+                <dl className="space-y-2 text-sm">
+                  <div className="flex justify-between gap-2">
+                    <dt className="text-muted-foreground">Tipo</dt>
+                    <dd className="font-medium">Cliente</dd>
                   </div>
-                  <p className="mt-1 text-[10px] text-muted-foreground">
-                    0 avaliações
-                  </p>
-                </div>
-                <div className="w-full flex-1 space-y-1">
-                  {[5, 4, 3, 2, 1].map((num) => (
-                    <div
-                      key={num}
-                      className="flex items-center gap-3 text-[10px] font-bold text-muted-foreground"
-                    >
-                      <span>{num}</span>
-                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                        <div className="h-full w-0 bg-primary" />
-                      </div>
-                      <span>0</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                </dl>
+              </Card>
             </div>
-            <div className="flex flex-col items-center justify-center text-center">
-              <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-muted opacity-50">
-                <MessageSquare size={32} className="text-muted-foreground" />
-              </div>
-              <p className="font-bold text-muted-foreground">Sem avaliações</p>
-            </div>
-          </Card>
-
-          <Card>
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-bold">Biografia</h3>
-            </div>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              {bioText}
-              {showBioToggle ? (
-                <button
-                  type="button"
-                  onClick={() => setBioExpanded((e) => !e)}
-                  className="ml-1 font-semibold text-primary hover:underline"
-                >
-                  {bioExpanded ? "Mostrar menos" : "Ler mais"}
-                </button>
-              ) : null}
-            </p>
-          </Card>
-
-          <Card className="min-h-[400px]">
-            <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-              <h3 className="font-bold">Carreira</h3>
-              <select
-                className="rounded-lg border border-border/45 bg-background px-3 py-2 text-xs text-foreground outline-none"
-                aria-label="Filtrar carreira"
-              >
-                <option>Todos</option>
-              </select>
-            </div>
-
-            <div className="mb-8 flex gap-4 overflow-x-auto border-b border-border/40 pb-1">
-              {CAREER_TABS.map((tab, i) => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setCareerTab(i)}
-                  className={`whitespace-nowrap px-2 pb-2 text-xs font-bold ${
-                    careerTab === i
-                      ? "border-b-2 border-primary text-primary"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {tab}{" "}
-                  <span className="ml-1 rounded bg-muted px-1.5 text-[10px]">
-                    0
-                  </span>
-                </button>
-              ))}
-            </div>
-
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="mb-4 rounded-2xl bg-muted p-4">
-                <Briefcase size={32} className="text-muted-foreground/50" />
-              </div>
-              <h4 className="font-bold text-foreground">
-                Nenhum evento encontrado
-              </h4>
-              <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-                Ainda não há entradas públicas nesta timeline.
-              </p>
-            </div>
-          </Card>
+          </aside>
         </div>
       </div>
     </div>

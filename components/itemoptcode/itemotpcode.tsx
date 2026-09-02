@@ -25,8 +25,7 @@ export function ItemOtpCode() {
         }}>
             <CardHeader className="mt-6">
                 <CardTitle className="text-xl">Confirmar código</CardTitle>
-                <CardDescription style={{
-                    color: lightTheme.colors.textSecondary,
+                <CardDescription className="text-muted-foreground" style={{
                     fontSize: lightTheme.typography.fontSize.body
                 }}>
                     Enviamos um código para o seu e-mail. Digite-o abaixo para continuar.
@@ -109,8 +108,7 @@ export function ItemOtpCode() {
                 <p className="mt-6 text-center">
                     <Link
                         href="/auth/login"
-                        style={{ color: lightTheme.colors.primary }}
-                        className="hover:underline"
+                        className="hover:underline text-primary"
                     >
                         Reenviar código
                     </Link>

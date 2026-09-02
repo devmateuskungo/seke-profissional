@@ -143,10 +143,7 @@ function StepIndicator({
           )
         })}
       </div>
-      <p
-        className="text-center text-xs sm:hidden"
-        style={{ color: lightTheme.colors.textSecondary }}
-      >
+      <p className="text-center text-xs text-muted-foreground sm:hidden">
         Passo {currentStep} de {totalSteps}: {STEPS[currentStep - 1]?.title}
       </p>
     </div>
@@ -294,15 +291,15 @@ export function ItemProfessionalRegister({
   return (
     <>
       <Card
-        className="w-full border-0 p-0 shadow-none sm:p-0"
+        className="w-full border-0 p-4 shadow-none sm:p-6"
         style={{
           borderRadius: lightTheme.borderRadius.small,
           fontFamily: lightTheme.typography.fontFamily,
         }}
       >
-        <CardHeader className="space-y-4 px-0 pb-2 pt-0 sm:px-0">
+        <CardHeader className="space-y-5 px-0 pb-5 pt-0 sm:px-0">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0 space-y-1">
+            <div className="min-w-0 space-y-1.5">
               <div className="flex items-center gap-2">
                 <Sparkles
                   className="size-4 shrink-0 text-primary"
@@ -312,12 +309,7 @@ export function ItemProfessionalRegister({
                   Perfil profissional
                 </CardTitle>
               </div>
-              <CardDescription
-                className="text-sm leading-relaxed"
-                style={{
-                  color: lightTheme.colors.textSecondary,
-                }}
-              >
+              <CardDescription className="text-sm leading-relaxed text-muted-foreground">
                 Conta criada com sucesso. Complete em {totalSteps} passos
                 simples ou salte e faça depois no login.
               </CardDescription>
@@ -337,23 +329,20 @@ export function ItemProfessionalRegister({
           <StepIndicator currentStep={currentStep} totalSteps={totalSteps} />
         </CardHeader>
 
-        <CardContent className="px-0 pt-4 sm:px-0">
+        <CardContent className="px-0 pt-6 sm:px-0">
           <div
             key={currentStep}
             className="animate-in fade-in slide-in-from-right-2 duration-200"
           >
-            <div className="mb-5 space-y-1">
-              <h2 className="text-base font-semibold">{activeStep?.title}</h2>
-              <p
-                className="text-sm"
-                style={{ color: lightTheme.colors.textSecondary }}
-              >
+            <div className="mb-6 space-y-1.5">
+              <h2 className="text-lg font-semibold">{activeStep?.title}</h2>
+              <p className="text-sm text-muted-foreground">
                 {activeStep?.description}
               </p>
             </div>
 
             {currentStep === 1 && (
-              <div className="grid gap-1.5">
+              <div className="grid gap-2">
                 <Label htmlFor="bio">Biografia</Label>
                 <Textarea
                   id="bio"
@@ -365,10 +354,7 @@ export function ItemProfessionalRegister({
                   placeholder="Ex.: Eletricista com 8 anos de experiência em instalações residenciais e comerciais em Luanda…"
                   autoFocus
                 />
-                <p
-                  className="text-xs"
-                  style={{ color: lightTheme.colors.textSecondary }}
-                >
+                <p className="text-xs text-muted-foreground">
                   {bio.trim().length > 0
                     ? `${bio.trim().length} caracteres`
                     : "Descreva a sua experiência, certificações e tipos de trabalho."}
@@ -377,8 +363,8 @@ export function ItemProfessionalRegister({
             )}
 
             {currentStep === 2 && (
-              <div className="space-y-4">
-                <div className="grid gap-1.5">
+              <div className="space-y-5">
+                <div className="grid gap-2">
                   <Label htmlFor="hourly_rate">Tarifa horária (Kz)</Label>
                   <Input
                     id="hourly_rate"
@@ -393,10 +379,7 @@ export function ItemProfessionalRegister({
                     placeholder="Ex.: 5000"
                     autoFocus
                   />
-                  <p
-                    className="text-xs"
-                    style={{ color: lightTheme.colors.textSecondary }}
-                  >
+                  <p className="text-xs text-muted-foreground">
                     Valor médio que cobra por hora de trabalho.
                   </p>
                 </div>
@@ -409,16 +392,10 @@ export function ItemProfessionalRegister({
                     className="mt-0.5 h-4 w-4 shrink-0 rounded border-0 bg-muted/50 ring-1 ring-muted-foreground/20"
                   />
                   <span className="space-y-0.5">
-                    <span
-                      className="block text-sm font-medium"
-                      style={{ color: lightTheme.colors.text }}
-                    >
+                    <span className="block text-sm font-medium text-foreground">
                       Disponível para novos pedidos
                     </span>
-                    <span
-                      className="block text-xs"
-                      style={{ color: lightTheme.colors.textSecondary }}
-                    >
+                    <span className="block text-xs text-muted-foreground">
                       Clientes poderão solicitar os seus serviços na plataforma.
                     </span>
                   </span>
@@ -427,11 +404,11 @@ export function ItemProfessionalRegister({
             )}
 
             {currentStep === 3 && (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full cursor-pointer h-10"
+                  className="w-full cursor-pointer h-11 sm:h-10"
                   disabled={isLoading}
                   onClick={() => setServiceModalOpen(true)}
                 >
@@ -449,10 +426,7 @@ export function ItemProfessionalRegister({
                     <p className="text-sm font-medium text-foreground">
                       Nenhum serviço adicionado
                     </p>
-                    <p
-                      className="text-xs mt-1 max-w-xs mx-auto"
-                      style={{ color: lightTheme.colors.textSecondary }}
-                    >
+                    <p className="text-xs mt-1 max-w-xs mx-auto text-muted-foreground">
                       Este passo é opcional. Pode adicionar serviços agora ou
                       depois na página de perfil.
                     </p>
@@ -499,9 +473,9 @@ export function ItemProfessionalRegister({
             )}
 
             {currentStep === 4 && (
-              <div className="space-y-5">
+              <div className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="grid gap-1.5 sm:col-span-2">
+                  <div className="grid gap-2 sm:col-span-2">
                     <Label htmlFor="province">Província (opcional)</Label>
                     <ProvinceSelect
                       id="province"
@@ -512,7 +486,7 @@ export function ItemProfessionalRegister({
                       className={authFieldClass}
                     />
                   </div>
-                  <div className="grid gap-1.5 sm:col-span-2">
+                  <div className="grid gap-2 sm:col-span-2">
                     <Label htmlFor="municipality">Município (opcional)</Label>
                     <Input
                       id="municipality"
@@ -526,7 +500,7 @@ export function ItemProfessionalRegister({
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-border/40 bg-muted/20 p-4 space-y-3">
+                <div className="rounded-xl border border-border/40 bg-muted/20 p-5 space-y-4">
                   <h3 className="text-sm font-semibold">Resumo do perfil</h3>
                   <dl className="space-y-3 divide-y divide-border/30">
                     <div className="pt-0">
@@ -574,7 +548,7 @@ export function ItemProfessionalRegister({
             )}
           </div>
 
-          <div className="sticky bottom-0 z-10 -mx-4 mt-8 border-t border-border bg-background/95 px-4 py-3 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80 sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+          <div className="sticky bottom-0 z-10 -mx-4 mt-10 border-t border-border bg-background/95 px-4 py-3 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80 sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
               <Button
                 type="button"

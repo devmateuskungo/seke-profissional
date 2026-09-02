@@ -74,8 +74,8 @@ export function ItemSendPhone() {
       <CardHeader className="mt-6">
         <CardTitle className="text-1xl">Recuperar acesso</CardTitle>
         <CardDescription
+          className="text-muted-foreground"
           style={{
-            color: lightTheme.colors.textSecondary,
             fontSize: lightTheme.typography.fontSize.body,
           }}
         >
@@ -114,7 +114,7 @@ export function ItemSendPhone() {
           {isLoading ? "A enviar…" : "Enviar código"}
         </Button>
         <p className="mt-6">
-          <Link href="/auth/login" style={{ color: lightTheme.colors.primary }}>
+          <Link href="/auth/login" className="text-primary">
             Voltar ao login
           </Link>
         </p>

@@ -24,8 +24,7 @@ export function ItemForgotPassword() {
         }}>
             <CardHeader className="mt-6">
                 <CardTitle>Redefinir senha</CardTitle>
-                <CardDescription style={{
-                    color: lightTheme.colors.textSecondary,
+                <CardDescription className="text-muted-foreground" style={{
                     fontSize: lightTheme.typography.fontSize.small
 
                 }}>
@@ -64,7 +63,7 @@ export function ItemForgotPassword() {
                     Criar
                 </Button>
                 <p className="mt-6">
-                  <Link href="/auth/login" style={{ color: lightTheme.colors.primary }}>Voltar para o login</Link>
+                  <Link href="/auth/login" className="text-primary">Voltar para o login</Link>
                 </p>
             </CardFooter>
         </Card>

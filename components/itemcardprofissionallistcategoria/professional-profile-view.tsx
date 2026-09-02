@@ -11,6 +11,7 @@ import {
   Briefcase,
   CalendarClock,
   Clock,
+  Loader2,
   Mail,
   MapPin,
   MessageSquare,
@@ -123,6 +124,29 @@ function formatServiceOptionLabel(service: MarketplaceService): string {
   return details ? `${service.title} — ${details}` : service.title;
 }
 
+function formatServicePrice(service: MarketplaceService): string {
+  const price = Number(service.price);
+  if (!Number.isFinite(price) || price <= 0) return "Preço a combinar";
+  const formatted = `${price.toLocaleString("pt-PT")} Kz`;
+  if (service.price_unit === "hourly") return `${formatted}/h`;
+  return formatted;
+}
+
+function formatServiceMeta(service: MarketplaceService): string {
+  const parts: string[] = [];
+  if (service.duration_minutes > 0) {
+    parts.push(`${service.duration_minutes} min`);
+  }
+  if (service.category_name?.trim()) {
+    parts.push(service.category_name.trim());
+  }
+  const modes: string[] = [];
+  if (service.is_remote) modes.push("Remoto");
+  if (service.is_on_site) modes.push("Presencial");
+  if (modes.length) parts.push(modes.join(" · "));
+  return parts.join(" · ");
+}
+
 interface ProfessionalProfileViewProps {
   professionalId: string;
 }
@@ -142,6 +166,10 @@ export default function ProfessionalProfileView({
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [bioExpanded, setBioExpanded] = useState(false);
+
+  const [services, setServices] = useState<MarketplaceService[]>([]);
+  const [servicesLoading, setServicesLoading] = useState(false);
+  const [servicesError, setServicesError] = useState<string | null>(null);
 
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [scheduleServices, setScheduleServices] = useState<MarketplaceService[]>(
@@ -183,11 +211,66 @@ export default function ProfessionalProfileView({
     };
   }, [professionalId, reloadKey]);
 
+  useEffect(() => {
+    if (!professional) {
+      setServices([]);
+      setServicesError(null);
+      setServicesLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadServices() {
+      setServicesLoading(true);
+      setServicesError(null);
+      const token = getSessionToken();
+      const result = await fetchProfessionalMarketplaceServices(
+        { id: professional!.id, user_id: professional!.user_id },
+        token ?? undefined
+      );
+
+      if (cancelled) return;
+
+      if (result.success) {
+        setServices(result.data.filter((s) => s.is_active !== false));
+        setServicesError(null);
+      } else {
+        setServices([]);
+        setServicesError(result.error);
+      }
+      setServicesLoading(false);
+    }
+
+    void loadServices();
+    return () => {
+      cancelled = true;
+    };
+  }, [professional]);
+
   const handleRetry = useCallback(() => {
     setError(null);
     setIsLoading(true);
     setReloadKey((prev) => prev + 1);
   }, []);
+
+  const reloadServices = useCallback(async () => {
+    if (!professional) return;
+    setServicesLoading(true);
+    setServicesError(null);
+    const result = await fetchProfessionalMarketplaceServices(
+      { id: professional.id, user_id: professional.user_id },
+      getSessionToken() ?? undefined
+    );
+    if (result.success) {
+      setServices(result.data.filter((s) => s.is_active !== false));
+      setServicesError(null);
+    } else {
+      setServices([]);
+      setServicesError(result.error);
+    }
+    setServicesLoading(false);
+  }, [professional]);
 
   const requireAuth = useCallback(
     (action: string): boolean => {
@@ -219,45 +302,58 @@ export default function ProfessionalProfileView({
     router.push(`/chat?${params.toString()}`);
   }, [professional, requireAuth, router]);
 
-  const handleScheduleOpen = useCallback(async () => {
-    if (!professional) return;
-    if (!requireAuth("agendar um serviço")) return;
+  const handleScheduleOpen = useCallback(
+    async (preselectedServiceId?: string) => {
+      if (!professional) return;
+      if (!requireAuth("agendar um serviço")) return;
 
-    const defaultStart = getDefaultScheduleDate();
-    setScheduleDate(defaultStart);
-    setScheduleNotes("Serviço agendado");
-    setSelectedServiceId("");
-    setScheduleEndDate("");
-    setScheduleServices([]);
-    setScheduleOpen(true);
-    setScheduleServicesLoading(true);
+      const defaultStart = getDefaultScheduleDate();
+      setScheduleDate(defaultStart);
+      setScheduleNotes("Serviço agendado");
+      setSelectedServiceId("");
+      setScheduleEndDate("");
+      setScheduleServices([]);
+      setScheduleOpen(true);
+      setScheduleServicesLoading(true);
 
-    const token = getSessionToken();
-    const result = await fetchProfessionalMarketplaceServices(
-      { id: professional.id, user_id: professional.user_id },
-      token ?? undefined
-    );
+      const token = getSessionToken();
+      const result = await fetchProfessionalMarketplaceServices(
+        { id: professional.id, user_id: professional.user_id },
+        token ?? undefined
+      );
 
-    setScheduleServicesLoading(false);
+      setScheduleServicesLoading(false);
 
-    if (!result.success) {
-      toast.error(result.error);
-      return;
-    }
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
 
-    const active = result.data.filter((service) => service.is_active !== false);
-    setScheduleServices(active);
+      const active = result.data.filter((service) => service.is_active !== false);
+      setScheduleServices(active);
+      setServices(active);
 
-    if (active.length === 1) {
-      setSelectedServiceId(active[0].id);
-      const duration = active[0].duration_minutes || 60;
-      setScheduleEndDate(addMinutesToDatetimeLocal(defaultStart, duration));
-    }
+      const preferredId =
+        preselectedServiceId?.trim() &&
+        active.some((s) => s.id === preselectedServiceId.trim())
+          ? preselectedServiceId.trim()
+          : active.length === 1
+            ? active[0].id
+            : "";
 
-    if (active.length === 0) {
-      toast.error("Este profissional não tem serviços ativos para agendar.");
-    }
-  }, [professional, requireAuth, toast]);
+      if (preferredId) {
+        setSelectedServiceId(preferredId);
+        const service = active.find((item) => item.id === preferredId);
+        const duration = service?.duration_minutes || 60;
+        setScheduleEndDate(addMinutesToDatetimeLocal(defaultStart, duration));
+      }
+
+      if (active.length === 0) {
+        toast.error("Este profissional não tem serviços ativos para agendar.");
+      }
+    },
+    [professional, requireAuth, toast]
+  );
 
   const handleServiceChange = useCallback(
     (serviceId: string) => {
@@ -686,6 +782,100 @@ export default function ProfessionalProfileView({
               </p>
             </Card>
 
+            <Card>
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <h3 className="font-bold">Serviços</h3>
+                {services.length > 0 ? (
+                  <span className="text-xs text-muted-foreground">
+                    {services.length}{" "}
+                    {services.length === 1 ? "serviço" : "serviços"}
+                  </span>
+                ) : null}
+              </div>
+
+              {servicesLoading ? (
+                <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                  A carregar serviços…
+                </div>
+              ) : servicesError && services.length === 0 ? (
+                <div className="py-6 text-center">
+                  <p className="text-sm text-muted-foreground">{servicesError}</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={() => void reloadServices()}
+                  >
+                    Tentar novamente
+                  </Button>
+                </div>
+              ) : services.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <div className="mb-3 rounded-2xl bg-muted p-3">
+                    <Briefcase
+                      size={28}
+                      className="text-muted-foreground/50"
+                      aria-hidden
+                    />
+                  </div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Sem serviços publicados
+                  </p>
+                  <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+                    Este profissional ainda não tem serviços ativos no marketplace.
+                  </p>
+                </div>
+              ) : (
+                <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {services.map((service) => {
+                    const meta = formatServiceMeta(service);
+                    return (
+                      <li
+                        key={service.id}
+                        className="flex flex-col rounded-xl border border-border/40 bg-muted/20 p-4"
+                      >
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <p className="font-semibold text-foreground">
+                            {service.title}
+                          </p>
+                          {service.description?.trim() ? (
+                            <p className="line-clamp-2 text-sm text-muted-foreground">
+                              {service.description.trim()}
+                            </p>
+                          ) : null}
+                          {meta ? (
+                            <p className="text-xs text-muted-foreground/80">
+                              {meta}
+                            </p>
+                          ) : null}
+                        </div>
+                        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border/30 pt-3">
+                          <p className="text-sm font-semibold tabular-nums text-foreground">
+                            {formatServicePrice(service)}
+                          </p>
+                          {!isOwnProfile && professional.is_available ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              className="gap-1.5 bg-primary text-white"
+                              onClick={() =>
+                                void handleScheduleOpen(service.id)
+                              }
+                            >
+                              <CalendarClock className="size-3.5" aria-hidden />
+                              Agendar
+                            </Button>
+                          ) : null}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </Card>
+
             {(professional.phone?.trim() || professional.email?.trim()) ? (
               <Card>
                 <h3 className="mb-4 font-bold">Contacto</h3>
@@ -770,6 +960,12 @@ export default function ProfessionalProfileView({
                     <dt className="text-muted-foreground">Verificado</dt>
                     <dd className="font-medium">
                       {professional.is_verified ? "Sim" : "Não"}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <dt className="text-muted-foreground">Serviços</dt>
+                    <dd className="font-medium">
+                      {servicesLoading ? "…" : services.length}
                     </dd>
                   </div>
                   {location ? (

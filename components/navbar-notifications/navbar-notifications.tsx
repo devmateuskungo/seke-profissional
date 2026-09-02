@@ -13,6 +13,7 @@ import {
 } from "@/lib/notifications-client"
 import { useAuth } from "@/lib/use-auth"
 import type { AppNotification } from "@/types/notifications"
+import { buildDetalhesUserHref } from "@/lib/detalhes-user-href"
 import { resolveUserAvatarUrl, userAvatarSrcUnoptimized } from "@/lib/user-avatar"
 import { cn } from "@/lib/utils"
 
@@ -59,7 +60,7 @@ function notificationHref(n: AppNotification): string {
   if (n.type === "like" && n.post?.id) {
     return `/posts/${encodeURIComponent(n.post.id)}`
   }
-  return `/detalhesuser?userId=${encodeURIComponent(n.actor.id)}`
+  return buildDetalhesUserHref({ id: n.actor.id, name: n.actor.name })
 }
 
 export type NotificationListFilter = "all" | "unread" | "read"

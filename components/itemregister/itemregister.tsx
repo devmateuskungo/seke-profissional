@@ -15,13 +15,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { PasswordInput } from "@/components/ui/password-input"
 import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Briefcase, User } from "lucide-react"
 import { useToast } from "@/components/ui/toaster"
 import { savePendingRegister } from "@/lib/register-pending"
 import { lightTheme } from "@/style/light"
@@ -123,8 +117,8 @@ export function ItemRegister() {
       <CardHeader className="space-y-1 pb-4">
         <CardTitle className="mt-6">Criar Conta</CardTitle>
         <CardDescription
+          className="text-muted-foreground"
           style={{
-            color: lightTheme.colors.textSecondary,
             fontSize: lightTheme.typography.fontSize.small,
           }}
         >
@@ -133,6 +127,65 @@ export function ItemRegister() {
       </CardHeader>
       <CardContent className="pt-0">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="grid gap-1.5">
+            <Label htmlFor="role">Tipo de conta</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" role="radiogroup" aria-labelledby="role">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={role === "professional"}
+                onClick={() => setRole("professional")}
+                className={cn(
+                  "flex cursor-pointer items-start gap-3 rounded-lg border-2 p-4 text-left transition-colors",
+                  role === "professional"
+                    ? "border-primary bg-primary/5"
+                    : "border-border bg-muted/50 hover:border-primary/50"
+                )}
+              >
+                <Briefcase
+                  className={cn(
+                    "mt-0.5 h-5 w-5 shrink-0",
+                    role === "professional" ? "text-primary" : "text-muted-foreground"
+                  )}
+                />
+                <span>
+                  <span className="block font-semibold text-foreground">
+                    Profissional
+                  </span>
+                  <span className="block text-sm text-muted-foreground">
+                    Ofereça os seus serviços
+                  </span>
+                </span>
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={role === "client"}
+                onClick={() => setRole("client")}
+                className={cn(
+                  "flex cursor-pointer items-start gap-3 rounded-lg border-2 p-4 text-left transition-colors",
+                  role === "client"
+                    ? "border-primary bg-primary/5"
+                    : "border-border bg-muted/50 hover:border-primary/50"
+                )}
+              >
+                <User
+                  className={cn(
+                    "mt-0.5 h-5 w-5 shrink-0",
+                    role === "client" ? "text-primary" : "text-muted-foreground"
+                  )}
+                />
+                <span>
+                  <span className="block font-semibold text-foreground">
+                    Cliente
+                  </span>
+                  <span className="block text-sm text-muted-foreground">
+                    Contrate profissionais
+                  </span>
+                </span>
+              </button>
+            </div>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="grid gap-1.5 sm:col-span-2">
               <Label htmlFor="fullName">Nome completo</Label>
@@ -173,21 +226,6 @@ export function ItemRegister() {
                 required
               />
             </div>
-            <div className="grid gap-1.5 sm:col-span-2">
-              <Label htmlFor="role">Tipo de conta</Label>
-              <Select
-                value={role || undefined}
-                onValueChange={(value) => setRole(value as RegisterRole)}
-              >
-                <SelectTrigger id="role" className={cn("w-full", authFieldClass)}>
-                  <SelectValue placeholder="Selecione o tipo de conta" />
-                </SelectTrigger>
-                <SelectContent className="w-full">
-                  <SelectItem value="client">Cliente</SelectItem>
-                  <SelectItem value="professional">Profissional</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
             <div className="grid gap-1.5">
               <Label htmlFor="password">Senha</Label>
               <PasswordInput
@@ -222,14 +260,16 @@ export function ItemRegister() {
               className="mt-0.5 h-4 w-4 shrink-0 rounded border-0 bg-muted/50 ring-1 ring-muted-foreground/20"
               aria-describedby="terms-description"
             />
-            <span id="terms-description" className="text-sm leading-snug" style={{ color: lightTheme.colors.text }}>
+            <span
+              id="terms-description"
+              className="text-sm leading-snug text-foreground"
+            >
               Li e aceito os{" "}
               <Link
                 href="/termos-de-uso"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline underline-offset-2"
-                style={{ color: lightTheme.colors.primary }}
+                className="underline underline-offset-2 text-primary"
               >
                 Termos de Uso
               </Link>{" "}
@@ -238,8 +278,7 @@ export function ItemRegister() {
                 href="/politica-de-privacidade"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline underline-offset-2"
-                style={{ color: lightTheme.colors.primary }}
+                className="underline underline-offset-2 text-primary"
               >
                 Política de Privacidade
               </Link>
@@ -258,7 +297,7 @@ export function ItemRegister() {
 
           <div className="relative w-full">
             <div className="flex justify-center text-xs uppercase">
-              <span style={{ color: lightTheme.colors.textSecondary }}>ou</span>
+              <span className="text-muted-foreground">ou</span>
             </div>
           </div>
 
@@ -275,7 +314,7 @@ export function ItemRegister() {
 
           <p className="text-center text-sm">
             Já tens uma conta?{" "}
-            <Link href="/auth/login" style={{ color: lightTheme.colors.primary }}>
+            <Link href="/auth/login" className="text-primary">
               Fazer login
             </Link>
           </p>

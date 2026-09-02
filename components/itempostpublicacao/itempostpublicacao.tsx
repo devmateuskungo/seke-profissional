@@ -28,6 +28,7 @@ import { PostLikesTooltip } from "@/components/post-likes-tooltip/post-likes-too
 import { PostContentWithHashtags } from "@/components/post-content-with-hashtags/post-content-with-hashtags"
 import { PostMediaGallery } from "@/components/post-media-gallery/post-media-gallery"
 import { PostVideoGallery } from "@/components/post-video-gallery/post-video-gallery"
+import { buildDetalhesUserHref } from "@/lib/detalhes-user-href"
 import { likePost, unlikePost } from "@/lib/likes-client"
 import { collectPostImageUrls, deletePost, fetchPostById, dedupeMediaUrls } from "@/lib/posts-client"
 import { resolveUserAvatarUrl, userAvatarSrcUnoptimized } from "@/lib/user-avatar"
@@ -176,7 +177,7 @@ export function ItemPostPublicacaoContent({
           </div>
           <div className="space-y-0.5 min-w-0">
             <Link
-              href={`/detalhesuser?userId=${encodeURIComponent(post.user.id)}`}
+              href={buildDetalhesUserHref({ id: post.user.id, name: post.user.name })}
               className="text-xs font-semibold hover:underline truncate block"
             >
               {post.user.name}
@@ -310,7 +311,9 @@ export function ItemPostPublicacaoContent({
         </div>
         {!isOwnPost ? (
           <Button size="sm" className="text-xs" asChild>
-            <Link href={`/detalhesuser?userId=${encodeURIComponent(post.user.id)}`}>
+            <Link
+              href={buildDetalhesUserHref({ id: post.user.id, name: post.user.name })}
+            >
               Contactar
             </Link>
           </Button>

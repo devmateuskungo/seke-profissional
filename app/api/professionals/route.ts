@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
       "longitude",
       "radius_km",
       "sort",
+      "user_id",
     ] as const
 
     for (const key of optionalKeys) {

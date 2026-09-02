@@ -54,6 +54,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/toaster"
 import { extractUserIdFromJwt } from "@/lib/jwt-user-id"
 import { getStoredUserId } from "@/lib/viewer-user-id"
+import { buildDetalhesUserHref } from "@/lib/detalhes-user-href"
 import { resolveUserAvatarUrl, userAvatarSrcUnoptimized } from "@/lib/user-avatar"
 import { compressImageToJpegDataUrl } from "@/lib/compress-image-client"
 import {
@@ -2701,7 +2702,7 @@ export default function PerfilPage() {
                       return (
                         <li key={u.id}>
                           <Link
-                            href={`/detalhesuser?userId=${encodeURIComponent(u.id)}`}
+                            href={buildDetalhesUserHref({ id: u.id, name: u.name })}
                             className="flex items-center gap-3 py-3 transition-colors hover:bg-muted/50"
                           >
                             <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-border/35 bg-muted">
@@ -2735,7 +2736,7 @@ export default function PerfilPage() {
                       return (
                         <li key={u.id}>
                           <Link
-                            href={`/detalhesuser?userId=${encodeURIComponent(u.id)}`}
+                            href={buildDetalhesUserHref({ id: u.id, name: u.name })}
                             className="flex items-center gap-3 py-3 transition-colors hover:bg-muted/50"
                           >
                             <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-border/35 bg-muted">

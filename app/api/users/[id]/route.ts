@@ -1,19 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import type { ApiErrorResponse } from "@/types/auth"
-
-const getBaseUrl = (): string => {
-  const url = process.env.NEXT_PUBLIC_URL_API?.trim()
-  if (!url) {
-    throw new Error("NEXT_PUBLIC_URL_API não configurada no .env")
-  }
-  return url.replace(/\/$/, "")
-}
+import { buildExternalUserByIdUrl } from "@/lib/api-users-external-url"
 
 /**
- * GET /api/users/:id — perfil público (proxy).
- * Encaminha `Authorization` opcional para `is_following`.
- * Path no backend: `{NEXT_PUBLIC_URL_API}{prefix}/{id}` — predefinição `prefix=/users` (ex.: `/users/42`).
- * Para `/api/users/:id` no backend: `API_USERS_BY_ID_PREFIX=/api/users`
+ * GET /api/users/:id — perfil público de outro utilizador (proxy).
+ * Encaminha para `GET {NEXT_PUBLIC_URL_API}/users/{id}` da API externa.
+ * `Authorization` opcional é propagado para campos como `is_following`.
  */
 export async function GET(
   request: NextRequest,
@@ -21,38 +13,35 @@ export async function GET(
 ) {
   try {
     const { id: rawId } = await context.params
-    const id = encodeURIComponent(rawId.trim())
-    if (!id) {
+    const userId = rawId.trim()
+    if (!userId) {
       return NextResponse.json(
         { message: "ID inválido." } satisfies ApiErrorResponse,
         { status: 400 }
       )
     }
 
-    const baseUrl = getBaseUrl()
-    const prefix =
-      process.env.API_USERS_BY_ID_PREFIX?.trim() || "/users"
-    const path = prefix.startsWith("/") ? prefix : `/${prefix}`
-    const profileEndpoint = `${baseUrl}${path}/${id}`
+    const target = buildExternalUserByIdUrl(userId)
 
-    const authorization = request.headers.get("authorization")
     const headers: HeadersInit = {
       Accept: "application/json",
     }
+
+    const authorization = request.headers.get("authorization")
     if (authorization?.toLowerCase().startsWith("bearer ")) {
       headers.Authorization = authorization
     }
 
-    const res = await fetch(profileEndpoint, {
-      method: "GET",
-      headers,
-    })
-
+    const res = await fetch(target, { method: "GET", headers, cache: "no-store" })
     const data = await res.json().catch(() => ({}))
 
     if (!res.ok) {
       const message =
-        (data && typeof data.message === "string" && data.message) ||
+        (data &&
+          typeof data === "object" &&
+          "message" in data &&
+          typeof (data as { message?: unknown }).message === "string" &&
+          (data as { message: string }).message) ||
         "Perfil não encontrado."
 
       return NextResponse.json(

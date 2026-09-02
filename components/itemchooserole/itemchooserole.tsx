@@ -228,8 +228,7 @@ export function ItemChooseRole() {
           }}
         >
           <CardContent
-            className="flex min-h-[40vh] flex-col items-center justify-center gap-3 px-2 py-12 text-center text-sm sm:min-h-0 sm:px-6"
-            style={{ color: lightTheme.colors.textSecondary }}
+            className="flex min-h-[40vh] flex-col items-center justify-center gap-3 px-2 py-12 text-center text-sm sm:min-h-0 sm:px-6 text-muted-foreground"
           >
             {emailExistsOpen ? (
               "Não foi possível concluir o registo com este e-mail."

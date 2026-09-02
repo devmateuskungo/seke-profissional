@@ -15,6 +15,7 @@ import { PostExpandableContent } from "@/components/post-expandable-content/post
 import { PostMediaGallery } from "@/components/post-media-gallery/post-media-gallery"
 import { PostVideoGallery } from "@/components/post-video-gallery/post-video-gallery"
 import { useToast } from "@/components/ui/toaster"
+import { buildDetalhesUserHref } from "@/lib/detalhes-user-href"
 import { followUser, unfollowUser } from "@/lib/follow-client"
 import { likePost, unlikePost } from "@/lib/likes-client"
 import { deletePost, dedupeMediaUrls } from "@/lib/posts-client"
@@ -130,7 +131,7 @@ export default function ItemPostProfissonal({
     sameUserId(viewerId, authorUserId)
 
   const profileHref = authorUserId
-    ? `/detalhesuser?userId=${encodeURIComponent(authorUserId)}`
+    ? buildDetalhesUserHref({ id: authorUserId, name: nome })
     : "/detalhesuser"
 
   const avatarSrc = resolveUserAvatarUrl(imagemPerfil)
