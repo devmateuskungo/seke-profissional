@@ -71,8 +71,8 @@ export function ItemSendPhone() {
         fontFamily: lightTheme.typography.fontFamily,
       }}
     >
-      <CardHeader className="mt-6">
-        <CardTitle className="text-1xl">Recuperar acesso</CardTitle>
+      <CardHeader className="gap-2 md:mt-6">
+        <CardTitle className="text-2xl">Recuperar a sua senha</CardTitle>
         <CardDescription
           className="text-muted-foreground"
           style={{
@@ -80,7 +80,7 @@ export function ItemSendPhone() {
           }}
         >
           Informe o e-mail associado à sua conta. Enviaremos um código para
-          redefinir a senha.
+          redefinir a senha e voltar a encontrar os profissionais certos.
         </CardDescription>
       </CardHeader>
       <CardContent>

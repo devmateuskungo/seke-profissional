@@ -15,7 +15,63 @@ export function unwrapProfilePayload(raw: unknown): ProfileApiData | null {
   const o = raw as Record<string, unknown>
 
   if (o.data && typeof o.data === "object" && !Array.isArray(o.data)) {
-    return o.data as unknown as ProfileApiData
+    const inner = o.data as Record<string, unknown>
+    const subUser = inner.user
+    const subProfile = inner.profile
+    if (
+      subUser &&
+      typeof subUser === "object" &&
+      !Array.isArray(subUser) &&
+      subProfile &&
+      typeof subProfile === "object" &&
+      !Array.isArray(subProfile)
+    ) {
+      // iam-client?action=me → data.{ profile, user, roles, stats }
+      // Colapsa ``data.user`` com roles/stats no formato esperado pelo resto do código.
+      const user = subUser as Record<string, unknown>
+      const stats =
+        inner.stats &&
+        typeof inner.stats === "object" &&
+        !Array.isArray(inner.stats)
+          ? (inner.stats as Record<string, unknown>)
+          : null
+      const roles = Array.isArray(inner.roles)
+        ? inner.roles.filter((r): r is string => typeof r === "string")
+        : null
+
+      const flattened: Record<string, unknown> = { ...user }
+      if (roles && roles.length > 0) flattened.roles = roles
+      if (typeof user.created_at !== "string" && stats) {
+        const memberSince = stats.member_since
+        if (typeof memberSince === "string") flattened.created_at = memberSince
+      }
+
+      // iam-professional?action=me → data.profile contém os campos profissionais
+      // (tarifa, título, habilidades...). Expor como bloco `professional` para o
+      // resto do frontend (extractProfessionalProfileFields, rating, etc.).
+      const profileRec = subProfile as Record<string, unknown>
+      const hasProfessionalFields =
+        "title" in profileRec ||
+        "category" in profileRec ||
+        "skills" in profileRec ||
+        "hourly_rate" in profileRec ||
+        "cover_photo_url" in profileRec
+      if (hasProfessionalFields && typeof profileRec.user_id === "string") {
+        flattened.professional = profileRec
+      }
+
+      return flattened as unknown as ProfileApiData
+    }
+    if (
+      subUser &&
+      typeof subUser === "object" &&
+      !Array.isArray(subUser) &&
+      !subProfile
+    ) {
+      // iam-auth?action=me → data.user (sem bloco profile/client/professional)
+      return subUser as unknown as ProfileApiData
+    }
+    return inner as unknown as ProfileApiData
   }
 
   const nestedUser =

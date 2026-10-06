@@ -1,5 +1,4 @@
 import Link from "next/link"
-import { lightTheme } from "@/style/light"
 
 export const metadata = {
   title: "Termos de Uso | Seke",
@@ -9,17 +8,14 @@ export const metadata = {
 export default function TermosDeUsoPage() {
   return (
     <article className="mx-auto max-w-3xl prose prose-neutral">
-      <h1
-        className="text-3xl font-semibold mb-2"
-        style={{ color: lightTheme.colors.text }}
-      >
+      <h1 className="text-3xl font-semibold mb-2 text-foreground">
         Termos de Uso
       </h1>
-      <p className="text-sm mb-8" style={{ color: lightTheme.colors.textSecondary }}>
+      <p className="text-sm mb-8 text-muted-foreground">
         Última atualização: junho de 2026
       </p>
 
-      <section className="space-y-4 text-sm leading-relaxed" style={{ color: lightTheme.colors.text }}>
+      <section className="space-y-4 text-sm leading-relaxed text-foreground">
         <p>
           Ao criar uma conta ou utilizar a plataforma Seke, você concorda com estes Termos de Uso.
           Leia-os com atenção antes de concluir o seu cadastro.
@@ -63,9 +59,9 @@ export default function TermosDeUsoPage() {
         </p>
       </section>
 
-      <p className="mt-10 text-sm" style={{ color: lightTheme.colors.textSecondary }}>
+      <p className="mt-10 text-sm text-muted-foreground">
         Consulte também a{" "}
-        <Link href="/politica-de-privacidade" style={{ color: lightTheme.colors.primary }}>
+        <Link href="/politica-de-privacidade" className="text-primary">
           Política de Privacidade
         </Link>
         .

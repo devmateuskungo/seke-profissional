@@ -17,7 +17,7 @@ export default function OPCRegisterPage() {
         <div className="flex flex-col  justify-center  w-full max-w-4xl mx-auto p-6 h-screen">
             <div className="mb-8">
                 <h1 className="text-3xl font-bold mb-2">Bem-vindo(a)! 👋</h1>
-                <p className="text-lg" style={{ color: lightTheme.colors.textSecondary }}>
+                <p className="text-lg" style={{ color: "var(--muted-foreground)" }}>
                     Para começar, diga como você vai usar a plataforma:
                 </p>
             </div>
@@ -28,7 +28,7 @@ export default function OPCRegisterPage() {
                     className={`cursor-pointer transition-all hover:scale-105 hover:shadow-md flex items-center justify-center p-8 ${selectedType === 'cliente' ? 'ring-2 ring-offset-2 ring-primary' : ''
                         }`}
                     style={{
-                        border: `2px solid ${selectedType === 'cliente' ? lightTheme.colors.primary : lightTheme.colors.border}`,
+                        border: `2px solid ${selectedType === 'cliente' ? lightTheme.colors.primary : 'var(--border)'}`,
                         borderRadius: lightTheme.borderRadius.small,
                         minHeight: '200px'
                     }}
@@ -40,10 +40,10 @@ export default function OPCRegisterPage() {
                         >
                             <User size={40} style={{ color: lightTheme.colors.primary }} />
                         </div>
-                        <h3 className="text-3xl font-semibold" style={{ color: lightTheme.colors.text }}>
+                        <h3 className="text-3xl font-semibold text-foreground">
                             Cliente
                         </h3>
-                        <span style={{color:lightTheme.colors.textSecondary}}>Cadastre-se para oferecer serviços, receber pedidos e crescer seu negócio.</span>
+                        <span className="text-muted-foreground">Cadastre-se para oferecer serviços, receber pedidos e crescer seu negócio.</span>
                     </div>
                 </Card>
 
@@ -52,7 +52,7 @@ export default function OPCRegisterPage() {
                     className={`cursor-pointer transition-all hover:scale-105 hover:shadow-md flex items-center justify-center p-8 ${selectedType === 'profissional' ? 'ring-2 ring-offset-2' : ''
                         }`}
                     style={{
-                        border: `2px solid ${selectedType === 'profissional' ? lightTheme.colors.primary : lightTheme.colors.border}`,
+                        border: `2px solid ${selectedType === 'profissional' ? lightTheme.colors.primary : 'var(--border)'}`,
                         borderRadius: lightTheme.borderRadius.small,
                         minHeight: '200px'
                     }}
@@ -64,10 +64,10 @@ export default function OPCRegisterPage() {
                         >
                             <Briefcase size={40} style={{ color: lightTheme.colors.primary }} />
                         </div>
-                        <h3 className="text-3xl font-semibold" style={{ color: lightTheme.colors.text }}>
+                        <h3 className="text-3xl font-semibold text-foreground">
                             Profissional
                         </h3>
-                        <span style={{color:lightTheme.colors.textSecondary}}>Encontre os melhores profissionais e contrate serviços com rapidez e segurança.</span>
+                        <span className="text-muted-foreground">Encontre os melhores profissionais e contrate serviços com rapidez e segurança.</span>
                     </div>
                 </Card>
             </div>

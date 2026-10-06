@@ -17,6 +17,10 @@ export default function LogoutPage() {
     const run = async () => {
       const token =
         typeof window !== "undefined" ? sessionStorage.getItem("auth_token") : null
+      const refreshToken =
+        typeof window !== "undefined"
+          ? sessionStorage.getItem("refresh_token")
+          : null
 
       try {
         await fetch("/api/auth/logout", {
@@ -24,7 +28,9 @@ export default function LogoutPage() {
           credentials: "include",
           headers: {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            "Content-Type": "application/json",
           },
+          body: JSON.stringify(refreshToken ? { refreshToken } : {}),
         })
       } catch {
         // Mesmo com falha na API externa, ainda limpamos o estado local

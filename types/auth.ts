@@ -15,6 +15,7 @@ export interface LoginResponse {
     name?: string
     username?: string
     image?: string
+    profileType?: string
   }
   message?: string
 }
@@ -123,6 +124,18 @@ export interface ProfileRatingSummary {
 /** Payload para pedido de código de recuperação de senha (POST /auth/forgot-password) */
 export interface ForgotPasswordRequest {
   email: string
+}
+
+/** Payload para redefinir a senha com o e-mail e o código de recuperação (POST /auth/reset-password) */
+export interface ResetPasswordRequest {
+  email: string
+  otp: string
+  newPassword: string
+}
+
+/** Resposta esperada de POST /auth/reset-password */
+export interface ResetPasswordResponse {
+  message?: string
 }
 
 /** Payload para renovar o access token (POST /auth/refresh-token) */

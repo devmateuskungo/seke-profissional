@@ -110,3 +110,52 @@ export interface ProfessionalDetailResponse {
   success: boolean
   data: ProfessionalDetail
 }
+
+/** Item devolvido por GET iam-professional?action=list-professionals */
+export interface IamProfessionalListItem {
+  id: string
+  full_name: string
+  bio?: string | null
+  /** Avatar chega como data URI base64. */
+  profile_photo_url?: string | null
+  province?: string | null
+  municipality?: string | null
+  title?: string | null
+  description?: string | null
+  category?: string | null
+  skills?: string[]
+  hourly_rate?: string | number | null
+  is_verified?: boolean
+  is_available?: boolean
+  rating_avg?: string | number
+  total_reviews?: number
+  location_precision?: string | null
+  /** Só `get-public-profile` devolve coordenadas. */
+  latitude?: number | null
+  longitude?: number | null
+  roles?: string[]
+}
+
+/** Resposta de GET iam-professional?action=get-public-profile */
+export interface IamPublicProfileResponse {
+  success?: boolean
+  data?: {
+    professional?: IamProfessionalListItem
+    roles?: string[]
+  }
+}
+
+/** Resposta de GET iam-professional?action=list-professionals */
+export interface IamProfessionalsListResponse {
+  success?: boolean
+  data?: {
+    professionals?: IamProfessionalListItem[]
+    pagination?: {
+      page?: number
+      limit?: number
+      total?: number
+      total_pages?: number
+      has_more?: boolean
+    }
+  }
+}

@@ -39,14 +39,22 @@ export function UserMenu() {
       typeof window !== "undefined"
         ? sessionStorage.getItem("auth_token")
         : null
+    const refreshToken =
+      typeof window !== "undefined"
+        ? sessionStorage.getItem("refresh_token")
+        : null
 
     try {
       await fetch("/api/auth/logout", {
         method: "POST",
-        
+
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          "Content-Type": "application/json",
         },
+        body: JSON.stringify(
+          refreshToken ? { refreshToken } : {}
+        ),
       })
     } catch (error) {
       console.error("Erro ao terminar sessão na API", error)

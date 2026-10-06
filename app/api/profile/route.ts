@@ -27,3 +27,11 @@ export async function PUT(request: NextRequest) {
     errorFallback: "Falha ao atualizar o perfil.",
   })
 }
+
+/** PATCH /api/profile — atualiza dados do perfil → iam-auth?action=update-profile */
+export async function PATCH(request: NextRequest) {
+  return proxyProfileRequest(request, {
+    method: "PATCH",
+    errorFallback: "Falha ao atualizar o perfil.",
+  })
+}

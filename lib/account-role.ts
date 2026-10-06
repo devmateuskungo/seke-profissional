@@ -31,7 +31,7 @@ export function readStoredProfileType(): string | null {
   }
 }
 
-function readPreferredAccountRole(): AccountRole | null {
+export function getStoredPreferredAccountRole(): AccountRole | null {
   if (typeof window === "undefined") return null
   try {
     return resolveAccountRole(window.localStorage.getItem(PREFERRED_ACCOUNT_ROLE_KEY))
@@ -51,7 +51,7 @@ export function pickActiveAccountRole(
   const stored = resolveAccountRole(readStoredProfileType())
   if (stored && availableRoles.includes(stored)) return stored
 
-  const preferred = readPreferredAccountRole()
+  const preferred = getStoredPreferredAccountRole()
   if (preferred && availableRoles.includes(preferred)) return preferred
 
   const fromFallback = resolveAccountRole(fallbackType)
@@ -85,10 +85,30 @@ export function persistActiveAccountRole(role: AccountRole): void {
   window.dispatchEvent(new Event(ACCOUNT_ROLE_CHANGED_EVENT))
 }
 
-export function extractAccountRolesFromProfile(raw: unknown): AccountRole[] {
-  const data = unwrapProfilePayload(raw)
-  if (!data) return []
+const PROFILE_TYPE_KEYS = [
+  "profile_type",
+  "type",
+  "account_type",
+  "user_type",
+  "role",
+] as const
 
+function readProfileTypeValue(source: unknown): string | null {
+  if (!source || typeof source !== "object" || Array.isArray(source)) return null
+  const o = source as Record<string, unknown>
+  for (const key of PROFILE_TYPE_KEYS) {
+    const value = o[key]
+    if (typeof value === "string" && value.trim()) return value.trim()
+    if (value && typeof value === "object") {
+      const nested = value as Record<string, unknown>
+      const name = nested.name ?? nested.type
+      if (typeof name === "string" && name.trim()) return name.trim()
+    }
+  }
+  return null
+}
+
+function collectRolesFromNode(node: Record<string, unknown>): AccountRole[] {
   const seen = new Set<AccountRole>()
   const roles: AccountRole[] = []
 
@@ -99,24 +119,47 @@ export function extractAccountRolesFromProfile(raw: unknown): AccountRole[] {
     roles.push(role)
   }
 
-  if (Array.isArray(data.roles)) {
-    for (const item of data.roles) {
+  if (Array.isArray(node.roles)) {
+    for (const item of node.roles) {
       pushRole(item)
     }
   }
 
-  if (data.client && typeof data.client === "object" && !seen.has("client")) {
+  const typeValue = readProfileTypeValue(node)
+  if (typeValue) pushRole(typeValue)
+
+  if (node.client && typeof node.client === "object" && !seen.has("client")) {
     roles.push("client")
     seen.add("client")
   }
 
   if (
-    data.professional &&
-    typeof data.professional === "object" &&
+    node.professional &&
+    typeof node.professional === "object" &&
     !seen.has("professional")
   ) {
     roles.push("professional")
     seen.add("professional")
+  }
+
+  return roles
+}
+
+export function extractAccountRolesFromProfile(raw: unknown): AccountRole[] {
+  const data = unwrapProfilePayload(raw)
+  if (!data) return []
+
+  const root = data as unknown as Record<string, unknown>
+  const roles = collectRolesFromNode(root)
+
+  const nestedUser =
+    root.user && typeof root.user === "object" && !Array.isArray(root.user)
+      ? (root.user as Record<string, unknown>)
+      : null
+  if (nestedUser) {
+    for (const role of collectRolesFromNode(nestedUser)) {
+      if (!roles.includes(role)) roles.push(role)
+    }
   }
 
   return roles

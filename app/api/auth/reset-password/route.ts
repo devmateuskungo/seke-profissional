@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import type { ApiErrorResponse, ForgotPasswordRequest } from "@/types/auth"
+import type { ApiErrorResponse, ResetPasswordRequest } from "@/types/auth"
 
 const getBaseUrl = (): string => {
   const url = process.env.NEXT_PUBLIC_URL_API_AUTH?.trim()
@@ -11,20 +11,22 @@ const getBaseUrl = (): string => {
   return fallback
 }
 
-const getForgotPasswordEndpoint = (): string => {
+const getResetPasswordEndpoint = (): string => {
   const baseUrl = getBaseUrl()
   const usesAuthBase = Boolean(process.env.NEXT_PUBLIC_URL_API_AUTH?.trim())
   const path = usesAuthBase
-    ? "/iam-auth?action=forgot-password"
-    : "/auth/forgot-password"
+    ? "/iam-auth?action=reset-password-otp"
+    : "/auth/reset-password"
   return `${baseUrl.replace(/\/$/, "")}${path}`
 }
 
-/** POST /api/auth/forgot-password → iam-auth?action=forgot-password (ou {API}/auth/forgot-password) */
+/** POST /api/auth/reset-password → iam-auth?action=reset-password (ou {API}/auth/reset-password) */
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as ForgotPasswordRequest
+    const body = (await request.json()) as Partial<ResetPasswordRequest>
     const email = body.email?.trim()
+    const otp = body.otp?.trim()
+    const newPassword = body.newPassword?.trim()
 
     if (!email) {
       return NextResponse.json(
@@ -32,28 +34,43 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+    if (!otp) {
+      return NextResponse.json(
+        { message: "O código de recuperação é obrigatório." } satisfies ApiErrorResponse,
+        { status: 400 }
+      )
+    }
+    if (!newPassword) {
+      return NextResponse.json(
+        { message: "A nova senha é obrigatória." } satisfies ApiErrorResponse,
+        { status: 400 }
+      )
+    }
 
-    const endpoint = getForgotPasswordEndpoint()
+    const endpoint = getResetPasswordEndpoint()
     const res = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, otp, newPassword } satisfies ResetPasswordRequest),
       cache: "no-store",
     })
 
     const data = await res.json().catch(() => ({}))
+    const message =
+      data && typeof data === "object" && "message" in data
+        ? (data as { message?: unknown }).message
+        : undefined
 
     if (!res.ok) {
-      const message =
-        data &&
-        typeof data === "object" &&
-        "message" in data &&
-        typeof (data as ApiErrorResponse).message === "string"
-          ? (data as ApiErrorResponse).message
-          : "Não foi possível enviar o código. Tente novamente."
-      return NextResponse.json({ message } satisfies ApiErrorResponse, {
-        status: res.status,
-      })
+      return NextResponse.json(
+        {
+          message:
+            typeof message === "string" && message.trim()
+              ? message
+              : "Não foi possível redefinir a senha. Tente novamente.",
+        } satisfies ApiErrorResponse,
+        { status: res.status }
+      )
     }
 
     return NextResponse.json(data, { status: res.status })

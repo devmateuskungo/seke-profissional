@@ -1,5 +1,4 @@
 import Link from "next/link"
-import { lightTheme } from "@/style/light"
 
 export const metadata = {
   title: "Política de Privacidade | Seke",
@@ -9,17 +8,14 @@ export const metadata = {
 export default function PoliticaDePrivacidadePage() {
   return (
     <article className="mx-auto max-w-3xl prose prose-neutral">
-      <h1
-        className="text-3xl font-semibold mb-2"
-        style={{ color: lightTheme.colors.text }}
-      >
+      <h1 className="text-3xl font-semibold mb-2 text-foreground">
         Política de Privacidade
       </h1>
-      <p className="text-sm mb-8" style={{ color: lightTheme.colors.textSecondary }}>
+      <p className="text-sm mb-8 text-muted-foreground">
         Última atualização: junho de 2026
       </p>
 
-      <section className="space-y-4 text-sm leading-relaxed" style={{ color: lightTheme.colors.text }}>
+      <section className="space-y-4 text-sm leading-relaxed text-foreground">
         <p>
           A Seke valoriza a sua privacidade. Esta política descreve como recolhemos, utilizamos e
           protegemos os seus dados pessoais.
@@ -62,9 +58,9 @@ export default function PoliticaDePrivacidadePage() {
         </p>
       </section>
 
-      <p className="mt-10 text-sm" style={{ color: lightTheme.colors.textSecondary }}>
+      <p className="mt-10 text-sm text-muted-foreground">
         Consulte também os{" "}
-        <Link href="/termos-de-uso" style={{ color: lightTheme.colors.primary }}>
+        <Link href="/termos-de-uso" className="text-primary">
           Termos de Uso
         </Link>
         .

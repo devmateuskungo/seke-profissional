@@ -1,5 +1,8 @@
 import type { ApiErrorResponse } from "@/types/auth"
 import type {
+  IamProfessionalListItem,
+  IamProfessionalsListResponse,
+  IamPublicProfileResponse,
   ProfessionalDetail,
   ProfessionalDetailResponse,
   ProfessionalListItem,
@@ -13,9 +16,23 @@ import { fetchProfile } from "@/lib/profile-client"
 import { fetchMyMarketplaceServices } from "@/lib/marketplace-client"
 
 const EXTERNAL_API_BASE = process.env.NEXT_PUBLIC_URL_API?.trim()
+const AUTH_API_BASE = process.env.NEXT_PUBLIC_URL_API_AUTH?.trim()
 const PROFESSIONALS_API = EXTERNAL_API_BASE
   ? `${EXTERNAL_API_BASE}/professionals`
   : "/api/professionals"
+
+/** IAM (Supabase) devolve o profissionalismo em `data.professionals` + `data.pagination`. */
+const IAM_PROFESSIONALS_API = AUTH_API_BASE
+  ? `${AUTH_API_BASE.replace(/\/$/, "")}/iam-professional?action=list-professionals`
+  : null
+
+/** Perfil público — aceita `user_id` ou `professional_id`. */
+const IAM_PUBLIC_PROFILE_API = AUTH_API_BASE
+  ? `${AUTH_API_BASE.replace(/\/$/, "")}/iam-professional?action=get-public-profile`
+  : null
+
+/** `sort_by` aceite pela IAM — qualquer outro valor devolve 400. */
+type IamSortBy = "rating" | "hourly_rate" | "created_at"
 
 export type FetchProfessionalByIdOutcome =
   | { success: true; data: ProfessionalDetail }
@@ -146,6 +163,10 @@ export async function fetchProfessionalById(
     return { success: false, error: "ID do profissional inválido.", statusCode: 400 }
   }
 
+  if (IAM_PUBLIC_PROFILE_API) {
+    return fetchPublicProfessionalFromIam(trimmed, options)
+  }
+
   const base = EXTERNAL_API_BASE
     ? `${EXTERNAL_API_BASE}/professionals`
     : "/api/professionals"
@@ -201,11 +222,270 @@ export type FetchProfessionalsFilters = {
   longitude?: number
   radius_km?: number
   sort?: "distance" | "rating" | "recent"
+  /** Query params da IAM (`iam-professional?action=list-professionals`). */
+  category?: string
+  min_rating?: number
+  max_rate?: number
+  is_available?: boolean
+  sort_order?: "asc" | "desc"
+}
+
+async function fetchPublicProfessionalFromIam(
+  id: string,
+  options?: { token?: string }
+): Promise<FetchProfessionalByIdOutcome> {
+  const params = new URLSearchParams({ id })
+  const headers: HeadersInit = { Accept: "application/json" }
+  if (options?.token?.trim()) {
+    headers.Authorization = `Bearer ${options.token.trim()}`
+  }
+
+  const res = await fetch(`${IAM_PUBLIC_PROFILE_API}&${params.toString()}`, {
+    method: "GET",
+    headers,
+    cache: "no-store",
+  })
+
+  const body = (await res.json().catch(() => ({}))) as
+    | IamPublicProfileResponse
+    | ApiErrorResponse
+
+  if (!res.ok) {
+    const errorNode =
+      body && typeof body === "object" && "error" in body
+        ? (body as { error?: unknown }).error
+        : null
+    const nestedCode =
+      errorNode && typeof errorNode === "object" && !Array.isArray(errorNode)
+        ? (errorNode as { code?: unknown }).code
+        : null
+    const message =
+      "message" in body &&
+      typeof body.message === "string" &&
+      body.message.trim()
+        ? body.message
+        : typeof nestedCode === "string" && nestedCode
+          ? nestedCode
+          : "Não foi possível carregar o perfil do profissional."
+    return { success: false, error: message, statusCode: res.status }
+  }
+
+  const professional = (body as IamPublicProfileResponse).data?.professional
+  if (!professional) {
+    return {
+      success: false,
+      error: "Perfil não encontrado.",
+      statusCode: 404,
+    }
+  }
+
+  const data = normalizeIamProfessionalListItem(professional)
+  if (!data) {
+    return {
+      success: false,
+      error: "Resposta inválida do servidor.",
+      statusCode: 502,
+    }
+  }
+
+  return { success: true, data: data as ProfessionalDetail }
+}
+
+/**
+ * A IAM devolve `data.professionals` + `data.pagination` e o item não tem
+ * `user_id` nem coordenadas. Traduz para o contrato usado pela UI.
+ */
+export function normalizeIamProfessionalListItem(
+  raw: IamProfessionalListItem
+): ProfessionalListItem | null {
+  const id = typeof raw.id === "string" ? raw.id.trim() : ""
+  const fullName = typeof raw.full_name === "string" ? raw.full_name.trim() : ""
+  if (!id || !fullName) return null
+
+  const hourly = raw.hourly_rate
+  const rating = raw.rating_avg
+  const reviews = raw.total_reviews
+  const category = typeof raw.category === "string" ? raw.category.trim() : ""
+
+  return {
+    id,
+    user_id: id,
+    full_name: fullName,
+    is_verified: raw.is_verified === true,
+    is_available: raw.is_available === true,
+    hourly_rate:
+      typeof hourly === "string" || typeof hourly === "number"
+        ? hourly
+        : null,
+    rating_avg:
+      typeof rating === "string" || typeof rating === "number" ? rating : "0.0",
+    total_reviews:
+      typeof reviews === "number" && Number.isFinite(reviews)
+        ? reviews
+        : typeof reviews === "string" && Number.isFinite(Number(reviews))
+          ? Number(reviews)
+          : 0,
+    created_at: "",
+    updated_at: "",
+    profile_photo_url:
+      typeof raw.profile_photo_url === "string"
+        ? raw.profile_photo_url
+        : undefined,
+    province: typeof raw.province === "string" ? raw.province : undefined,
+    municipality:
+      typeof raw.municipality === "string" ? raw.municipality : undefined,
+    bio: typeof raw.bio === "string" ? raw.bio : undefined,
+    latitude:
+      typeof raw.latitude === "number" && Number.isFinite(raw.latitude)
+        ? raw.latitude
+        : undefined,
+    longitude:
+      typeof raw.longitude === "number" && Number.isFinite(raw.longitude)
+        ? raw.longitude
+        : undefined,
+    category_ids: category ? [category] : undefined,
+  }
+}
+
+function mapIamSortBy(sort?: FetchProfessionalsFilters["sort"]): IamSortBy | null {
+  if (!sort) return null
+  if (sort === "rating") return "rating"
+  if (sort === "recent") return "created_at"
+  // "distance" não é suportado pela IAM — a distância é calculada no cliente.
+  return null
+}
+
+/** Query params aceites por `iam-professional?action=list-professionals`. */
+export type IamProfessionalsQuery = {
+  page?: number
+  limit?: number
+  province?: string
+  category?: string
+  min_rating?: number
+  max_rate?: number
+  is_available?: boolean
+  sort_by?: IamSortBy
+  sort_order?: "asc" | "desc"
+}
+
+async function fetchProfessionalsFromIam(
+  options?: FetchProfessionalsFilters
+): Promise<FetchProfessionalsOutcome> {
+  const endpoint = IAM_PROFESSIONALS_API as string
+  const page = Math.max(1, options?.page ?? 1)
+  const limit = Math.max(1, options?.limit ?? 30)
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  })
+
+  if (options?.province?.trim()) {
+    params.set("province", options.province.trim())
+  }
+
+  const category = options?.category?.trim() || options?.category_id?.trim()
+  if (category) {
+    params.set("category", category)
+  }
+
+  if (
+    typeof options?.min_rating === "number" &&
+    Number.isFinite(options.min_rating)
+  ) {
+    params.set("min_rating", String(options.min_rating))
+  }
+  if (
+    typeof options?.max_rate === "number" &&
+    Number.isFinite(options.max_rate)
+  ) {
+    params.set("max_rate", String(options.max_rate))
+  }
+  if (typeof options?.is_available === "boolean") {
+    params.set("is_available", String(options.is_available))
+  }
+
+  const sortBy = mapIamSortBy(options?.sort)
+  if (sortBy) {
+    params.set("sort_by", sortBy)
+    params.set("sort_order", options?.sort_order ?? "desc")
+  } else if (options?.sort_order) {
+    params.set("sort_order", options.sort_order)
+  }
+
+  const headers: HeadersInit = { Accept: "application/json" }
+  if (options?.token?.trim()) {
+    headers.Authorization = `Bearer ${options.token.trim()}`
+  }
+
+  const res = await fetch(`${endpoint}&${params.toString()}`, {
+    method: "GET",
+    headers,
+    cache: "no-store",
+  })
+
+  const body = (await res.json().catch(() => ({}))) as
+    | IamProfessionalsListResponse
+    | ApiErrorResponse
+
+  if (!res.ok) {
+    const errorNode =
+      body && typeof body === "object" && "error" in body
+        ? (body as { error?: unknown }).error
+        : null
+    const nestedCode =
+      errorNode && typeof errorNode === "object" && !Array.isArray(errorNode)
+        ? (errorNode as { code?: unknown }).code
+        : null
+    const message =
+      "message" in body &&
+      typeof body.message === "string" &&
+      body.message.trim()
+        ? body.message
+        : typeof nestedCode === "string" && nestedCode
+          ? nestedCode
+          : "Não foi possível carregar os profissionais."
+    return { success: false, error: message, statusCode: res.status }
+  }
+
+  const payload = body as IamProfessionalsListResponse
+  const list = Array.isArray(payload.data?.professionals)
+    ? payload.data.professionals
+    : []
+  const professionals = list
+    .map((item: IamProfessionalListItem) =>
+      normalizeIamProfessionalListItem(item)
+    )
+    .filter((item): item is ProfessionalListItem => item != null)
+
+  const pagination = payload.data?.pagination
+  const totalCount =
+    typeof pagination?.total === "number"
+      ? pagination.total
+      : professionals.length
+  const totalPages =
+    typeof pagination?.total_pages === "number" && pagination.total_pages > 0
+      ? pagination.total_pages
+      : pagination?.has_more === true
+        ? page + 1
+        : page
+
+  return {
+    success: true,
+    data: {
+      professionals,
+      total_count: totalCount,
+      total_pages: totalPages,
+    },
+  }
 }
 
 export async function fetchProfessionals(
   options?: FetchProfessionalsFilters
 ): Promise<FetchProfessionalsOutcome> {
+  if (IAM_PROFESSIONALS_API) {
+    return fetchProfessionalsFromIam(options)
+  }
+
   const page = options?.page ?? 1
   const limit = options?.limit ?? 30
   const params = new URLSearchParams({

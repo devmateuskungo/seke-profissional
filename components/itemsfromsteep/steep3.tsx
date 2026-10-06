@@ -39,7 +39,7 @@ export function DocumentStep({
                 <Card 
                     className="w-full"
                     style={{ 
-                        borderColor: documentoFrente ? lightTheme.colors.primary : "#e2e8f0",
+                        borderColor: documentoFrente ? lightTheme.colors.primary : "var(--border)",
                     }}
                 >
                     <CardContent className="p-4">
@@ -47,7 +47,7 @@ export function DocumentStep({
                             htmlFor="documento-frente" 
                             className="cursor-pointer block"
                         >
-                            <div className="flex flex-col items-center justify-center h-40 bg-linear-to-br from-gray-50 to-stone-100 rounded-lg p-4">
+                            <div className="flex flex-col items-center justify-center h-40 bg-linear-to-br from-muted to-secondary rounded-lg p-4">
                                 {documentoFrente ? (
                                     <div className="relative w-full h-36">
                                         <Image
@@ -88,7 +88,7 @@ export function DocumentStep({
                 <Card 
                     className="w-full "
                     style={{ 
-                        borderColor: documentoVerso ? lightTheme.colors.primary : "#e2e8f0",
+                        borderColor: documentoVerso ? lightTheme.colors.primary : "var(--border)",
                     }}
                 >
                     <CardContent className="p-4">

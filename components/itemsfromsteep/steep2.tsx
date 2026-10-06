@@ -160,7 +160,7 @@ export function AddressStep() {
                                             transition-all duration-200
                                         `}
                                         style={{
-                                            borderColor: isSelected ? lightTheme.colors.primary : lightTheme.colors.border,
+                                            borderColor: isSelected ? lightTheme.colors.primary : "var(--border)",
                                             backgroundColor: 'transparent',
                                             color: isSelected ? lightTheme.colors.primary : 'inherit'
                                         }}

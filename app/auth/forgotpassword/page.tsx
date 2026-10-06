@@ -3,7 +3,7 @@ import { ItemForgotPassword } from "@/components/itemforgotpasseword/itemforgote
 export default function ForgotPassword() {
   return (
 
-    <div className="w-full max-w-125">
+    <div className="w-full max-w-125 mx-auto">
       <ItemForgotPassword />
     </div>
 

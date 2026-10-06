@@ -10,24 +10,12 @@ import {
   SettingsSectionCard,
 } from "@/components/settings/settings-ui"
 import { useToast } from "@/components/ui/toaster"
-import { changeProfilePassword } from "@/lib/profile-client"
+import { changeAccountPassword } from "@/lib/auth-client"
 import { useAuth } from "@/lib/use-auth"
-import { extractUserIdFromJwt } from "@/lib/jwt-user-id"
-import { getStoredUserId } from "@/lib/viewer-user-id"
-
-function resolveUserId(): string | null {
-  if (typeof window === "undefined") return null
-  const stored = getStoredUserId()
-  if (stored) return stored
-  const token = window.sessionStorage.getItem("auth_token")
-  if (!token) return null
-  return extractUserIdFromJwt(token)
-}
 
 export function SecuritySettingsPage() {
   const toast = useToast()
   const { user } = useAuth()
-  const [currentPassword, setCurrentPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [saving, setSaving] = useState(false)
@@ -36,10 +24,6 @@ export function SecuritySettingsPage() {
     async (event: React.FormEvent) => {
       event.preventDefault()
 
-      if (!currentPassword.trim()) {
-        toast.error("Informe a palavra-passe actual.")
-        return
-      }
       if (!newPassword.trim()) {
         toast.error("Informe a nova palavra-passe.")
         return
@@ -52,37 +36,27 @@ export function SecuritySettingsPage() {
         toast.error("A confirmação não coincide com a nova palavra-passe.")
         return
       }
-      if (currentPassword === newPassword) {
-        toast.error("A nova palavra-passe deve ser diferente da actual.")
-        return
-      }
 
       const token =
         typeof window !== "undefined"
           ? window.sessionStorage.getItem("auth_token")
           : null
-      const userId = resolveUserId()
 
-      if (!token || !userId) {
+      if (!token) {
         toast.error("Sessão inválida. Inicie sessão novamente.")
         return
       }
 
       setSaving(true)
       try {
-        const result = await changeProfilePassword(token, {
-          user_id: userId,
-          currentPassword,
-          newPassword,
-        })
+        const result = await changeAccountPassword(token, newPassword)
 
         if (!result.success) {
           toast.error(result.error)
           return
         }
 
-        toast.success("Palavra-passe alterada com sucesso.")
-        setCurrentPassword("")
+        toast.success(result.message ?? "Palavra-passe alterada com sucesso.")
         setNewPassword("")
         setConfirmPassword("")
       } catch {
@@ -91,7 +65,7 @@ export function SecuritySettingsPage() {
         setSaving(false)
       }
     },
-    [confirmPassword, currentPassword, newPassword, toast]
+    [confirmPassword, newPassword, toast]
   )
 
   return (
@@ -130,18 +104,6 @@ export function SecuritySettingsPage() {
         description="Escolha uma palavra-passe forte que não utilize noutros sites."
       >
         <form onSubmit={(e) => void handleChangePassword(e)} className="space-y-4 py-2">
-          <div className="space-y-2">
-            <Label htmlFor="current-password">Palavra-passe actual</Label>
-            <PasswordInput
-              id="current-password"
-              autoComplete="current-password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              placeholder="Introduza a palavra-passe actual"
-              disabled={saving}
-              required
-            />
-          </div>
           <div className="space-y-2">
             <Label htmlFor="new-password">Nova palavra-passe</Label>
             <PasswordInput

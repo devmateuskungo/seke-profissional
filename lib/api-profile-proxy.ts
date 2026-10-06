@@ -3,6 +3,7 @@ import https from "node:https"
 import { NextRequest, NextResponse } from "next/server"
 import type { ApiErrorResponse } from "@/types/auth"
 import { extractUserIdFromBearer } from "@/lib/jwt-user-id"
+import { isProfessionalUser } from "@/lib/is-professional-user"
 
 export function getApiBaseUrl(): string {
   const url = process.env.NEXT_PUBLIC_URL_API?.trim()
@@ -19,15 +20,6 @@ export function getApiBaseUrl(): string {
  */
 export function getProfileBasePath(): string {
   return process.env.API_PROFILE_PATH?.trim() || "/profile"
-}
-
-export function buildProfileEndpoint(subPath = ""): string {
-  const base = getApiBaseUrl()
-  const profileBase = getProfileBasePath()
-  const path = profileBase.startsWith("/") ? profileBase : `/${profileBase}`
-  if (!subPath) return `${base}${path}`
-  const sub = subPath.startsWith("/") ? subPath : `/${subPath}`
-  return `${base}${path}${sub}`
 }
 
 export function getAuthorizationHeader(
@@ -47,6 +39,37 @@ export function getAuthorizationHeader(
 }
 
 type ProxyMethod = "GET" | "PUT" | "POST" | "PATCH"
+
+/**
+ * Monta o endpoint do perfil.
+ * Quando `NEXT_PUBLIC_URL_API_AUTH` está configurada:
+ * - PATCH principal → iam-auth?action=update-profile
+ * - GET/POST principal → iam-professional?action=me (profissional)
+ *   ou iam-client?action=me (cliente), conforme o `profileType`.
+ * Os demais (avatar/localização/senha/subrotas) mantêm a API legada.
+ */
+export function buildProfileEndpoint(
+  subPath = "",
+  method?: ProxyMethod,
+  profileType?: string | null
+): string {
+  const authBase = process.env.NEXT_PUBLIC_URL_API_AUTH?.trim()
+  if (authBase && method === "PATCH" && !subPath) {
+    return `${authBase.replace(/\/$/, "")}/iam-auth?action=update-profile`
+  }
+  if (authBase && (method === "GET" || method === "POST") && !subPath) {
+    const profileFunction = isProfessionalUser(profileType)
+      ? "iam-professional"
+      : "iam-client"
+    return `${authBase.replace(/\/$/, "")}/${profileFunction}?action=me`
+  }
+  const base = getApiBaseUrl()
+  const profileBase = getProfileBasePath()
+  const path = profileBase.startsWith("/") ? profileBase : `/${profileBase}`
+  if (!subPath) return `${base}${path}`
+  const sub = subPath.startsWith("/") ? subPath : `/${subPath}`
+  return `${base}${path}${sub}`
+}
 
 /** Node `fetch` não permite GET com body; a API externa exige esse formato. */
 export function httpGetWithJsonBody(
@@ -116,7 +139,16 @@ export async function proxyProfileRequest(
     const auth = getAuthorizationHeader(request)
     if (!auth.ok) return auth.response
 
-    const endpoint = buildProfileEndpoint(options.subPath ?? "")
+    const profileTypeHint =
+      request.headers.get("x-profile-type")?.trim() ||
+      request.nextUrl.searchParams.get("profile_type")?.trim() ||
+      null
+
+    const endpoint = buildProfileEndpoint(
+      options.subPath ?? "",
+      options.method,
+      profileTypeHint
+    )
     const headers: HeadersInit = {
       Authorization: auth.value,
       Accept: "application/json",
@@ -130,6 +162,12 @@ export async function proxyProfileRequest(
     /** GET /profile com `{ user_id }` no corpo (id do login). POST no BFF = mesmo contrato. */
     const isFetchProfile = options.method === "GET" || options.method === "POST"
 
+    /** GET/POST principal → iam-{client|professional}?action=me (utilizador vem do Bearer, sem body). */
+    const iamMeActive =
+      Boolean(process.env.NEXT_PUBLIC_URL_API_AUTH?.trim()) &&
+      isFetchProfile &&
+      !options.subPath
+
     // PUT multipart (avatar) → FormData para …/profile/avatar
     if (
       options.method === "PUT" &&
@@ -141,7 +179,7 @@ export async function proxyProfileRequest(
 
       const resolvedUserId =
         (typeof incoming.get("user_id") === "string" &&
-        String(incoming.get("user_id")).trim()
+          String(incoming.get("user_id")).trim()
           ? String(incoming.get("user_id")).trim()
           : null) ||
         queryUserId ||
@@ -191,6 +229,38 @@ export async function proxyProfileRequest(
         : await request.json().catch(() => null)
 
     if (isFetchProfile) {
+      if (iamMeActive) {
+        const res = await fetch(endpoint, {
+          method: "GET",
+          headers,
+          cache: "no-store",
+        })
+
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          const errRecord =
+            data && typeof data === "object" && !Array.isArray(data)
+              ? (data as Record<string, unknown>).error
+              : null
+          const nested =
+            errRecord &&
+            typeof errRecord === "object" &&
+            !Array.isArray(errRecord)
+              ? (errRecord as Record<string, unknown>)
+              : null
+          const message =
+            (data && typeof data.message === "string" && data.message) ||
+            (nested && typeof nested.code === "string" && nested.code) ||
+            (nested && typeof nested.message === "string" && nested.message) ||
+            options.errorFallback
+          return NextResponse.json(
+            { message } satisfies ApiErrorResponse,
+            { status: res.status }
+          )
+        }
+        return NextResponse.json(data)
+      }
+
       const resolvedGetUserId =
         readUserIdFromPayload(rawPayload) || queryUserId || userIdFromToken
 

@@ -114,15 +114,16 @@ export function ItemRegister() {
         fontFamily: lightTheme.typography.fontFamily,
       }}
     >
-      <CardHeader className="space-y-1 pb-4">
-        <CardTitle className="mt-6">Criar Conta</CardTitle>
+      <CardHeader className="gap-2 pb-4 md:mt-6">
+        <CardTitle className="text-2xl">Criar Conta</CardTitle>
         <CardDescription
           className="text-muted-foreground"
           style={{
             fontSize: lightTheme.typography.fontSize.small,
           }}
         >
-          Informe seus dados para criar uma nova conta com segurança.
+          Crie a sua conta para começar a encontrar profissionais qualificados
+          ou a oferecer os seus serviços na SEKE.
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-0">

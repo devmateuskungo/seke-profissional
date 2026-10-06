@@ -6,14 +6,23 @@ import type {
 } from "@/types/auth"
 
 const getBaseUrl = (): string => {
-  const url = process.env.NEXT_PUBLIC_URL_API?.trim()
-  if (!url) {
+  const url = process.env.NEXT_PUBLIC_URL_API_AUTH?.trim()
+  if (url) return url
+  const fallback = process.env.NEXT_PUBLIC_URL_API?.trim()
+  if (!fallback) {
     throw new Error("NEXT_PUBLIC_URL_API não configurada no .env")
   }
-  return url.replace(/\/$/, "")
+  return fallback
 }
 
-/** POST /api/auth/refresh-token → POST {API}/auth/refresh-token */
+const getRefreshEndpoint = (): string => {
+  const baseUrl = getBaseUrl()
+  const usesAuthBase = Boolean(process.env.NEXT_PUBLIC_URL_API_AUTH?.trim())
+  const path = usesAuthBase ? "/iam-auth?action=refresh" : "/auth/refresh-token"
+  return `${baseUrl.replace(/\/$/, "")}${path}`
+}
+
+/** POST /api/auth/refresh-token → iam-auth?action=refresh (ou {API}/auth/refresh-token) */
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as RefreshTokenRequest
@@ -26,8 +35,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const endpoint = `${getBaseUrl()}/auth/refresh-token`
-    const payload: RefreshTokenRequest = { refreshToken }
+    const endpoint = getRefreshEndpoint()
+    const usesAuthBase = Boolean(process.env.NEXT_PUBLIC_URL_API_AUTH?.trim())
+    const payload = usesAuthBase
+      ? { refresh_token: refreshToken }
+      : { refreshToken }
 
     const res = await fetch(endpoint, {
       method: "POST",

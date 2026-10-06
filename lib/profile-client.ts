@@ -10,10 +10,29 @@ import type {
 import { extractProfileUserId, unwrapProfilePayload } from "@/lib/profile-map"
 import { extractUserIdFromJwt } from "@/lib/jwt-user-id"
 import { getStoredUserId } from "@/lib/viewer-user-id"
+import {
+  getStoredPreferredAccountRole,
+  readStoredProfileType,
+} from "@/lib/account-role"
+import { refreshStoredSession } from "@/lib/auth-client"
 
 type JsonResult<T> =
   | { success: true; data: T }
   | { success: false; error: string; statusCode?: number }
+
+const AUTH_API_BASE = process.env.NEXT_PUBLIC_URL_API_AUTH?.trim()
+const UPDATE_PROFILE_API = AUTH_API_BASE
+  ? `${AUTH_API_BASE.replace(/\/$/, "")}/iam-auth?action=update-profile`
+  : "/api/profile"
+const UPDATE_AVATAR_API = AUTH_API_BASE
+  ? `${AUTH_API_BASE.replace(/\/$/, "")}/iam-auth?action=update-avatar`
+  : "/api/profile/avatar"
+const UPLOAD_AVATAR_API = AUTH_API_BASE
+  ? `${AUTH_API_BASE.replace(/\/$/, "")}/iam-auth?action=upload-avatar`
+  : "/api/profile/avatar"
+
+/** Limite do campo avatarUrl aceite pelo IAM (action=update-avatar). */
+export const MAX_AVATAR_URL_LENGTH = 2048
 
 function authHeaders(token: string): HeadersInit {
   return {
@@ -21,6 +40,15 @@ function authHeaders(token: string): HeadersInit {
     Accept: "application/json",
     "Content-Type": "application/json",
   }
+}
+
+function isUnauthorizedOutcome(result: {
+  success: false
+  error: string
+  statusCode?: number
+}): boolean {
+  if (result.statusCode === 401) return true
+  return /\bunauthor/i.test(result.error)
 }
 
 function toUserFacingProfileError(message: string): string {
@@ -34,6 +62,10 @@ function toUserFacingProfileError(message: string): string {
     return "Não foi possível carregar o perfil. Inicie sessão novamente."
   }
 
+  if (/\bunauthor/i.test(trimmed) || /\bunauthorized\b/i.test(trimmed)) {
+    return "Sessão expirada. Verifique a sua ligação e inicie sessão novamente."
+  }
+
   if (/cannot read properties of/i.test(trimmed)) {
     return "Não foi possível carregar o perfil."
   }
@@ -45,27 +77,48 @@ async function parseJsonResponse<T>(res: Response): Promise<JsonResult<T>> {
   const raw = await res.json().catch(() => ({}))
   if (!res.ok) {
     const data = raw as ApiErrorResponse
+    const errRecord =
+      raw && typeof raw === "object" && !Array.isArray(raw)
+        ? (raw as Record<string, unknown>).error
+        : null
+    const nested = toRecord(errRecord)
+    const message =
+      typeof data.message === "string" && data.message.trim()
+        ? data.message
+        : typeof nested?.code === "string" && nested.code.trim()
+          ? nested.code
+          : typeof nested?.message === "string" && nested.message.trim()
+            ? nested.message
+            : "Pedido falhou."
     return {
       success: false,
-      error: toUserFacingProfileError(
-        typeof data.message === "string" && data.message.trim()
-          ? data.message
-          : "Pedido falhou."
-      ),
+      error: toUserFacingProfileError(message),
       statusCode: res.status,
     }
   }
   return { success: true, data: raw as T }
 }
 
+/** Tipo ativo no browser (cliente/profissional) para o IAM escolher a função "me". */
+function resolveProfileTypeHint(): string | null {
+  if (typeof window === "undefined") return null
+  const stored = readStoredProfileType()
+  if (stored) return stored
+  return getStoredPreferredAccountRole()
+}
+
 /** BFF POST → API externa GET com `{ user_id }` no corpo (id do login). */
 async function fetchProfileGetWithBody(
   token: string,
-  userId: string
+  userId: string,
+  extraHeaders: HeadersInit = {}
 ): Promise<JsonResult<unknown>> {
   const res = await fetch("/api/profile", {
     method: "POST",
-    headers: authHeaders(token),
+    headers: {
+      ...authHeaders(token),
+      ...extraHeaders,
+    },
     body: JSON.stringify({ user_id: userId }),
     cache: "no-store",
   })
@@ -78,13 +131,20 @@ async function fetchProfileFromPath(
   userId?: string | null
 ): Promise<JsonResult<unknown>> {
   const hint = userId?.trim()
+  const profileTypeHint = resolveProfileTypeHint()
+  const extraHeaders: HeadersInit = profileTypeHint
+    ? { "X-Profile-Type": profileTypeHint }
+    : {}
   if (path === "/api/profile" && hint) {
-    return fetchProfileGetWithBody(token, hint)
+    return fetchProfileGetWithBody(token, hint, extraHeaders)
   }
 
   const res = await fetch(path, {
     method: "GET",
-    headers: authHeaders(token),
+    headers: {
+      ...authHeaders(token),
+      ...extraHeaders,
+    },
     cache: "no-store",
   })
   return parseJsonResponse(res)
@@ -126,6 +186,7 @@ function resolveProfileUserIdHint(
 /**
  * GET perfil do utilizador autenticado.
  * Ordem: `/api/profile` (GET + `{ user_id }` no corpo, id do login) → outros proxies.
+ * Em 401/UNAUTHORIZED renova a sessão (refresh_token) e tenta uma vez mais.
  */
 export async function fetchProfile(
   token: string,
@@ -144,6 +205,20 @@ export async function fetchProfile(
     const result = await fetchProfileFromPath(path, token, hint)
     if (result.success) return result
     lastError = result
+  }
+
+  if (!lastError.success && isUnauthorizedOutcome(lastError)) {
+    const refresh = await refreshStoredSession()
+    if (refresh.success) {
+      const refreshedToken =
+        typeof window !== "undefined"
+          ? window.sessionStorage.getItem("auth_token")
+          : null
+      if (refreshedToken && refreshedToken !== token) {
+        const retry = await fetchProfileFromPath(paths[0], refreshedToken, hint)
+        return retry
+      }
+    }
   }
 
   return lastError
@@ -174,8 +249,8 @@ export async function updateProfile(
   token: string,
   payload: UpdateProfileRequest
 ): Promise<JsonResult<unknown>> {
-  const res = await fetch("/api/profile", {
-    method: "PUT",
+  const res = await fetch(UPDATE_PROFILE_API, {
+    method: "PATCH",
     headers: authHeaders(token),
     body: JSON.stringify(payload),
   })
@@ -186,16 +261,19 @@ export async function updateProfileAvatar(
   token: string,
   payload: UpdateProfileAvatarRequest
 ): Promise<JsonResult<unknown>> {
-  // PUT https://…/api/profile/avatar
-  const res = await fetch("/api/profile/avatar", {
-    method: "PUT",
+  // IAM → PATCH {AUTH}/iam-auth?action=update-avatar com { avatarUrl }
+  // Fallback → PUT https://…/api/profile/avatar com o payload completo
+  const res = await fetch(UPDATE_AVATAR_API, {
+    method: "PATCH",
     headers: authHeaders(token),
-    body: JSON.stringify(payload),
+    body: JSON.stringify(
+      AUTH_API_BASE ? { avatarUrl: payload.avatarUrl } : payload
+    ),
   })
   return parseJsonResponse(res)
 }
 
-/** PUT /api/profile/avatar — upload multipart do avatar. */
+/** PATCH {AUTH}/iam-auth?action=upload-avatar (FormData `avatar`) ou PUT /api/profile/avatar (legado). */
 export async function uploadProfileAvatarFile(
   token: string,
   userId: string,
@@ -207,11 +285,15 @@ export async function uploadProfileAvatarFile(
   }
 
   const form = new FormData()
-  form.append("user_id", trimmedUserId)
-  form.append("avatar", file, file.name)
+  if (AUTH_API_BASE) {
+    form.append("avatar", file, file.name)
+  } else {
+    form.append("user_id", trimmedUserId)
+    form.append("avatar", file, file.name)
+  }
 
-  const res = await fetch("/api/profile/avatar", {
-    method: "PUT",
+  const res = await fetch(UPLOAD_AVATAR_API, {
+    method: AUTH_API_BASE ? "PATCH" : "PUT",
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: "application/json",

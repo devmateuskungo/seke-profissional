@@ -19,7 +19,12 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/toaster"
 import { lightTheme } from "@/style/light"
 import { loginWithCredentials } from "@/lib/auth-client"
-import { extractProfileTypeFromProfile, persistActiveAccountRole, resolveAccountRole } from "@/lib/account-role"
+import {
+  extractProfileTypeFromProfile,
+  persistActiveAccountRole,
+  resolveAccountRole,
+  type AccountRole,
+} from "@/lib/account-role"
 import { fetchProfile } from "@/lib/profile-client"
 import { extractUserIdFromJwt } from "@/lib/jwt-user-id"
 
@@ -95,11 +100,15 @@ export function ItemLogin() {
 
             if (token) {
               const profileOutcome = await fetchProfile(token, resolvedId)
+              let resolvedRole: AccountRole | null = null
               if (profileOutcome.success) {
                 const profileType = extractProfileTypeFromProfile(profileOutcome.data)
-                const role = resolveAccountRole(profileType)
-                if (role) persistActiveAccountRole(role)
+                resolvedRole = resolveAccountRole(profileType)
               }
+              if (!resolvedRole) {
+                resolvedRole = resolveAccountRole(result.data.user?.profileType)
+              }
+              if (resolvedRole) persistActiveAccountRole(resolvedRole)
             }
           }
           toast.success("Login realizado com sucesso.")
@@ -131,15 +140,16 @@ export function ItemLogin() {
         fontFamily: lightTheme.typography.fontFamily,
       }}
     >
-      <CardHeader className="mt-6">
-        <CardTitle>Login</CardTitle>
+      <CardHeader className="gap-2 md:mt-6">
+        <CardTitle className="text-2xl">Bem-vindo de volta</CardTitle>
         <CardDescription
           className="text-muted-foreground"
           style={{
             fontSize: lightTheme.typography.fontSize.small,
           }}
         >
-          Digite seu e-mail e senha para acessar sua conta com segurança.
+          Aceda à sua conta para encontrar, contratar e acompanhar os
+          profissionais certos para os seus serviços.
         </CardDescription>
       </CardHeader>
       <CardContent>

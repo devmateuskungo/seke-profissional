@@ -9,14 +9,23 @@ import type {
 const VALID_ROLES: RegisterRole[] = ["client", "professional"]
 
 const getBaseUrl = (): string => {
-  const url = process.env.NEXT_PUBLIC_URL_API?.trim()
-  if (!url) {
+  const url = process.env.NEXT_PUBLIC_URL_API_AUTH?.trim()
+  if (url) return url
+  const fallback = process.env.NEXT_PUBLIC_URL_API?.trim()
+  if (!fallback) {
     throw new Error("NEXT_PUBLIC_URL_API não configurada no .env")
   }
-  return url
+  return fallback
 }
 
-/** POST /api/auth/credentials/register - Proxy para a API externa (auth/register) */
+const getRegisterEndpoint = (): string => {
+  const baseUrl = getBaseUrl()
+  const usesAuthBase = Boolean(process.env.NEXT_PUBLIC_URL_API_AUTH?.trim())
+  const path = usesAuthBase ? "/iam-auth?action=register" : "/auth/register"
+  return `${baseUrl.replace(/\/$/, "")}${path}`
+}
+
+/** POST /api/auth/credentials/register → iam-auth?action=register (ou {API}/auth/register) */
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as RegisterRequest
@@ -37,8 +46,7 @@ export async function POST(request: NextRequest) {
         ? (role as RegisterRole)
         : "client"
 
-    const baseUrl = getBaseUrl()
-    const registerEndpoint = `${baseUrl}/auth/register`
+    const registerEndpoint = getRegisterEndpoint()
 
     const payload: RegisterRequest = {
       email: email.trim(),

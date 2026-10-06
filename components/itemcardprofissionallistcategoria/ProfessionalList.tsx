@@ -70,6 +70,9 @@ export default function ProfessionalList() {
   const [geoError, setGeoError] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
+  const parsedMinPrice = useMemo(() => parseOptionalPrice(minPrice), [minPrice]);
+  const parsedMaxPrice = useMemo(() => parseOptionalPrice(maxPrice), [maxPrice]);
+
   useEffect(() => {
     let cancelled = false;
     const token = getSessionToken();
@@ -121,8 +124,12 @@ export default function ProfessionalList() {
         page,
         limit: ITEMS_PER_PAGE,
         token: token ?? undefined,
-        category_id: selectedCategoryId ?? undefined,
+        // `category` não é enviado ao servidor: a IAM devolve `category` vazio em
+        // todos os items, portanto filtrar lá devolveria zero resultados.
+        // A categoria continua a ser filtrada no cliente (ver applyProfessionalFilters).
         province: province.trim() || undefined,
+        max_rate: parsedMaxPrice ?? undefined,
+        is_available: availability != null ? true : undefined,
         latitude: sortByNearest ? clientCoords?.latitude : undefined,
         longitude: sortByNearest ? clientCoords?.longitude : undefined,
         radius_km: sortByNearest ? maxDistanceKm : undefined,
@@ -159,10 +166,9 @@ export default function ProfessionalList() {
     sortByNearest,
     clientCoords,
     maxDistanceKm,
+    parsedMaxPrice,
+    availability,
   ]);
-
-  const parsedMinPrice = useMemo(() => parseOptionalPrice(minPrice), [minPrice]);
-  const parsedMaxPrice = useMemo(() => parseOptionalPrice(maxPrice), [maxPrice]);
 
   const professionals = useMemo(
     () =>

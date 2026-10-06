@@ -5,17 +5,35 @@ import type {
   RegisterResponse,
   RefreshTokenRequest,
   RefreshTokenResponse,
+  ResetPasswordRequest,
   ApiErrorResponse,
 } from "@/types/auth"
 import { extractUserIdFromJwt } from "@/lib/jwt-user-id"
 
 const EXTERNAL_API_BASE = process.env.NEXT_PUBLIC_URL_API?.trim()
-const LOGIN_API = EXTERNAL_API_BASE
-  ? `${EXTERNAL_API_BASE}/auth/login`
-  : "/api/auth/credentials/login"
-const REGISTER_API = EXTERNAL_API_BASE
-  ? `${EXTERNAL_API_BASE}/auth/register`
-  : "/api/auth/credentials/register"
+const AUTH_API_BASE = process.env.NEXT_PUBLIC_URL_API_AUTH?.trim()
+const LOGIN_API = AUTH_API_BASE
+  ? `${AUTH_API_BASE.replace(/\/$/, "")}/iam-auth?action=login`
+  : EXTERNAL_API_BASE
+    ? `${EXTERNAL_API_BASE.replace(/\/$/, "")}/auth/login`
+    : "/api/auth/credentials/login"
+const REFRESH_API = AUTH_API_BASE
+  ? `${AUTH_API_BASE.replace(/\/$/, "")}/iam-auth?action=refresh`
+  : "/api/auth/refresh-token"
+const FORGOT_PASSWORD_API = AUTH_API_BASE
+  ? `${AUTH_API_BASE.replace(/\/$/, "")}/iam-auth?action=forgot-password`
+  : "/api/auth/forgot-password"
+const RESET_PASSWORD_API = AUTH_API_BASE
+  ? `${AUTH_API_BASE.replace(/\/$/, "")}/iam-auth?action=reset-password-otp`
+  : "/api/auth/reset-password"
+const CHANGE_PASSWORD_API = AUTH_API_BASE
+  ? `${AUTH_API_BASE.replace(/\/$/, "")}/iam-auth?action=reset-password`
+  : "/api/profile/password"
+const REGISTER_API = AUTH_API_BASE
+  ? `${AUTH_API_BASE.replace(/\/$/, "")}/iam-auth?action=register`
+  : EXTERNAL_API_BASE
+    ? `${EXTERNAL_API_BASE.replace(/\/$/, "")}/auth/register`
+    : "/api/auth/credentials/register"
 
 export class AuthError extends Error {
   constructor(
@@ -55,6 +73,7 @@ function normalizeLoginResponse(raw: unknown): LoginResponse {
   const root = toRecord(raw)
   const data = toRecord(root?.data)
   const nestedAuth = toRecord(data?.auth)
+  const nestedSession = toRecord(data?.session) ?? toRecord(root?.session)
   const nestedUser =
     toRecord(root?.user) ??
     toRecord(data?.user) ??
@@ -62,21 +81,26 @@ function normalizeLoginResponse(raw: unknown): LoginResponse {
     toRecord(root?.perfil)
 
   const token =
-    readString(root, "token") ??
-    readString(root, "accessToken") ??
-    readString(root, "access_token") ??
-    readString(data, "token") ??
-    readString(data, "accessToken") ??
-    readString(data, "access_token") ??
-    readString(nestedAuth, "token") ??
+    readString(nestedSession, "access_token") ??
+    readString(nestedSession, "accessToken") ??
+    readString(nestedSession, "token") ??
+    readString(nestedAuth, "access_token") ??
     readString(nestedAuth, "accessToken") ??
-    readString(nestedAuth, "access_token")
+    readString(nestedAuth, "token") ??
+    readString(data, "access_token") ??
+    readString(data, "accessToken") ??
+    readString(data, "token") ??
+    readString(root, "access_token") ??
+    readString(root, "accessToken") ??
+    readString(root, "token")
 
   const refreshToken =
-    readString(root, "refreshToken") ??
-    readString(root, "refresh_token") ??
+    readString(nestedSession, "refresh_token") ??
+    readString(nestedSession, "refreshToken") ??
+    readString(data, "refresh_token") ??
     readString(data, "refreshToken") ??
-    readString(data, "refresh_token")
+    readString(root, "refresh_token") ??
+    readString(root, "refreshToken")
 
   const userId =
     readString(nestedUser, "id") ??
@@ -89,9 +113,30 @@ function normalizeLoginResponse(raw: unknown): LoginResponse {
     readString(root, "user_id") ??
     (token ? extractUserIdFromJwt(token) : undefined)
 
+  const profileType =
+    readString(nestedUser, "profile_type") ??
+    readString(nestedUser, "account_type") ??
+    readString(nestedUser, "user_type") ??
+    readString(nestedUser, "role") ??
+    readString(nestedUser, "type") ??
+    readString(data, "profile_type") ??
+    readString(data, "role") ??
+    readString(root, "profile_type") ??
+    readString(root, "type")
+
   return {
     token,
-    accessToken: readString(root, "accessToken") ?? readString(data, "accessToken") ?? token,
+    accessToken:
+      readString(nestedSession, "access_token") ??
+      readString(nestedSession, "accessToken") ??
+      readString(nestedSession, "token") ??
+      readString(nestedAuth, "access_token") ??
+      readString(nestedAuth, "accessToken") ??
+      readString(data, "access_token") ??
+      readString(data, "accessToken") ??
+      readString(root, "access_token") ??
+      readString(root, "accessToken") ??
+      token,
     refreshToken,
     user: nestedUser
       ? {
@@ -101,6 +146,7 @@ function normalizeLoginResponse(raw: unknown): LoginResponse {
             readString(nestedUser, "name") ?? readString(nestedUser, "full_name"),
           username: readString(nestedUser, "username"),
           image: readString(nestedUser, "image") ?? readString(nestedUser, "avatar"),
+          profileType: profileType || undefined,
         }
       : undefined,
     message: readString(root, "message") ?? readString(data, "message"),
@@ -123,10 +169,12 @@ export async function loginWithCredentials(
   const rawData = (await res.json().catch(() => ({}))) as LoginResponse | ApiErrorResponse
 
   if (!res.ok) {
+    const rawRecord = toRecord(rawData)
     const message =
-      "message" in rawData && typeof rawData.message === "string"
-        ? rawData.message
-        : "Não foi possível fazer login. Tente novamente."
+      readString(rawRecord, "message") ??
+      readString(rawRecord, "error") ??
+      readString(rawRecord, "msg") ??
+      "Não foi possível fazer login. Tente novamente."
     return {
       success: false,
       error: message,
@@ -175,6 +223,7 @@ export function isEmailAlreadyRegisteredError(
 export function normalizeRegisterResponse(raw: unknown): RegisterResponse {
   const root = toRecord(raw)
   const data = toRecord(root?.data)
+  const nestedSession = toRecord(data?.session) ?? toRecord(root?.session)
   const nestedUser =
     toRecord(root?.user) ??
     toRecord(data?.user) ??
@@ -182,12 +231,15 @@ export function normalizeRegisterResponse(raw: unknown): RegisterResponse {
     toRecord(data?.perfil)
 
   const token =
-    readString(root, "token") ??
-    readString(root, "accessToken") ??
-    readString(root, "access_token") ??
-    readString(data, "token") ??
+    readString(nestedSession, "access_token") ??
+    readString(nestedSession, "accessToken") ??
+    readString(nestedSession, "token") ??
+    readString(data, "access_token") ??
     readString(data, "accessToken") ??
-    readString(data, "access_token")
+    readString(data, "token") ??
+    readString(root, "access_token") ??
+    readString(root, "accessToken") ??
+    readString(root, "token")
 
   const userId =
     readString(nestedUser, "id") ??
@@ -203,7 +255,14 @@ export function normalizeRegisterResponse(raw: unknown): RegisterResponse {
   return {
     message: readString(root, "message") ?? readString(data, "message"),
     token,
-    accessToken: readString(root, "accessToken") ?? readString(data, "accessToken") ?? token,
+    accessToken:
+      readString(nestedSession, "access_token") ??
+      readString(nestedSession, "accessToken") ??
+      readString(data, "access_token") ??
+      readString(data, "accessToken") ??
+      readString(root, "access_token") ??
+      readString(root, "accessToken") ??
+      token,
     user: nestedUser
       ? {
           id: userId ?? "",
@@ -269,7 +328,7 @@ export async function requestForgotPassword(
     return { success: false, error: "Informe o e-mail.", statusCode: 400 }
   }
 
-  const res = await fetch("/api/auth/forgot-password", {
+  const res = await fetch(FORGOT_PASSWORD_API, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email: trimmed }),
@@ -296,6 +355,119 @@ export async function requestForgotPassword(
   return { success: true, message }
 }
 
+export type ResetPasswordOutcome =
+  | { success: true; message?: string }
+  | { success: false; error: string; statusCode?: number }
+
+/** POST /auth/reset-password — redefine a senha com o token de recuperação. */
+export async function requestResetPassword(
+  email: string,
+  otp: string,
+  newPassword: string
+): Promise<ResetPasswordOutcome> {
+  const trimmedEmail = email.trim()
+  const trimmedOtp = otp.trim()
+  const trimmedPassword = newPassword.trim()
+  if (!trimmedEmail) {
+    return { success: false, error: "Informe o e-mail.", statusCode: 400 }
+  }
+  if (!trimmedOtp) {
+    return { success: false, error: "Informe o código de recuperação.", statusCode: 400 }
+  }
+  if (!trimmedPassword) {
+    return { success: false, error: "Informe a nova senha.", statusCode: 400 }
+  }
+
+  const payload: ResetPasswordRequest = {
+    email: trimmedEmail,
+    otp: trimmedOtp,
+    newPassword: trimmedPassword,
+  }
+
+  const res = await fetch(RESET_PASSWORD_API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  })
+
+  const raw = await res.json().catch(() => ({}))
+  const message =
+    raw && typeof raw === "object" && "message" in raw
+      ? (raw as { message?: unknown }).message
+      : undefined
+
+  if (!res.ok) {
+    const error =
+      typeof message === "string" && message.trim()
+        ? message
+        : "Não foi possível redefinir a senha. Tente novamente."
+    return { success: false, error, statusCode: res.status }
+  }
+
+  return {
+    success: true,
+    message: typeof message === "string" ? message : undefined,
+  }
+}
+
+export type ChangePasswordOutcome =
+  | { success: true; message?: string }
+  | { success: false; error: string; statusCode?: number }
+
+/** POST iam-auth?action=reset-password — altera a senha de um utilizador autenticado. */
+export async function changeAccountPassword(
+  token: string,
+  newPassword: string
+): Promise<ChangePasswordOutcome> {
+  const trimmedToken = token.trim()
+  const trimmedPassword = newPassword.trim()
+  if (!trimmedToken) {
+    return { success: false, error: "Sessão inválida. Inicie sessão novamente.", statusCode: 401 }
+  }
+  if (!trimmedPassword) {
+    return { success: false, error: "Informe a nova senha.", statusCode: 400 }
+  }
+
+  const payload = {
+    token: trimmedToken,
+    newPassword: trimmedPassword,
+  }
+
+  const res = await fetch(CHANGE_PASSWORD_API, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${trimmedToken}`,
+    },
+    body: JSON.stringify(payload),
+  })
+
+  const raw = await res.json().catch(() => ({}))
+  const message =
+    raw && typeof raw === "object" && "message" in raw
+      ? (raw as { message?: unknown }).message
+      : undefined
+  const errorField =
+    raw && typeof raw === "object" && "error" in raw
+      ? (raw as { error?: unknown }).error
+      : undefined
+
+  if (!res.ok) {
+    const detail =
+      typeof message === "string" && message.trim()
+        ? message
+        : typeof errorField === "string" && errorField.trim()
+          ? errorField
+          : "Não foi possível alterar a senha. Tente novamente."
+    return { success: false, error: detail, statusCode: res.status }
+  }
+
+  return {
+    success: true,
+    message: typeof message === "string" ? message : undefined,
+  }
+}
+
 export type RefreshTokenOutcome =
   | { success: true; data: RefreshTokenResponse }
   | { success: false; error: string; statusCode?: number }
@@ -303,26 +475,37 @@ export type RefreshTokenOutcome =
 function normalizeRefreshTokenResponse(raw: unknown): RefreshTokenResponse {
   const root = toRecord(raw)
   const data = toRecord(root?.data)
+  const nestedSession = toRecord(data?.session) ?? toRecord(root?.session)
 
   const token =
-    readString(root, "token") ??
-    readString(root, "accessToken") ??
-    readString(root, "access_token") ??
-    readString(data, "token") ??
+    readString(nestedSession, "access_token") ??
+    readString(nestedSession, "accessToken") ??
+    readString(nestedSession, "token") ??
+    readString(data, "access_token") ??
     readString(data, "accessToken") ??
-    readString(data, "access_token")
+    readString(data, "token") ??
+    readString(root, "access_token") ??
+    readString(root, "accessToken") ??
+    readString(root, "token")
 
   const refreshToken =
-    readString(root, "refreshToken") ??
-    readString(root, "refresh_token") ??
+    readString(nestedSession, "refresh_token") ??
+    readString(nestedSession, "refreshToken") ??
+    readString(data, "refresh_token") ??
     readString(data, "refreshToken") ??
-    readString(data, "refresh_token")
+    readString(root, "refresh_token") ??
+    readString(root, "refreshToken")
 
   return {
     token,
     accessToken:
-      readString(root, "accessToken") ??
+      readString(nestedSession, "access_token") ??
+      readString(nestedSession, "accessToken") ??
+      readString(nestedSession, "token") ??
+      readString(data, "access_token") ??
       readString(data, "accessToken") ??
+      readString(root, "access_token") ??
+      readString(root, "accessToken") ??
       token,
     refreshToken,
     message: readString(root, "message") ?? readString(data, "message"),
@@ -342,9 +525,11 @@ export async function requestRefreshToken(
     }
   }
 
-  const payload: RefreshTokenRequest = { refreshToken: trimmed }
+  const payload = AUTH_API_BASE
+    ? { refresh_token: trimmed }
+    : ({ refreshToken: trimmed } satisfies RefreshTokenRequest)
 
-  const res = await fetch("/api/auth/refresh-token", {
+  const res = await fetch(REFRESH_API, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),

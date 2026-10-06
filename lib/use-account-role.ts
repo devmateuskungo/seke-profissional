@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import {
   ACCOUNT_ROLE_CHANGED_EVENT,
   extractAccountRolesFromProfile,
+  getStoredPreferredAccountRole,
   pickActiveAccountRole,
   readStoredProfileType,
   resolveAccountRole,
@@ -46,7 +47,8 @@ export function useAccountRole(): {
     }
 
     const storedType = readStoredProfileType()
-    const fromStored = resolveAccountRole(storedType)
+    const fromStored =
+      resolveAccountRole(storedType) ?? getStoredPreferredAccountRole()
     if (fromStored) {
       setRole(fromStored)
       setIsLoading(false)
@@ -59,7 +61,7 @@ export function useAccountRole(): {
       const token = window.sessionStorage.getItem("auth_token")
       if (!token) {
         if (!cancelled) {
-          setRole(null)
+          setRole(getStoredPreferredAccountRole())
           setIsLoading(false)
         }
         return
@@ -74,7 +76,7 @@ export function useAccountRole(): {
         if (nextRole) syncProfileTypeInSession(nextRole)
         setRole(nextRole)
       } else {
-        setRole(null)
+        setRole(getStoredPreferredAccountRole())
       }
 
       setIsLoading(false)

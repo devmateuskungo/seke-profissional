@@ -180,3 +180,52 @@
     @apply text-sm font-medium text-foreground;
   }
 }
+
+/* Animações ambientais do painel de autenticação (flutuação, brilho e deriva) */
+@theme {
+  --animate-float-slow: float-slow 7s ease-in-out infinite;
+  --animate-float-slower: float-slower 9.5s ease-in-out infinite;
+  --animate-glow-pulse: glow-pulse 5s ease-in-out infinite;
+  --animate-drift: drift 26s linear infinite;
+
+  @keyframes float-slow {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) rotate(0deg);
+    }
+    50% {
+      transform: translate3d(0, -18px, 0) rotate(3deg);
+    }
+  }
+
+  @keyframes float-slower {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) rotate(0deg);
+    }
+    50% {
+      transform: translate3d(14px, 12px, 0) rotate(-4deg);
+    }
+  }
+
+  @keyframes glow-pulse {
+    0%,
+    100% {
+      opacity: 0.55;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.95;
+      transform: scale(1.1);
+    }
+  }
+
+  @keyframes drift {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+}

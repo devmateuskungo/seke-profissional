@@ -144,7 +144,7 @@ export function FormStepper() {
             className="w-full max-w-6xl mx-auto"
             style={{
                 borderRadius: lightTheme.borderRadius.medium,
-                border: `1px solid ${lightTheme.colors.border}`,
+                border: `1px solid var(--border)`,
             }}
         >
             <CardHeader>
@@ -170,7 +170,7 @@ export function FormStepper() {
                                 backgroundColor:
                                     step <= currentStep
                                         ? lightTheme.colors.primary
-                                        : lightTheme.colors.border,
+                                        : "var(--border)",
                             }}
                         />
                     ))}

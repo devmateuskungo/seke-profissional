@@ -62,6 +62,7 @@ import {
   ProfileLayoutSkeleton,
 } from "@/components/profile/profile-layout-skeleton"
 import {
+  MAX_AVATAR_URL_LENGTH,
   buildUpdateProfilePayload,
   extractRatingFromProfile,
   fetchProfile,
@@ -1016,7 +1017,7 @@ export default function PerfilPage() {
 
         const data = authUserData
 
-        if (updatedProfile) {
+        if (updatedProfile && extractProfileUserId(updatedProfile)) {
           const mapped = mapProfileApiToPerfilUser(updatedProfile)
           setPerfilUser((prev) => ({
             ...(prev ?? {}),
@@ -1333,7 +1334,7 @@ export default function PerfilPage() {
 
         if (directUpload.success) {
           avatarUrl = directUpload.data.url
-        } else {
+        } else if (dataUrl.length <= MAX_AVATAR_URL_LENGTH) {
           const avatarUpdate = await updateProfileAvatar(token, {
             user_id: userId,
             avatarUrl: dataUrl,
@@ -1344,6 +1345,13 @@ export default function PerfilPage() {
             return
           }
           avatarUrl = dataUrl
+        } else {
+          toast.error(
+            directUpload.error ||
+              "Não foi possível enviar a foto: a imagem excede o limite de URL aceite."
+          )
+          setAvatarPreviewSrc("")
+          return
         }
 
         const refreshedUrl = await refreshProfileSnapshot(token, userId)
