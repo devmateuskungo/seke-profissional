@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, FormEvent } from "react"
+import { useEffect, useRef, useState, FormEvent } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { Search } from "lucide-react"
@@ -22,6 +22,34 @@ export function Navbar() {
     const router = useRouter()
     const { isAuthenticated, isLoading } = useAuth()
     const { role } = useAccountRole()
+    const navRef = useRef<HTMLElement>(null)
+
+    // Publica a altura real da navbar em `--app-nav-h` para que as páginas
+    // de altura total (ex.: mensagens) possam encaixar o conteúdo abaixo da
+    // barra fixa sem depender de valores fixos por breakpoint.
+    useEffect(() => {
+        const element = navRef.current
+        if (!element) return
+
+        const apply = () => {
+            document.documentElement.style.setProperty(
+                "--app-nav-h",
+                `${element.offsetHeight}px`
+            )
+        }
+
+        apply()
+
+        const observer = new ResizeObserver(apply)
+        observer.observe(element)
+        window.addEventListener("resize", apply)
+
+        return () => {
+            observer.disconnect()
+            window.removeEventListener("resize", apply)
+            document.documentElement.style.removeProperty("--app-nav-h")
+        }
+    }, [])
 
     // Ocultar navbar em páginas de autenticação
     if (pathname?.startsWith('/auth') || pathname?.startsWith('/optionregister')) {
@@ -67,7 +95,7 @@ export function Navbar() {
 
     return (
         <>
-        <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/95 shadow-sm backdrop-blur supports-backdrop-filter:bg-background/80 [&_a]:no-underline [&_a:hover]:no-underline [&_a:focus]:no-underline">
+        <nav ref={navRef} className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/95 shadow-sm backdrop-blur supports-backdrop-filter:bg-background/80 [&_a]:no-underline [&_a:hover]:no-underline [&_a:focus]:no-underline">
             <div className="mx-auto max-w-[1600px] px-3 sm:px-4 md:px-6 lg:px-8">
                 <div className="flex min-h-14 items-center gap-2 py-2 md:gap-2.5 sm:min-h-16 lg:gap-3">
                     {/* Logo */}

@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { signIn } from "next-auth/react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -20,6 +19,7 @@ import { useToast } from "@/components/ui/toaster"
 import { savePendingRegister } from "@/lib/register-pending"
 import { lightTheme } from "@/style/light"
 import { cn } from "@/lib/utils"
+import { startGoogleAuth } from "@/lib/google-auth-client"
 import type { RegisterRole } from "@/types/auth"
 
 function GoogleIcon({ className }: { className?: string }) {
@@ -43,6 +43,7 @@ export function ItemRegister() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [role, setRole] = useState<RegisterRole | "">("")
   const [acceptedTerms, setAcceptedTerms] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
 
   const ensureTermsAccepted = useCallback(() => {
     if (acceptedTerms) return true
@@ -97,10 +98,20 @@ export function ItemRegister() {
     [fullName, email, phone, password, confirmPassword, role, router, toast, ensureTermsAccepted]
   )
 
-  const handleGoogleSignUp = useCallback(() => {
+  const handleGoogleSignUp = useCallback(async () => {
     if (!ensureTermsAccepted()) return
-    signIn("google", { callbackUrl: "/" })
-  }, [ensureTermsAccepted])
+    setGoogleLoading(true)
+    try {
+      const outcome = await startGoogleAuth("/")
+      if (outcome.success) {
+        window.location.href = outcome.url
+        return
+      }
+      toast.error(outcome.error)
+    } finally {
+      setGoogleLoading(false)
+    }
+  }, [ensureTermsAccepted, toast])
 
   const authFieldClass =
     "border-0 bg-muted/50 shadow-none focus-visible:ring-2 focus-visible:ring-primary/20"
@@ -307,10 +318,10 @@ export function ItemRegister() {
             variant="ghost"
             className="w-full cursor-pointer h-10 gap-2 bg-muted/50 hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={handleGoogleSignUp}
-            disabled={!acceptedTerms}
+            disabled={!acceptedTerms || googleLoading}
           >
             <GoogleIcon className="h-5 w-5 shrink-0" />
-            Entrar com Google
+            {googleLoading ? "A entrar…" : "Entrar com Google"}
           </Button>
 
           <p className="text-center text-sm">

@@ -69,10 +69,10 @@ function readString(source: Record<string, unknown> | null, key: string): string
   return typeof value === "string" && value.trim() ? value : undefined
 }
 
-function normalizeLoginResponse(raw: unknown): LoginResponse {
+export function normalizeLoginResponse(raw: unknown): LoginResponse {
   const root = toRecord(raw)
   const data = toRecord(root?.data)
-  const nestedAuth = toRecord(data?.auth)
+  const nestedAuth = toRecord(data?.auth) ?? toRecord(data?.tokens) ?? toRecord(root?.tokens)
   const nestedSession = toRecord(data?.session) ?? toRecord(root?.session)
   const nestedUser =
     toRecord(root?.user) ??

@@ -94,10 +94,14 @@ Browser  →  POST /api/professionals/:id/avatar
 Servidor →  POST https://api-seke-v1.onrender.com/api/professionals/:id/avatar
 ```
 
+**Exceção — chat:** o browser chama directamente a Edge Function de mensagens
+(`{NEXT_PUBLIC_URL_API_AUTH}/chat?action=…`), que já devolve os headers CORS necessários
+(não existe rota BFF para o chat).
+
 ### Layout global
 
 - **`app/layout.tsx`** — Navbar fixa + `Providers` (sessão, toast) + `AppShell` (padding e largura máxima).
-- **`AppShell`** — Oculta padding em rotas `/auth` e `/optionregister`.
+- **`AppShell`** — Oculta padding em rotas `/auth` e `/optionregister`; monta o widget flutuante de mensagens (oculto em `/chat` e `/profissional/mensagens`).
 - **`Navbar`** — Menu principal, pesquisa, notificações, menu do utilizador.
 
 ---
@@ -140,7 +144,7 @@ Ficheiro `.env.local` (exemplo):
 | `/perfil` | Perfil próprio (edição, serviços, publicações, métricas) |
 | `/detalhesuser` | Perfil público de outro utilizador |
 | `/posts/[id]` | Detalhe de uma publicação |
-| `/chat` | Chat (UI; dados mock) |
+| `/chat` | Chat (integrado com a Edge Function de mensagens) |
 
 ### Marketplace e pedidos
 
@@ -160,7 +164,7 @@ Ficheiro `.env.local` (exemplo):
 | `/categoria-profissional/[id]` | Profissionais por categoria |
 | `/profissional` | Área do profissional |
 | `/profissional/agenda` | Agenda / agendamentos do profissional |
-| `/profissional/mensagens` | Mensagens (UI mock) |
+| `/profissional/mensagens` | Mensagens (integrado com a Edge Function de mensagens) |
 
 ### Configurações e legal
 
@@ -289,6 +293,8 @@ Todas fazem proxy para a API externa. Principais grupos:
 | `api-profile-proxy.ts` | Utilitários de proxy para perfil |
 | `jwt-user-id.ts` | Extrair user_id do JWT |
 | `viewer-user-id.ts` | ID do utilizador em sessão |
+| `chat-client.ts` | Edge Function de mensagens (conversas, mensagens, ações) |
+| `chat-format.ts` | Formatação de datas/horas do chat |
 
 ---
 
@@ -302,7 +308,7 @@ Todas fazem proxy para a API externa. Principais grupos:
 | `UserMenu` | `itemnavbar/user-menu.tsx` | Menu do utilizador autenticado |
 | `NavbarNotifications` | `navbar-notifications/` | Sino de notificações |
 | `ExploreRightPanel` | `itemexploreseke/` | Painel lateral “Explorar” |
-| `AppShell` | `layout/app-shell.tsx` | Container com padding global |
+| `AppShell` | `layout/app-shell.tsx` | Container com padding global + widget flutuante de chat |
 
 ### Feed e publicações
 
@@ -360,6 +366,16 @@ Todas fazem proxy para a API externa. Principais grupos:
 | `itemprofessionalregister` | Dados profissionais no registo |
 | `itemforgotepassword` | Recuperar senha |
 | `itemsendphone` / `itemotpcode` | Fluxo OTP |
+
+### Chat
+
+| Componente | Função |
+|------------|--------|
+| `itemChatPage/itemChatPage.tsx` | Orquestrador da página de chat (conversas + conversas abertas) |
+| `itemChatPage/chat-conversation-list.tsx` | Lista de conversas (pesquisa, ativas/arquivadas, não lidas) |
+| `itemChatPage/chat-thread.tsx` | Thread de mensagens (separadores de dia, media, localização) |
+| `itemChatPage/chat-composer.tsx` | Campo de texto, upload de imagem, botão de localização |
+| `itemChatWidget/itemChatWidget.tsx` | Widget flutuante com preview das conversas e badge de não lidas |
 
 ### UI reutilizável (`components/ui/`)
 
@@ -436,7 +452,29 @@ Botões, inputs, dialogs, sheets, toast, skeleton, select, tooltip, password-inp
 ### 9.9 Chat
 
 - UI em `/chat` e `/profissional/mensagens`.
-- **Estado:** conversas simuladas (mock); sem API em tempo real.
+- **Estado:** integrado com a Edge Function de mensagens (`{NEXT_PUBLIC_URL_API_AUTH}/chat?action=…`).
+- Cliente da API em `lib/chat-client.ts` (listar/criar conversas, listar/enviar/apagar mensagens, marcar como lida, arquivar).
+- Tipos de domínio em `types/chat.ts`; formatação de datas em `lib/chat-format.ts`.
+- Envio de texto, imagem (upload via `POST /api/upload`) e localização; envio otimista com estados *pending*/*failed*.
+- Atualização periódica (30 s para conversas, 15 s para a conversa aberta) em vez de WebSocket.
+- Widget flutuante montado em `components/layout/app-shell.tsx` (oculto em `/chat` e `/profissional/mensagens`), com contador de não lidas vindo da API.
+
+**Criar conversa (`POST ?action=create-conversation`)**
+
+- O corpo segue o contrato da API: `{ "professional_id": "<uuid-do-profissional>", "initial_message": "<texto>" }`.
+- O botão de mensagem do perfil leva para `/chat?userId=<id>&name=<nome>`. Se ainda não existe conversa com esse profissional, **nada é criado ao entrar**: a app mostra um ecrã "nova conversa" com o campo de texto pré-preenchido (`Olá, preciso de orçamento.`, editável).
+- A conversa é criada no **primeiro envio**, e a mensagem escrita pelo utilizador é enviada como `initial_message` — evitando conversas vazias.
+- Se já existir conversa com o profissional, essa conversa é aberta e nada é criado.
+- Imagem ou localização como primeira mensagem: a conversa é criada primeiro (sem `initial_message`) e a media é enviada logo a seguir.
+- Se o envio falhar, o texto mantém-se no campo para o utilizador poder tentar de novo.
+
+**Autenticação e 401 (`lib/chat-client.ts`)**
+
+- O token usado é o access token do `iam-auth?action=login`, guardado em `sessionStorage.auth_token` e enviado em `Authorization: Bearer <token>` (é o mesmo token indicado no contrato da API, obtido via `iam-auth?action=login`).
+- Em **401** o cliente renova a sessão com o `refresh_token` (`iam-auth?action=refresh`) e **repete o pedido uma vez** — o access token tem validade curta e, sem esta renovação, uma sessão aberta há algum tempo falha em todas as ações de chat. O mesmo vale para o envio de media (`POST /api/upload`).
+- Se a renovação falhar, é devolvido o erro *"Sessão expirada ou inválida. Inicie sessão novamente."* e o utilizador tem de iniciar sessão outra vez.
+- Em desenvolvimento, o cliente escreve na consola um aviso com a data de expiração do token e a existência de `refresh_token`, para distinguir "token expirado" de "token rejeitado pelo serviço".
+- Variável opcional `NEXT_PUBLIC_SUPABASE_ANON_KEY`: quando definida, o header `apikey` também é enviado (a função aceita-o no CORS). Só é necessária se a função exigir a chave anónima para além do Bearer token.
 
 ### 9.10 Configurações
 
@@ -532,7 +570,7 @@ Resumo das alterações implementadas no frontend:
 | Listagem profissionais | ✅ Integrado | |
 | Estatísticas marketplace | ✅ Integrado | stats client/professional |
 | Upload (Cloudinary) | ✅ Integrado | |
-| Chat | ❌ Mock | UI apenas |
+| Chat | ✅ Integrado | Edge Function (Supabase) + polling |
 | Avaliações no perfil | ❌ Mock | UI apenas |
 | Pesquisa `/conexoes` | ❌ Rota inexistente | Navbar redirecciona mas página não criada |
 | Dashboard profissional (`/profissional`) | ⚠️ Parcial | UI com dados mock em partes |
@@ -587,7 +625,7 @@ appseke/
 
 ### Backend / integração
 - [ ] Confirmar deploy de `POST /professionals/:id/avatar` na API Render.
-- [ ] Integrar chat com API em tempo real.
+- [x] Integrar chat com API em tempo real (Edge Function de mensagens; polling em vez de WebSocket).
 - [ ] Integrar avaliações de profissionais.
 - [ ] API de estatísticas de agendamentos (métricas da home usam valores mock para agenda).
 
@@ -616,6 +654,9 @@ appseke/
 | Avatar profissional BFF | `app/api/professionals/[id]/avatar/route.ts` |
 | Tipos auth | `types/auth.ts` |
 | Tipos marketplace | `types/marketplace.ts` |
+| Chat (página) | `components/itemChatPage/itemChatPage.tsx` |
+| Chat (API) | `lib/chat-client.ts` |
+| Chat (tipos) | `types/chat.ts` |
 
 ---
 

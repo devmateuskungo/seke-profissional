@@ -5,6 +5,9 @@ import { usePathname } from "next/navigation"
 
 const EXCLUDED_PREFIXES = ["/auth", "/optionregister"]
 
+/** Páginas de mensagens — app de altura total, sem rodapé. */
+const FULL_HEIGHT_PAGES = ["/chat", "/profissional/mensagens"]
+
 const footerLinks = [
   { label: "Privacidade", href: "/politica-de-privacidade" },
   { label: "Termos", href: "/termos-de-uso" },
@@ -16,7 +19,9 @@ const footerLinks = [
 
 export function Footer() {
   const pathname = usePathname()
-  const excluded = EXCLUDED_PREFIXES.some((prefix) => pathname?.startsWith(prefix))
+  const excluded =
+    EXCLUDED_PREFIXES.some((prefix) => pathname?.startsWith(prefix)) ||
+    FULL_HEIGHT_PAGES.includes(pathname ?? "")
   if (excluded) return null
 
   return (

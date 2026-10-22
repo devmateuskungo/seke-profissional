@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { signIn } from "next-auth/react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -27,6 +26,7 @@ import {
 } from "@/lib/account-role"
 import { fetchProfile } from "@/lib/profile-client"
 import { extractUserIdFromJwt } from "@/lib/jwt-user-id"
+import { startGoogleAuth } from "@/lib/google-auth-client"
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -127,9 +127,19 @@ export function ItemLogin() {
     [email, password, router, toast]
   )
 
-  const handleGoogleSignIn = useCallback(() => {
-    signIn("google", { callbackUrl: DEFAULT_REDIRECT })
-  }, [])
+  const handleGoogleSignIn = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const outcome = await startGoogleAuth(DEFAULT_REDIRECT)
+      if (outcome.success) {
+        window.location.href = outcome.url
+        return
+      }
+      toast.error(outcome.error)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [toast])
 
   return (
     <Card

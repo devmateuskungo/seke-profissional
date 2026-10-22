@@ -1,13 +1,16 @@
+import { Suspense } from "react";
+
+import ChatPageFallback from "@/components/itemChatPage/chat-page-fallback";
 import ItemChatPage from "@/components/itemChatPage/itemChatPage";
 
 export default function ChatPage() {
   return (
-    <div className="p-4 sm:p-6">
+    <Suspense fallback={<ChatPageFallback />}>
       <ItemChatPage
         role="cliente"
-        pageTitle="Chat"
-        pageSubtitle="Converse com profissionais e acompanhe suas propostas."
+        pageTitle="Mensagens"
+        pageSubtitle="Fale com profissionais e acompanhe as suas propostas."
       />
-    </div>
+    </Suspense>
   );
 }
