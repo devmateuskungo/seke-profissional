@@ -206,9 +206,16 @@ Todas fazem proxy para a API externa. Principais grupos:
 
 ### Feed e publicações
 
+- `GET /api/feed/iam?action=latest|trending|my-feed&page=&limit=` — feed
+  pública/personalizada (Edge Function `{NEXT_PUBLIC_URL_API_AUTH}/iam-feed`;
+  `my-feed` exige `Authorization`)
 - `GET /api/feed`, `/api/feed/explore`, `/api/feed/global`
 - `GET/POST /api/posts`, `/api/posts/posts`
-- `GET/PUT/DELETE /api/posts/[id]`
+- `GET/PUT/DELETE /api/posts/[id]` — o `GET` usa
+  `{NEXT_PUBLIC_URL_API_AUTH}/posts?action=get&post_id=…`; o `DELETE` do
+  cliente chama diretamente
+  `{NEXT_PUBLIC_URL_API_AUTH}/posts?action=delete` com body `{ post_id }`
+  (soft delete; apenas autor/admin). O proxy local fica como fallback.
 
 ### Social
 
@@ -396,7 +403,9 @@ Botões, inputs, dialogs, sheets, toast, skeleton, select, tooltip, password-inp
 
 ### 9.2 Feed principal (`/`)
 
-- Posts de profissionais via API (`fetchHomeFeed`).
+- Posts de profissionais via API (`fetchHomeFeed`: com sessão usa sempre
+  `iam-feed?action=my-feed`; sem sessão usa `action=latest` e, em falha,
+  `action=trending`).
 - Solicitações de clientes via API (`fetchHomeServiceRequests`).
 - Filtros: **Todos**, **Clientes**, **Profissionais**, **Solicitações** (query `?filtro=`).
 - Criar publicação (texto + imagem/vídeo).
@@ -413,6 +422,9 @@ Botões, inputs, dialogs, sheets, toast, skeleton, select, tooltip, password-inp
 - Rascunhos e publicação posterior.
 - Página de detalhe `/posts/[id]`.
 - Grelha de posts no perfil.
+- Botão **Contactar** dos cartões de publicação abre a conversa com o autor
+  (`/chat?userId=…&name=…`; profissionais vão para
+  `/profissional/mensagens`).
 
 ### 9.4 Perfil (`/perfil`)
 
@@ -455,7 +467,8 @@ Botões, inputs, dialogs, sheets, toast, skeleton, select, tooltip, password-inp
 - **Estado:** integrado com a Edge Function de mensagens (`{NEXT_PUBLIC_URL_API_AUTH}/chat?action=…`).
 - Cliente da API em `lib/chat-client.ts` (listar/criar conversas, listar/enviar/apagar mensagens, marcar como lida, arquivar).
 - Tipos de domínio em `types/chat.ts`; formatação de datas em `lib/chat-format.ts`.
-- Envio de texto, imagem (upload via `POST /api/upload`) e localização; envio otimista com estados *pending*/*failed*.
+- Envio de texto, imagem (upload via `POST {NEXT_PUBLIC_URL_API_AUTH}/storage?action=upload-chat`, multipart com campo `file` + `conversationId`, Bearer token) e localização; envio otimista com estados *pending*/*failed*.
+- A imagem é enviada com `{ conversation_id, message_type: "image", media_url, content }`; o texto escrito no campo vai como legenda (`content`) e é limpo apenas quando o envio tem sucesso.
 - Atualização periódica (30 s para conversas, 15 s para a conversa aberta) em vez de WebSocket.
 - Widget flutuante montado em `components/layout/app-shell.tsx` (oculto em `/chat` e `/profissional/mensagens`), com contador de não lidas vindo da API.
 
@@ -471,7 +484,7 @@ Botões, inputs, dialogs, sheets, toast, skeleton, select, tooltip, password-inp
 **Autenticação e 401 (`lib/chat-client.ts`)**
 
 - O token usado é o access token do `iam-auth?action=login`, guardado em `sessionStorage.auth_token` e enviado em `Authorization: Bearer <token>` (é o mesmo token indicado no contrato da API, obtido via `iam-auth?action=login`).
-- Em **401** o cliente renova a sessão com o `refresh_token` (`iam-auth?action=refresh`) e **repete o pedido uma vez** — o access token tem validade curta e, sem esta renovação, uma sessão aberta há algum tempo falha em todas as ações de chat. O mesmo vale para o envio de media (`POST /api/upload`).
+- Em **401** o cliente renova a sessão com o `refresh_token` (`iam-auth?action=refresh`) e **repete o pedido uma vez** — o access token tem validade curta e, sem esta renovação, uma sessão aberta há algum tempo falha em todas as ações de chat. O mesmo vale para o envio de media (`POST {NEXT_PUBLIC_URL_API_AUTH}/storage?action=upload-chat`).
 - Se a renovação falhar, é devolvido o erro *"Sessão expirada ou inválida. Inicie sessão novamente."* e o utilizador tem de iniciar sessão outra vez.
 - Em desenvolvimento, o cliente escreve na consola um aviso com a data de expiração do token e a existência de `refresh_token`, para distinguir "token expirado" de "token rejeitado pelo serviço".
 - Variável opcional `NEXT_PUBLIC_SUPABASE_ANON_KEY`: quando definida, o header `apikey` também é enviado (a função aceita-o no CORS). Só é necessária se a função exigir a chave anónima para além do Bearer token.
@@ -530,7 +543,7 @@ Resumo das alterações implementadas no frontend:
 - Sidebar com **métricas reais** (substitui “Actividades” e “Ferramentas” estáticos).
 - Edição inline de biografia e campos com acções ✓/✕.
 - Modal “Editar perfil” simplificado (nome).
-- Upload de avatar profissional via rota dedicada `/professionals/:id/avatar`.
+- Upload de avatar e capa via `storage?action=upload-avatar` / `storage?action=upload-cover` (multipart `file` + `userType`).
 - Botões de acção reduzidos/mais discretos.
 
 ### Profissionais
@@ -546,10 +559,15 @@ Resumo das alterações implementadas no frontend:
 - Modal “Propostas recebidas” em painel lateral (estilo Explorar).
 - Cards de proposta com avatar, rating, acções aceitar/rejeitar.
 
-### Avatar profissional
-- BFF em `/api/professionals/[id]/avatar`.
-- Cliente `uploadProfessionalAvatarFile` (multipart POST).
-- Resolução de `professionalId` via perfil e serviços do utilizador.
+### Avatar e capa (cliente/profissional)
+- Avatar: `POST {NEXT_PUBLIC_URL_API_AUTH}/storage?action=upload-avatar`.
+- Capa: `POST {NEXT_PUBLIC_URL_API_AUTH}/storage?action=upload-cover`.
+- Multipart em ambos: `file` (imagem) + `userType` (`client` | `professional`), Bearer token.
+- Clientes `uploadProfileAvatarFile` e `uploadProfileCoverFile` em `lib/profile-client.ts`; a página de perfil escolhe o `userType` pelo papel ativo.
+- A `publicUrl` devolvida é guardada no perfil (`avatar` / `cove_image`) e o perfil é recarregado.
+- Em `iam-{client|professional}?action=me`, o avatar/capa são lidos primeiro de `data.profile` (registo de domínio, onde o upload grava) e só depois do topo/IAM (`data.user`), que pode estar desatualizado. Assim `/perfil` e `/detalhesuser` mostram a mesma imagem.
+- Caminhos de objeto (`id_client/…`, `id_professional/…`) são resolvidos com `GET {NEXT_PUBLIC_URL_API_AUTH}/storage?action=get-url&path=…`; `resolveUserAvatarUrl` também converte esses caminhos para a URL pública na exibição.
+- O `iam-auth?action=update-avatar` e as rotas antigas (`/api/profile/avatar`, `/professionals/[id]/avatar`) ficam como legado.
 
 ---
 
@@ -559,8 +577,9 @@ Resumo das alterações implementadas no frontend:
 |---------|--------|-------|
 | Autenticação (credenciais) | ✅ Integrado | JWT em sessionStorage |
 | Autenticação (Google) | ✅ Integrado | NextAuth |
-| Perfil (CRUD, avatar, localização) | ✅ Integrado | |
-| Avatar profissional | ⚠️ Parcial | BFF pronto; depende da rota no backend Render |
+| Perfil (CRUD, avatar, capa, localização) | ✅ Integrado | |
+| Avatar profissional | ✅ Integrado | `storage?action=upload-avatar` (`file` + `userType`) |
+| Capa do perfil | ✅ Integrado | `storage?action=upload-cover` (`file` + `userType`) |
 | Feed e posts | ✅ Integrado | |
 | Curtidas e seguidores | ✅ Integrado | |
 | Notificações | ✅ Integrado | |

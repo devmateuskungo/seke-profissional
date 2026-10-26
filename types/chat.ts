@@ -77,6 +77,7 @@ export interface ChatMessagesResult {
 export interface ChatSendMessageInput {
   conversationId: string
   type: ChatMessageType
+  /** Texto da mensagem; nas imagens funciona como legenda. */
   content?: string
   mediaUrl?: string
   latitude?: number
