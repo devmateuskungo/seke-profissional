@@ -1,0 +1,93 @@
+import { NextRequest, NextResponse } from "next/server"
+import type {
+  RegisterRequest,
+  RegisterResponse,
+  RegisterRole,
+  ApiErrorResponse,
+} from "@/types/auth"
+
+const VALID_ROLES: RegisterRole[] = ["client", "professional"]
+
+const getBaseUrl = (): string => {
+  const url = process.env.NEXT_PUBLIC_URL_API_AUTH?.trim()
+  if (url) return url
+  const fallback = process.env.NEXT_PUBLIC_URL_API?.trim()
+  if (!fallback) {
+    throw new Error("NEXT_PUBLIC_URL_API não configurada no .env")
+  }
+  return fallback
+}
+
+const getRegisterEndpoint = (): string => {
+  const baseUrl = getBaseUrl()
+  const usesAuthBase = Boolean(process.env.NEXT_PUBLIC_URL_API_AUTH?.trim())
+  const path = usesAuthBase ? "/iam-auth?action=register" : "/auth/register"
+  return `${baseUrl.replace(/\/$/, "")}${path}`
+}
+
+/** POST /api/auth/credentials/register → iam-auth?action=register (ou {API}/auth/register) */
+export async function POST(request: NextRequest) {
+  try {
+    const body = (await request.json()) as RegisterRequest
+
+    const { full_name, email, password, phone, role } = body
+
+    if (!full_name?.trim() || !email?.trim() || !password || !phone?.trim()) {
+      return NextResponse.json(
+        {
+          message: "Nome, e-mail, telefone e senha são obrigatórios.",
+        } satisfies ApiErrorResponse,
+        { status: 400 }
+      )
+    }
+
+    const normalizedRole =
+      typeof role === "string" && VALID_ROLES.includes(role as RegisterRole)
+        ? (role as RegisterRole)
+        : "client"
+
+    const registerEndpoint = getRegisterEndpoint()
+
+    const payload: RegisterRequest = {
+      email: email.trim(),
+      password,
+      full_name: full_name.trim(),
+      phone: phone.trim(),
+      role: normalizedRole,
+    }
+
+    const res = await fetch(registerEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    })
+
+    const data = (await res.json().catch(() => ({}))) as RegisterResponse | ApiErrorResponse
+
+    if (!res.ok) {
+      const message =
+        "message" in data && typeof data.message === "string"
+          ? data.message
+          : "Falha ao criar conta. Tente novamente."
+      return NextResponse.json(
+        { message } satisfies ApiErrorResponse,
+        { status: res.status }
+      )
+    }
+
+    return NextResponse.json(data as RegisterResponse)
+  } catch (err) {
+    if (err instanceof Error && err.message.includes("NEXT_PUBLIC_URL_API")) {
+      return NextResponse.json(
+        { message: "Configuração do servidor incompleta." } satisfies ApiErrorResponse,
+        { status: 503 }
+      )
+    }
+    return NextResponse.json(
+      { message: "Erro interno. Tente novamente mais tarde." } satisfies ApiErrorResponse,
+      { status: 500 }
+    )
+  }
+}
