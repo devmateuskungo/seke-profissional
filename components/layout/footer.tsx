@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
-const EXCLUDED_PREFIXES = ["/auth", "/optionregister"]
+const EXCLUDED_PREFIXES = ["/auth", "/optionregister", "/profissional"]
 
 /** Páginas de mensagens — app de altura total, sem rodapé. */
 const FULL_HEIGHT_PAGES = ["/chat", "/profissional/mensagens"]

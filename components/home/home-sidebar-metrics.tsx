@@ -1,13 +1,41 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { CalendarDays, FileSearch, Loader2, Send } from "lucide-react"
 import { useProfileMarketplaceData } from "@/components/profile/profile-marketplace-section"
+import { fetchBookings } from "@/lib/bookings-client"
 import type { AccountRole } from "@/lib/use-account-role"
 
 interface HomeSidebarMetricsProps {
   role: AccountRole
   userId: string | null
+}
+
+interface BookingMetrics {
+  total: number
+  confirmed: number
+  pending: number
+  cancelled: number
+}
+
+function getSessionToken(): string | null {
+  if (typeof window === "undefined") return null
+  return window.sessionStorage.getItem("auth_token")
+}
+
+function normalizeBookingStatus(status?: string): "confirmed" | "pending" | "cancelled" {
+  const normalized = status?.toLowerCase().trim() ?? ""
+  if (normalized.includes("cancel")) return "cancelled"
+  if (
+    normalized.includes("confirm") ||
+    normalized.includes("done") ||
+    normalized.includes("completed") ||
+    normalized.includes("matched")
+  ) {
+    return "confirmed"
+  }
+  return "pending"
 }
 
 function MetricCell({
@@ -36,24 +64,6 @@ function getStatusCount(
   return byStatus?.[key]?.count ?? 0
 }
 
-/** Valores mock até existir API de estatísticas de agendamentos. */
-function getAppointmentMetrics(role: AccountRole) {
-  if (role === "professional") {
-    return {
-      total: 24,
-      secondary: { label: "Pendentes", value: 4 },
-      completed: 18,
-      cancelled: 2,
-    }
-  }
-  return {
-    total: 6,
-    secondary: { label: "Agendados", value: 2 },
-    completed: 3,
-    cancelled: 1,
-  }
-}
-
 function MetricsCard({
   title,
   description,
@@ -78,7 +88,7 @@ function MetricsCard({
   return (
     <div className="bg-card p-4 rounded-md border border-border">
       <div className="flex items-start gap-2.5 mb-3">
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#dceffd] text-[#2b81e5]">
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
           <Icon className="size-3.5" aria-hidden />
         </div>
         <div className="min-w-0 flex-1">
@@ -102,7 +112,7 @@ function MetricsCard({
       {linkHref && linkLabel ? (
         <Link
           href={linkHref}
-          className="mt-2.5 block text-center text-xs font-medium text-[#2b81e5] hover:text-[#2b81e5]/80 transition-colors"
+          className="mt-2.5 block text-center text-xs font-medium text-primary hover:text-primary/80 transition-colors"
         >
           {linkLabel}
         </Link>
@@ -117,17 +127,62 @@ export function HomeSidebarMetrics({ role, userId }: HomeSidebarMetricsProps) {
     isProfessional,
     userId
   )
+  const [bookingMetrics, setBookingMetrics] = useState<BookingMetrics | null>(
+    null
+  )
+  const [bookingsLoading, setBookingsLoading] = useState(true)
 
-  const appointmentMetrics = getAppointmentMetrics(role)
+  useEffect(() => {
+    let cancelled = false
 
-  const appointmentItems = [
-    { label: "Total", value: appointmentMetrics.total },
-    {
-      label: appointmentMetrics.secondary.label,
-      value: appointmentMetrics.secondary.value,
-    },
-    { label: "Concluídos", value: appointmentMetrics.completed },
-    { label: "Cancelados", value: appointmentMetrics.cancelled },
+    async function run() {
+      const token = getSessionToken()
+      if (!token) {
+        if (!cancelled) setBookingsLoading(false)
+        return
+      }
+
+      const result = await fetchBookings({ token, page: 1, limit: 100 })
+      if (cancelled) return
+
+      if (result.success) {
+        const metrics: BookingMetrics = {
+          total: result.data.bookings.length,
+          confirmed: 0,
+          pending: 0,
+          cancelled: 0,
+        }
+        for (const booking of result.data.bookings) {
+          metrics[normalizeBookingStatus(booking.status)] += 1
+        }
+        setBookingMetrics(metrics)
+      } else {
+        setBookingMetrics(null)
+      }
+
+      setBookingsLoading(false)
+    }
+
+    void run()
+    return () => {
+      cancelled = true
+    }
+  }, [userId])
+
+  const appointmentItems = bookingMetrics
+    ? [
+        { label: "Total", value: bookingMetrics.total },
+        { label: "Confirmados", value: bookingMetrics.confirmed },
+        { label: "Pendentes", value: bookingMetrics.pending },
+        { label: "Cancelados", value: bookingMetrics.cancelled },
+      ]
+    : null
+
+  const appointmentEmpty = [
+    { label: "Total", value: 0 },
+    { label: "Confirmados", value: 0 },
+    { label: "Pendentes", value: 0 },
+    { label: "Cancelados", value: 0 },
   ]
 
   const proposalItems = isProfessional
@@ -189,8 +244,9 @@ export function HomeSidebarMetrics({ role, userId }: HomeSidebarMetricsProps) {
         icon={CalendarDays}
         linkHref={isProfessional ? "/profissional/agenda" : "/agendamentos"}
         linkLabel="Ver agendamentos"
+        loading={bookingsLoading}
         metrics={appointmentItems}
-        emptyMetrics={appointmentItems}
+        emptyMetrics={appointmentEmpty}
       />
       <MetricsCard
         title={isProfessional ? "Propostas" : "Solicitações"}
@@ -200,7 +256,7 @@ export function HomeSidebarMetrics({ role, userId }: HomeSidebarMetricsProps) {
             : "Resumo das suas solicitações"
         }
         icon={isProfessional ? Send : FileSearch}
-        linkHref={isProfessional ? "/propostas" : "/solicitacoes"}
+        linkHref={isProfessional ? "/profissional/propostas" : "/solicitacoes"}
         linkLabel={isProfessional ? "Ver propostas" : "Ver solicitações"}
         loading={loading}
         metrics={proposalItems}

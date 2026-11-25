@@ -1,10 +1,10 @@
 "use client"
 
-import Link from "next/link"
-import { ArrowLeft, CalendarDays, Loader2, RefreshCcw } from "lucide-react"
+import { CalendarDays, Loader2, RefreshCcw } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import AppointmentCard from "@/components/itemAppointmentCard/itemAppointmentCard"
+import { Button } from "@/components/ui/button"
 import { fetchBookings } from "@/lib/bookings-client"
 import { useAuth } from "@/lib/use-auth"
 import type { MarketplaceBookingListItem } from "@/types/booking"
@@ -109,26 +109,35 @@ export default function ProfissionalAgendaPage() {
   }, [bookings])
 
   return (
-    <div className="mx-auto w-full max-w-5xl py-6 sm:py-8">
-      <div className="mb-5 flex items-start justify-between gap-4">
+    <div className="space-y-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="size-4" aria-hidden />
-            Voltar
-          </Link>
-          <div className="mt-3 flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <CalendarDays className="size-4" aria-hidden />
             </div>
-            <h1 className="text-xl font-semibold text-foreground">Agenda</h1>
+            <h1 className="text-lg font-semibold tracking-tight text-foreground">
+              Agenda
+            </h1>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-0.5 text-sm text-muted-foreground">
             Veja os serviços agendados e organize a sua semana.
           </p>
         </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="xs"
+          onClick={() => void load()}
+          disabled={loading}
+        >
+          {loading ? (
+            <Loader2 className="size-3.5 animate-spin" aria-hidden />
+          ) : (
+            <RefreshCcw className="size-3.5" aria-hidden />
+          )}
+          Atualizar
+        </Button>
       </div>
 
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">

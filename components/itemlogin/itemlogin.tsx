@@ -41,6 +41,22 @@ function GoogleIcon({ className }: { className?: string }) {
 
 const DEFAULT_REDIRECT = "/"
 
+function readCallbackUrl(): string | null {
+  if (typeof window === "undefined") return null
+  const value = new URLSearchParams(window.location.search).get("callbackUrl")
+  if (!value) return null
+  // Só aceita caminhos internos.
+  if (!value.startsWith("/") || value.startsWith("//")) return null
+  if (value.startsWith("/auth")) return null
+  return value
+}
+
+function resolveRedirectTarget(role: AccountRole | null): string {
+  const callbackUrl = readCallbackUrl()
+  if (callbackUrl) return callbackUrl
+  return role === "professional" ? "/profissional" : DEFAULT_REDIRECT
+}
+
 const authFieldClass =
   "border-0 bg-muted/50 shadow-none focus-visible:ring-2 focus-visible:ring-primary/20"
 
@@ -50,6 +66,7 @@ export function ItemLogin() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false)
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
@@ -73,6 +90,7 @@ export function ItemLogin() {
         })
 
         if (result.success) {
+          let resolvedRole: AccountRole | null = null
           if (typeof window !== "undefined") {
             const token = result.data.token ?? result.data.accessToken
             if (token) window.sessionStorage.setItem("auth_token", token)
@@ -100,7 +118,6 @@ export function ItemLogin() {
 
             if (token) {
               const profileOutcome = await fetchProfile(token, resolvedId)
-              let resolvedRole: AccountRole | null = null
               if (profileOutcome.success) {
                 const profileType = extractProfileTypeFromProfile(profileOutcome.data)
                 resolvedRole = resolveAccountRole(profileType)
@@ -112,7 +129,7 @@ export function ItemLogin() {
             }
           }
           toast.success("Login realizado com sucesso.")
-          router.push(DEFAULT_REDIRECT)
+          router.push(resolveRedirectTarget(resolvedRole))
           router.refresh()
           return
         }
@@ -128,16 +145,16 @@ export function ItemLogin() {
   )
 
   const handleGoogleSignIn = useCallback(async () => {
-    setIsLoading(true)
+    setIsGoogleLoading(true)
     try {
-      const outcome = await startGoogleAuth(DEFAULT_REDIRECT)
+      const outcome = await startGoogleAuth(readCallbackUrl() ?? DEFAULT_REDIRECT)
       if (outcome.success) {
         window.location.href = outcome.url
         return
       }
       toast.error(outcome.error)
     } finally {
-      setIsLoading(false)
+      setIsGoogleLoading(false)
     }
   }, [toast])
 
@@ -174,7 +191,7 @@ export function ItemLogin() {
                 placeholder="seu@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
+                disabled={isLoading || isGoogleLoading}
                 className={authFieldClass}
               />
             </div>
@@ -194,7 +211,7 @@ export function ItemLogin() {
                 placeholder="Senha"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading}
+                disabled={isLoading || isGoogleLoading}
                 className={authFieldClass}
               />
             </div>
@@ -204,9 +221,16 @@ export function ItemLogin() {
               type="submit"
               className="w-full cursor-pointer text-white h-10"
               style={{ backgroundColor: lightTheme.colors.primary }}
-              disabled={isLoading}
+              disabled={isLoading || isGoogleLoading}
             >
-              {isLoading ? "A entrar…" : "Entrar"}
+              {isLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                  A entrar…
+                </span>
+              ) : (
+                "Entrar"
+              )}
             </Button>
           </CardFooter>
         </form>
@@ -222,9 +246,13 @@ export function ItemLogin() {
           variant="ghost"
           className="w-full cursor-pointer h-10 gap-2 bg-muted/50 hover:bg-muted"
           onClick={handleGoogleSignIn}
-          disabled={isLoading}
+          disabled={isLoading || isGoogleLoading}
         >
-          <GoogleIcon className="h-5 w-5 shrink-0" />
+          {isGoogleLoading ? (
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground" />
+          ) : (
+            <GoogleIcon className="h-5 w-5 shrink-0" />
+          )}
           Entrar com Google
         </Button>
         <p className="mt-6">

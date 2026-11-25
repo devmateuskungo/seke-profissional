@@ -4,7 +4,6 @@ import { useEffect } from "react"
 import { createPortal } from "react-dom"
 import { X } from "lucide-react"
 import type { AccountRole } from "@/lib/use-account-role"
-import { HomeFindProfessionalCard } from "@/components/home/home-find-professional-card"
 import { HomeUserProfileCard } from "@/components/home/home-user-profile-card"
 import { HomeProfessionalAvailability } from "@/components/home/home-professional-availability"
 import { HomeSidebarMetrics } from "@/components/home/home-sidebar-metrics"
@@ -95,10 +94,6 @@ export function HomeSidebarPanel({
 
         <div className="flex-1 space-y-4 overflow-y-auto p-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           <HomeUserProfileCard onNavigate={onClose} />
-          <HomeFindProfessionalCard
-            variant="sidebar"
-            onNavigate={onClose}
-          />
 
           {showAvailability ? (
             <HomeProfessionalAvailability userId={userId} />

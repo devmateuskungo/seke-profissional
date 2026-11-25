@@ -5,7 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation"
 import { Suspense } from "react"
 import { cn } from "@/lib/utils"
 import {
-  getAppNavItems,
+  getMobileNavItems,
   isNavItemActive,
   type AppNavItem,
 } from "@/components/itemnavbar/nav-config"
@@ -80,11 +80,7 @@ function MobileBottomNavBar({
   const pathname = usePathname() ?? "/"
   const searchParams = useSearchParams()
   const search = searchParams.toString()
-  const items = getAppNavItems({
-    isAuthenticated,
-    role,
-    includeProfile: isAuthenticated,
-  })
+  const items = getMobileNavItems({ isAuthenticated, role })
 
   return (
     <nav

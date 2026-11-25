@@ -74,7 +74,14 @@ const FILTER_TABS: { id: NotificationListFilter; label: string }[] = [
 /**
  * Sino de notificações na navbar (lista: GET /api/notifications; badge: GET /api/notifications/unread-count).
  */
-export function NavbarNotifications() {
+export function NavbarNotifications({
+  variant = "compact",
+  className,
+}: {
+  /** `label` mostra ícone em cima e texto em baixo, igual aos itens do menu. */
+  variant?: "compact" | "label"
+  className?: string
+} = {}) {
   const { isAuthenticated, isLoading } = useAuth()
   const [open, setOpen] = useState(false)
   const [listFilter, setListFilter] = useState<NotificationListFilter>("all")
@@ -211,14 +218,23 @@ export function NavbarNotifications() {
         type="button"
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          "relative flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors cursor-pointer",
-          "hover:bg-accent hover:text-primary",
-          open && "bg-accent text-primary"
+          "relative flex cursor-pointer items-center justify-center text-muted-foreground transition-colors hover:bg-accent hover:text-primary",
+          variant === "label"
+            ? "min-w-14 flex-col gap-0.5 rounded-lg px-2 py-1.5 text-[11px] font-semibold leading-tight lg:min-w-18 lg:text-xs"
+            : "size-10 rounded-full",
+          open && "bg-accent text-primary",
+          className
         )}
         aria-label="Notificações"
         aria-expanded={open}
       >
-        <Bell className="size-[1.15rem]" strokeWidth={2} />
+        <Bell
+          className={variant === "label" ? "size-5 shrink-0" : "size-[1.15rem]"}
+          strokeWidth={2}
+        />
+        {variant === "label" ? (
+          <span className="max-w-full truncate">Notificações</span>
+        ) : null}
         {badge ? (
           <span className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white shadow-sm ring-2 ring-white">
             {badge}

@@ -254,6 +254,10 @@ Todas fazem proxy para a API externa. Principais grupos:
 - `GET/POST /api/marketplace/bookings`
 - `GET /api/marketplace/professionals/[id]/services`
 
+### Agendamento de serviços (cliente)
+
+- `POST /api/orders/create-service` — proxy para `POST {NEXT_PUBLIC_URL_API_AUTH}/iam-orders?action=create-service`, com `Authorization: Bearer <token>` de cliente. Body: `{ title, category, description, budget, location }` (category = slug da categoria). Em 401 o cliente renova a sessão e repete o pedido uma vez.
+
 ### Profissionais
 
 - `GET /api/professionals`
@@ -403,9 +407,9 @@ Botões, inputs, dialogs, sheets, toast, skeleton, select, tooltip, password-inp
 
 ### 9.2 Feed principal (`/`)
 
-- Posts de profissionais via API (`fetchHomeFeed`: com sessão usa sempre
-  `iam-feed?action=my-feed`; sem sessão usa `action=latest` e, em falha,
-  `action=trending`).
+- Posts de profissionais via API (`fetchHomeFeed`: usa sempre
+  `iam-feed?action=latest`, com ou sem sessão, para que o feed da home mostre
+  as publicações dos profissionais a todos; em falha, `action=trending`).
 - Solicitações de clientes via API (`fetchHomeServiceRequests`).
 - Filtros: **Todos**, **Clientes**, **Profissionais**, **Solicitações** (query `?filtro=`).
 - Criar publicação (texto + imagem/vídeo).

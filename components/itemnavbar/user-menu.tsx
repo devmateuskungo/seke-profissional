@@ -2,9 +2,23 @@
 
 import { useRouter } from "next/navigation"
 import { signOut } from "next-auth/react"
-import { MessageCircle, User, Settings, LogOut, ChevronDown } from "lucide-react"
+import {
+  Briefcase,
+  CalendarDays,
+  ClipboardList,
+  LayoutDashboard,
+  LogOut,
+  MessageCircle,
+  RefreshCw,
+  Settings,
+  User,
+  UserRound,
+  ChevronDown,
+} from "lucide-react"
 import { DropdownMenu, Avatar } from "radix-ui"
 import { useAuth } from "@/lib/use-auth"
+import { useAccountRole } from "@/lib/use-account-role"
+import { ACCOUNT_ROLE_LABELS } from "@/lib/account-role"
 import { resolveUserAvatarUrl } from "@/lib/user-avatar"
 
 function getInitials(name: string): string {
@@ -25,13 +39,18 @@ function getDisplayHandle(name: string, email: string): string {
 export function UserMenu() {
   const router = useRouter()
   const { user, logout } = useAuth()
+  const { role } = useAccountRole()
 
   if (!user) return null
 
   const avatarSrc = resolveUserAvatarUrl(user.image)
+  const isProfessional = role === "professional"
+  const roleLabel = role ? ACCOUNT_ROLE_LABELS[role] : null
+  const RoleIcon = isProfessional ? Briefcase : UserRound
+  const messagesHref = isProfessional ? "/profissional/mensagens" : "/chat"
 
   const handleOpenMessages = () => {
-    router.push("/chat")
+    router.push(messagesHref)
   }
 
   const handleLogout = async () => {
@@ -104,11 +123,70 @@ export function UserMenu() {
         </DropdownMenu.Trigger>
         <DropdownMenu.Portal>
           <DropdownMenu.Content
-            className="z-[9999] min-w-[200px] rounded-lg bg-popover p-1 shadow-lg border border-border"
+            className="z-[9999] min-w-[230px] rounded-lg bg-popover p-1 shadow-lg border border-border"
             align="end"
             sideOffset={6}
             alignOffset={-4}
           >
+            {roleLabel ? (
+              <>
+                <div className="px-3 py-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Perfil em uso
+                  </p>
+                  <p className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                    <RoleIcon className="size-3.5 text-primary" aria-hidden />
+                    {roleLabel}
+                  </p>
+                </div>
+                <DropdownMenu.Separator className="my-1 h-px bg-border" />
+
+                {isProfessional ? (
+                  <>
+                    <DropdownMenu.Item
+                      className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground hover:bg-accent focus:bg-accent outline-none"
+                      onSelect={() => router.push("/profissional")}
+                    >
+                      <LayoutDashboard size={16} />
+                      Painel do profissional
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Item
+                      className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground hover:bg-accent focus:bg-accent outline-none"
+                      onSelect={() => router.push("/profissional/agenda")}
+                    >
+                      <CalendarDays size={16} />
+                      Agenda
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Item
+                      className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground hover:bg-accent focus:bg-accent outline-none"
+                      onSelect={() => router.push("/profissional/pedidos")}
+                    >
+                      <ClipboardList size={16} />
+                      Pedidos de clientes
+                    </DropdownMenu.Item>
+                  </>
+                ) : (
+                  <>
+                    <DropdownMenu.Item
+                      className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground hover:bg-accent focus:bg-accent outline-none"
+                      onSelect={() => router.push("/solicitacoes")}
+                    >
+                      <ClipboardList size={16} />
+                      As minhas solicitações
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Item
+                      className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground hover:bg-accent focus:bg-accent outline-none"
+                      onSelect={() => router.push("/agendamentos")}
+                    >
+                      <CalendarDays size={16} />
+                      Os meus agendamentos
+                    </DropdownMenu.Item>
+                  </>
+                )}
+                <DropdownMenu.Separator className="my-1 h-px bg-border" />
+              </>
+            ) : null}
+
             <DropdownMenu.Item
               className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground hover:bg-accent focus:bg-accent outline-none"
               onSelect={() => router.push("/perfil")}
@@ -121,8 +199,17 @@ export function UserMenu() {
               onSelect={() => router.push("/configuracoes")}
             >
               <Settings size={16} />
-              Configuração
+              Configurações
             </DropdownMenu.Item>
+            {roleLabel ? (
+              <DropdownMenu.Item
+                className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground hover:bg-accent focus:bg-accent outline-none"
+                onSelect={() => router.push("/configuracoes/preferencias")}
+              >
+                <RefreshCw size={16} />
+                Alterar perfil em uso
+              </DropdownMenu.Item>
+            ) : null}
             <DropdownMenu.Separator className="my-1 h-px bg-border" />
             <DropdownMenu.Item
               className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-destructive hover:bg-destructive/10 focus:bg-destructive/10 outline-none"

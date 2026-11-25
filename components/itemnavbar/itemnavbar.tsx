@@ -12,7 +12,11 @@ import { UserMenu } from "@/components/itemnavbar/user-menu"
 import { NavbarNotifications } from "@/components/navbar-notifications/navbar-notifications"
 import { ThemeToggle } from "@/components/layout/theme-toggle"
 import { ExploreRightPanel } from "@/components/itemexploreseke/itemexploreseke"
-import { getAppNavItems } from "@/components/itemnavbar/nav-config"
+import {
+  getAppNavItems,
+  isNavItemActive,
+} from "@/components/itemnavbar/nav-config"
+import { cn } from "@/lib/utils"
 import { MobileBottomNav } from "@/components/itemnavbar/bottom-nav"
 
 export function Navbar() {
@@ -72,8 +76,9 @@ export function Navbar() {
 
     const navItems = getAppNavItems({ isAuthenticated, role })
 
+    // Ícone acima, texto curto abaixo — o mesmo padrão da navegação inferior.
     const navLinkClass =
-        "flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-primary md:px-2.5 lg:gap-2 lg:px-2.5"
+        "flex min-w-14 flex-col items-center justify-center gap-0.5 rounded-lg px-2 py-1.5 text-[11px] font-semibold leading-tight text-muted-foreground transition-colors hover:bg-accent hover:text-primary lg:min-w-18 lg:text-xs"
 
     const renderSearchField = () => (
         <div className="relative w-full">
@@ -110,27 +115,61 @@ export function Navbar() {
                         role="search"
                         aria-label="Pesquisar publicações por hashtag"
                         onSubmit={handleSearch}
-                        className="hidden min-w-0 flex-1 items-center md:flex md:max-w-[9.5rem] md:flex-none lg:max-w-[11rem] xl:max-w-xs"
+                        className="hidden min-w-0 flex-1 items-center md:flex md:max-w-[8.5rem] md:flex-none lg:max-w-[11rem] xl:max-w-xs"
                     >
                         {renderSearchField()}
                     </form>
 
-                    {/* Menu central — tablet (ícones) e desktop (ícones + texto) */}
-                    <div className="hidden min-w-0 flex-1 items-center justify-center gap-0.5 overflow-x-auto md:flex lg:gap-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {/* Menu central — apenas o essencial de cada perfil */}
+                    <div className="hidden min-w-0 flex-1 items-center justify-center gap-1 md:flex lg:gap-2">
                         {navItems.map((item) => {
                             const Icon = item.icon
+                            const active = isNavItemActive(
+                                item,
+                                pathname ?? "/",
+                                "",
+                                exploreOpen
+                            )
+                            const className = cn(
+                                navLinkClass,
+                                active && "bg-primary/10 text-primary"
+                            )
+                            const content = (
+                                <>
+                                    <Icon
+                                        size={20}
+                                        strokeWidth={active ? 2.4 : 2}
+                                        className="shrink-0"
+                                        aria-hidden
+                                    />
+                                    <span className="max-w-full truncate">
+                                        {item.shortLabel}
+                                    </span>
+                                </>
+                            )
+
+                            if (item.action === "notifications") {
+                                return (
+                                    <NavbarNotifications
+                                        key={item.id}
+                                        variant="label"
+                                        className={className}
+                                    />
+                                )
+                            }
+
                             if (item.action === "explore") {
                                 return (
                                     <button
                                         key={item.id}
                                         type="button"
                                         onClick={() => setExploreOpen(true)}
-                                        className={`${navLinkClass} cursor-pointer`}
+                                        className={cn(className, "cursor-pointer")}
                                         title={item.label}
                                         aria-label={item.label}
+                                        aria-pressed={active}
                                     >
-                                        <Icon size={18} className="shrink-0" aria-hidden />
-                                        <span className="hidden lg:inline">{item.label}</span>
+                                        {content}
                                     </button>
                                 )
                             }
@@ -139,12 +178,12 @@ export function Navbar() {
                                 <Link
                                     key={item.id}
                                     href={item.href ?? "/"}
-                                    className={navLinkClass}
+                                    className={className}
                                     title={item.label}
                                     aria-label={item.label}
+                                    aria-current={active ? "page" : undefined}
                                 >
-                                    <Icon size={18} className="shrink-0" aria-hidden />
-                                    <span className="hidden lg:inline">{item.label}</span>
+                                    {content}
                                 </Link>
                             )
                         })}
@@ -153,7 +192,10 @@ export function Navbar() {
                     {/* Ações à direita */}
                     <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2 md:ml-0 md:gap-1.5 lg:gap-2">
                         <ThemeToggle />
-                        <NavbarNotifications />
+                        {/* Em mobile o menu central está oculto: mantém o sino compacto. */}
+                        <div className="md:hidden">
+                            <NavbarNotifications />
+                        </div>
 
                         <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-2">
                             {!isLoading && (

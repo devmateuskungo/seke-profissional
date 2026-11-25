@@ -153,7 +153,14 @@ export function ItemForgotPassword() {
                     style={{ backgroundColor: lightTheme.colors.primary }}
                     disabled={isLoading}
                 >
-                    {isLoading ? "A atualizar…" : "Atualizar senha"}
+                    {isLoading ? (
+                        <span className="flex items-center justify-center gap-2">
+                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                            A atualizar...
+                        </span>
+                    ) : (
+                        "Atualizar senha"
+                    )}
                 </Button>
                 <p className="mt-6">
                     <Link href="/auth/login" className="text-primary">Voltar para o login</Link>

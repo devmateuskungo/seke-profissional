@@ -14,8 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/toaster"
-import { createProposal } from "@/lib/proposals-client"
-import type { Proposal } from "@/types/proposal"
+import { submitIamProposal } from "@/lib/iam-orders-client"
 
 function getSessionToken(): string | null {
   if (typeof window === "undefined") return null
@@ -27,7 +26,7 @@ export interface ItemPropostaEnviarProps {
   servico?: string
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSuccess?: (proposal: Proposal) => void
+  onSuccess?: () => void
 }
 
 export function ItemPropostaEnviar({
@@ -39,13 +38,13 @@ export function ItemPropostaEnviar({
 }: ItemPropostaEnviarProps) {
   const toast = useToast()
   const [price, setPrice] = useState("")
-  const [estimatedDuration, setEstimatedDuration] = useState("")
+  const [estimatedTime, setEstimatedTime] = useState("")
   const [message, setMessage] = useState("")
   const [submitting, setSubmitting] = useState(false)
 
   const resetForm = useCallback(() => {
     setPrice("")
-    setEstimatedDuration("")
+    setEstimatedTime("")
     setMessage("")
   }, [])
 
@@ -65,15 +64,18 @@ export function ItemPropostaEnviar({
     }
 
     const priceNum = Number(price.replace(/\s/g, "").replace(",", "."))
-    const durationNum = Number(estimatedDuration.replace(/\s/g, ""))
+    const rawEstimatedTime = estimatedTime.trim()
+    const normalizedEstimatedTime = /^\d+$/.test(rawEstimatedTime)
+      ? `${rawEstimatedTime} minutos`
+      : rawEstimatedTime
 
     if (!Number.isFinite(priceNum) || priceNum <= 0) {
       toast.error("Informe um preço válido.")
       return
     }
 
-    if (!Number.isFinite(durationNum) || durationNum <= 0) {
-      toast.error("Informe a duração estimada em minutos.")
+    if (!normalizedEstimatedTime) {
+      toast.error("Informe o tempo estimado (ex.: 2 horas).")
       return
     }
 
@@ -84,11 +86,11 @@ export function ItemPropostaEnviar({
 
     setSubmitting(true)
     try {
-      const result = await createProposal(
-        serviceRequestId,
+      const result = await submitIamProposal(
         {
+          service_id: serviceRequestId.trim(),
           price: priceNum,
-          estimated_duration: durationNum,
+          estimated_time: normalizedEstimatedTime,
           message: message.trim(),
         },
         token
@@ -100,7 +102,7 @@ export function ItemPropostaEnviar({
       }
 
       toast.success("Proposta enviada com sucesso.")
-      onSuccess?.(result.data)
+      onSuccess?.()
       handleOpenChange(false)
     } catch {
       toast.error("Erro de ligação. Tente novamente.")
@@ -109,7 +111,7 @@ export function ItemPropostaEnviar({
     }
   }, [
     price,
-    estimatedDuration,
+    estimatedTime,
     message,
     serviceRequestId,
     toast,
@@ -149,16 +151,14 @@ export function ItemPropostaEnviar({
 
           <div className="space-y-1.5">
             <Label htmlFor="proposal-duration" className="text-xs">
-              Duração estimada (minutos)
+              Tempo estimado
             </Label>
             <Input
               id="proposal-duration"
-              type="number"
-              min={1}
-              step={1}
-              placeholder="120"
-              value={estimatedDuration}
-              onChange={(e) => setEstimatedDuration(e.target.value)}
+              type="text"
+              placeholder="Ex.: 2 horas"
+              value={estimatedTime}
+              onChange={(e) => setEstimatedTime(e.target.value)}
               disabled={submitting}
               className="h-9 text-sm"
             />

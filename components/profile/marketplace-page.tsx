@@ -13,6 +13,8 @@ import { getStoredUserId } from "@/lib/viewer-user-id"
 
 interface MarketplacePageProps {
   mode: "client" | "professional"
+  /** Renderiza apenas o conteúdo, sem cabeçalho de página próprio. */
+  embedded?: boolean
 }
 
 const pageMeta = {
@@ -22,7 +24,10 @@ const pageMeta = {
     wrongRoleTitle: "Esta área é para clientes",
     wrongRoleMessage:
       "Como profissional, gerencie as propostas que enviou na página de propostas.",
-    wrongRoleLink: { href: "/propostas", label: "Ir para propostas" },
+    wrongRoleLink: {
+      href: "/profissional/propostas",
+      label: "Ir para propostas",
+    },
   },
   professional: {
     title: "As minhas propostas",
@@ -34,7 +39,7 @@ const pageMeta = {
   },
 } as const
 
-export function MarketplacePage({ mode }: MarketplacePageProps) {
+export function MarketplacePage({ mode, embedded = false }: MarketplacePageProps) {
   const router = useRouter()
   const { isAuthenticated, isLoading: authLoading } = useAuth()
   const { role, isLoading: roleLoading } = useAccountRole()
@@ -51,13 +56,17 @@ export function MarketplacePage({ mode }: MarketplacePageProps) {
   const meta = pageMeta[mode]
   const isProfessional = mode === "professional"
   const expectedRole = mode
+  const callbackUrl =
+    mode === "client" ? "/solicitacoes" : "/profissional/propostas"
 
   useEffect(() => {
     if (authLoading) return
     if (!isAuthenticated) {
-      router.replace(`/auth/login?callbackUrl=/${mode === "client" ? "solicitacoes" : "propostas"}`)
+      router.replace(
+        `/auth/login?callbackUrl=${encodeURIComponent(callbackUrl)}`
+      )
     }
-  }, [authLoading, isAuthenticated, mode, router])
+  }, [authLoading, callbackUrl, isAuthenticated, router])
 
   const isLoading = authLoading || roleLoading
 
@@ -75,6 +84,42 @@ export function MarketplacePage({ mode }: MarketplacePageProps) {
   }
 
   const wrongRole = role != null && role !== expectedRole
+
+  const panels = wrongRole ? (
+    <div
+      className={
+        embedded
+          ? "space-y-3 rounded-xl border border-border bg-card p-8 text-center"
+          : "space-y-3 border-y border-border bg-card p-8 text-center sm:rounded-xl sm:border"
+      }
+    >
+      <h2 className="text-base font-semibold text-foreground">
+        {meta.wrongRoleTitle}
+      </h2>
+      <p className="mx-auto max-w-md text-sm text-muted-foreground">
+        {meta.wrongRoleMessage}
+      </p>
+      <Button type="button" variant="outline" asChild>
+        <Link href={meta.wrongRoleLink.href}>{meta.wrongRoleLink.label}</Link>
+      </Button>
+    </div>
+  ) : (
+    <div
+      className={
+        embedded
+          ? "rounded-xl border border-border bg-card p-4 sm:p-6"
+          : "border-y border-border bg-card py-4 sm:rounded-xl sm:border sm:p-6"
+      }
+    >
+      <ProfileMarketplacePanels
+        isProfessional={isProfessional}
+        userId={userId}
+        showSectionHeader={!embedded}
+      />
+    </div>
+  )
+
+  if (embedded) return <>{panels}</>
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 py-6 sm:py-8">
@@ -100,25 +145,7 @@ export function MarketplacePage({ mode }: MarketplacePageProps) {
         </div>
       </div>
 
-      {wrongRole ? (
-        <div className="space-y-3 border-y border-border bg-card p-8 text-center sm:rounded-xl sm:border">
-          <h2 className="text-base font-semibold text-foreground">{meta.wrongRoleTitle}</h2>
-          <p className="mx-auto max-w-md text-sm text-muted-foreground">
-            {meta.wrongRoleMessage}
-          </p>
-          <Button type="button" variant="outline" asChild>
-            <Link href={meta.wrongRoleLink.href}>{meta.wrongRoleLink.label}</Link>
-          </Button>
-        </div>
-      ) : (
-      <div className="border-y border-border bg-card py-4 sm:rounded-xl sm:border sm:p-6">
-          <ProfileMarketplacePanels
-            isProfessional={isProfessional}
-            userId={userId}
-            showSectionHeader={false}
-          />
-        </div>
-      )}
+      {panels}
     </div>
   )
 }

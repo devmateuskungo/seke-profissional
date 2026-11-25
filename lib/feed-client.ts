@@ -684,17 +684,19 @@ export async function fetchExploreFeed(
 }
 
 /**
- * Feed da home: com sessão usa sempre `iam-feed?action=my-feed`
- * (personalizado, sem fallback público). Sem sessão usa `action=latest` e,
- * em falha recuperável, `trending` e a lista global.
+ * Feed da home: usa sempre `iam-feed?action=latest`.
+ *
+ * `my-feed` devolve apenas o feed personalizado (seguidos/próprios) e, para um
+ * cliente sem seguidos, esconde as publicações dos profissionais. A home é a
+ * vitrine da plataforma — mostra o feed público a todos — e o token, quando
+ * existe, é enviado na mesma para personalizar `liked_by_me` /
+ * `following_author` sem alterar a lista de posts.
+ *
+ * Em falha recuperável tenta `trending` e, por fim, a lista global.
  */
 export async function fetchHomeFeed(
   options: FetchGlobalFeedOptions = {}
 ): Promise<FetchGlobalFeedOutcome> {
-  if (options.token?.trim()) {
-    return fetchMyFeed(options)
-  }
-
   const latest = await fetchLatestFeed(options)
   if (latest.success) return latest
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useMemo, useEffect, useCallback } from 'react';
+import { Suspense, useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import HeroSection from "@/components/itemheaderpost/itemheaderpost";
 import ItemPostProfissonal from "@/components/itempostprofissional/itempostprofissional";
@@ -29,7 +29,8 @@ import {
   toProfissionalFeedItem,
   toSolicitacaoFeedItem,
 } from '@/types/home-feed';
-import { fetchHomeServiceRequests } from '@/lib/service-request-client';
+import { listOpenIamServices } from '@/lib/iam-orders-client';
+import { fetchMarketplaceCategories } from '@/lib/marketplace-client';
 import { serviceRequestToSolicitacaoRow } from '@/lib/service-request-map';
 import type { MarketplaceServiceRequest, ServiceRequestPagination } from '@/types/service-request';
 import { useAccountRole } from '@/lib/use-account-role';
@@ -40,12 +41,14 @@ import {
 } from '@/components/home/home-feed-skeleton';
 import { HomeSidebarMetrics } from '@/components/home/home-sidebar-metrics';
 import { HomeProfessionalAvailability } from '@/components/home/home-professional-availability';
-import { HomeFindProfessionalCard } from '@/components/home/home-find-professional-card';
 import { HomeBecomeClientCard } from '@/components/home/home-become-client-card';
 import { HomeUserProfileCard } from '@/components/home/home-user-profile-card';
 import { HomeSidebarPanel } from '@/components/home/home-sidebar-panel';
+import { HomeRoleOverview } from '@/components/home/home-role-overview';
 import { useAuth } from '@/lib/use-auth';
 import { useVideoFeedGallery } from '@/components/video-feed-gallery/video-feed-gallery-provider';
+
+const SERVICE_REQUESTS_PAGE_SIZE = 20;
 
 function getSessionToken(): string | null {
   if (typeof window === 'undefined') return null;
@@ -129,13 +132,11 @@ function HomeInner() {
   const [feedError, setFeedError] = useState<string | null>(null);
 
   const [serviceRequests, setServiceRequests] = useState<MarketplaceServiceRequest[]>([]);
-  const [serviceRequestsPagination, setServiceRequestsPagination] =
-    useState<ServiceRequestPagination | null>(null);
   const [serviceRequestsPage, setServiceRequestsPage] = useState(1);
   const [serviceRequestsReloadKey, setServiceRequestsReloadKey] = useState(0);
   const [serviceRequestsLoading, setServiceRequestsLoading] = useState(true);
-  const [serviceRequestsLoadingMore, setServiceRequestsLoadingMore] = useState(false);
   const [serviceRequestsError, setServiceRequestsError] = useState<string | null>(null);
+  const categoryNamesRef = useRef<Map<string, string>>(new Map());
   const [proposalDialogRequest, setProposalDialogRequest] = useState<{
     id: string;
     servico: string;
@@ -188,38 +189,61 @@ function HomeInner() {
     let cancelled = false;
 
     async function run() {
-      const token = getSessionToken();
-      const result = await fetchHomeServiceRequests({
-        page: serviceRequestsPage,
-        limit: 20,
-        token: token ?? undefined,
-      });
+      const result = await fetchMarketplaceCategories(
+        getSessionToken() ?? undefined
+      );
+      if (cancelled || !result.success) return;
 
-      if (cancelled) return;
-
-      if (result.success) {
-        const { requests, pagination } = result.data;
-        setServiceRequests((prev) =>
-          serviceRequestsPage === 1 ? requests : [...prev, ...requests]
-        );
-        setServiceRequestsPagination(pagination ?? null);
-        setServiceRequestsError(null);
-      } else {
-        setServiceRequestsError(result.error);
-        if (serviceRequestsPage === 1) {
-          setServiceRequests([]);
-        }
-      }
-
-      setServiceRequestsLoading(false);
-      setServiceRequestsLoadingMore(false);
+      categoryNamesRef.current = new Map(
+        result.data.map((category) => [
+          category.slug.toLowerCase(),
+          category.name,
+        ])
+      );
     }
 
     void run();
     return () => {
       cancelled = true;
     };
-  }, [serviceRequestsPage, serviceRequestsReloadKey]);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function run() {
+      const token = getSessionToken();
+      if (!token) {
+        setServiceRequestsError('Inicie sessão para ver as solicitações.');
+        setServiceRequests([]);
+        setServiceRequestsLoading(false);
+        return;
+      }
+
+      setServiceRequestsLoading(true);
+      const result = await listOpenIamServices({
+        token,
+        categoryNames: categoryNamesRef.current,
+      });
+
+      if (cancelled) return;
+
+      if (result.success) {
+        setServiceRequests(result.data);
+        setServiceRequestsError(null);
+      } else {
+        setServiceRequestsError(result.error);
+        setServiceRequests([]);
+      }
+
+      setServiceRequestsLoading(false);
+    }
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [serviceRequestsReloadKey]);
 
   const handleLoadMore = useCallback(() => {
     setFeedLoadingMore(true);
@@ -240,12 +264,10 @@ function HomeInner() {
     setServiceRequestsPage(1);
     setServiceRequests([]);
     setServiceRequestsLoading(true);
-    setServiceRequestsLoadingMore(false);
     setServiceRequestsReloadKey((previousKey) => previousKey + 1);
   }, []);
 
   const handleLoadMoreServiceRequests = useCallback(() => {
-    setServiceRequestsLoadingMore(true);
     setServiceRequestsPage((previousPage) => previousPage + 1);
   }, []);
 
@@ -453,9 +475,28 @@ function HomeInner() {
     [accountRole, isAuthenticated, router, toast, viewerUserId]
   );
 
+  const serviceRequestsPagination = useMemo<ServiceRequestPagination>(
+    () => ({
+      page: serviceRequestsPage,
+      limit: SERVICE_REQUESTS_PAGE_SIZE,
+      total: serviceRequests.length,
+      pages: Math.max(
+        1,
+        Math.ceil(serviceRequests.length / SERVICE_REQUESTS_PAGE_SIZE)
+      ),
+    }),
+    [serviceRequests.length, serviceRequestsPage]
+  );
+
+  const pagedServiceRequests = useMemo(
+    () =>
+      serviceRequests.slice(0, serviceRequestsPage * SERVICE_REQUESTS_PAGE_SIZE),
+    [serviceRequests, serviceRequestsPage]
+  );
+
   const solicitacoesRows: SolicitacaoFeedRow[] = useMemo(
-    () => serviceRequests.map(serviceRequestToSolicitacaoRow),
-    [serviceRequests]
+    () => pagedServiceRequests.map(serviceRequestToSolicitacaoRow),
+    [pagedServiceRequests]
   );
 
   const solicitacoesItems: FeedItem[] = useMemo(
@@ -559,7 +600,6 @@ function HomeInner() {
           className="sticky top-20 z-10 hidden w-[342px] shrink-0 space-y-4 self-start lg:block"
         >
           <HomeUserProfileCard />
-          <HomeFindProfessionalCard variant="sidebar" />
 
           {!authLoading &&
           isAuthenticated &&
@@ -577,6 +617,13 @@ function HomeInner() {
         </aside>
 
         <main className="min-w-0 flex-1">
+          <HomeRoleOverview
+            role={accountRole}
+            isAuthenticated={isAuthenticated}
+            isLoading={authLoading || accountRoleLoading}
+            className="mb-4"
+          />
+
           <div className="bg-card border border-border rounded-md">
             <div className="px-2 py-2 sm:px-2">
               <HeroSection />
@@ -584,9 +631,6 @@ function HomeInner() {
 
             <div className="mt-4 hidden space-y-4 md:block lg:hidden">
               <HomeUserProfileCard />
-              {!accountRoleLoading && accountRole !== 'professional' ? (
-                <HomeFindProfessionalCard variant="banner" />
-              ) : null}
             </div>
 
             {!accountRoleLoading && accountRole === 'client' ? (
@@ -740,29 +784,19 @@ function HomeInner() {
                     </div>
                   )}
                   {filtro === 'solicitacoes' && hasMoreServiceRequests && (
-                    <div className="py-6">
-                      {serviceRequestsLoadingMore ? (
-                        <div className="space-y-4">
-                          <div className="py-2">
-                            <HomeFeedPostSkeleton />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex justify-center">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleLoadMoreServiceRequests}
-                          >
-                            Carregar mais solicitações
-                          </Button>
-                        </div>
-                      )}
+                    <div className="py-6 flex justify-center">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleLoadMoreServiceRequests}
+                      >
+                        Carregar mais solicitações
+                      </Button>
                     </div>
                   )}
                   {filtro === 'todos' && (hasMorePosts || hasMoreServiceRequests) && (
                     <div className="py-6">
-                      {feedLoadingMore || serviceRequestsLoadingMore ? (
+                      {feedLoadingMore ? (
                         <div className="space-y-4">
                           <div className="py-2">
                             <HomeFeedPostSkeleton />
